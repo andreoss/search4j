@@ -54,7 +54,7 @@ record Stored(
      * Copies any document.
      *
      * @param document The document to copy
-     * @return The stored copy
+     * @return Stored copy
      */
     static Stored of(final Document document) {
         final NavigableMap<ValueNo, String> values =
@@ -82,18 +82,18 @@ record Stored(
     }
 
     /**
-     * Returns the number of distinct terms, capped at the length.
+     * Number of distinct terms, capped at the length.
      *
-     * @return The distinct term count
+     * @return Distinct term count
      */
     TermCount unique() {
         return new TermCount(Math.min(this.terms.size(), this.length.value()));
     }
 
     /**
-     * Returns the highest within-document frequency.
+     * Highest within-document frequency.
      *
-     * @return The highest frequency
+     * @return Highest frequency
      */
     TermCount highest() {
         TermCount result = TermCount.ZERO;
@@ -108,7 +108,7 @@ record Stored(
     /**
      * Builds a detached, editable copy.
      *
-     * @return The document
+     * @return Document
      */
     Document document() {
         final InMemoryDocument result = new InMemoryDocument();

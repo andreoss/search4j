@@ -54,9 +54,9 @@ public enum CheckFlag {
     }
 
     /**
-     * Returns the numeric value.
+     * Bit of the flag.
      *
-     * @return The numeric value
+     * @return Single-bit mask, combined into a flag set by bitwise or
      */
     public int code() {
         return this.code;
@@ -65,8 +65,8 @@ public enum CheckFlag {
     /**
      * Tests whether a check flag set carries this flag.
      *
-     * @param flags The check flags
-     * @return True when the flag is present
+     * @param flags Check flag set to inspect
+     * @return True when the bit of this flag is set
      */
     public boolean present(final int flags) {
         return (flags & this.code) != 0;
@@ -75,8 +75,8 @@ public enum CheckFlag {
     /**
      * Adds this flag to a check flag set.
      *
-     * @param flags The check flags
-     * @return The flags with this flag set
+     * @param flags Check flag set to extend
+     * @return The set with this bit added
      */
     public int add(final int flags) {
         return flags | this.code;

@@ -85,7 +85,7 @@ final class Tally {
     /**
      * Freezes the tally into an immutable occurrence.
      *
-     * @return The occurrence
+     * @return Occurrence
      */
     Occurrence freeze() {
         return new Occurrence(this.wdf, List.copyOf(this.positions));

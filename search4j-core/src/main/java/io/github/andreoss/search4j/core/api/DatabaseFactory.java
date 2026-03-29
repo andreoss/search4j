@@ -31,18 +31,18 @@ public final class DatabaseFactory {
     /**
      * Creates an empty writable database held in memory.
      *
-     * @return The writable database
+     * @return New database, independent of any other
      */
     public static WritableDatabase inMemory() {
         return new InMemoryDatabase();
     }
 
     /**
-     * Opens a writable database at a path.
+     * Opens a writable database at a path; always unsupported for now.
      *
-     * @param path The database path
-     * @param flags The opening flags
-     * @return The writable database
+     * @param path Database directory, not null
+     * @param flags Bitwise-or of action, backend and opening flags
+     * @return Never returns normally
      */
     public static WritableDatabase openWritable(
         final Path path,
@@ -53,10 +53,10 @@ public final class DatabaseFactory {
     }
 
     /**
-     * Opens a read-only database at a path.
+     * Opens a read-only database at a path; always unsupported for now.
      *
-     * @param path The database path
-     * @return The database
+     * @param path Database directory, not null
+     * @return Never returns normally
      */
     public static Database open(final Path path) {
         Objects.requireNonNull(path, "path");

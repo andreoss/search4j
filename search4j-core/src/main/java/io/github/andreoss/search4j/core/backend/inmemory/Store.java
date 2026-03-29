@@ -99,20 +99,20 @@ final class Store implements Stats {
     }
 
     /**
-     * Returns the collection frequency of a term.
+     * Collection frequency of a term.
      *
      * @param term The term text
-     * @return The collection frequency
+     * @return Collection frequency
      */
     TermCount collection(final String term) {
         return this.term(term).map(Term::collection).orElse(TermCount.ZERO);
     }
 
     /**
-     * Returns the live postings of a term.
+     * Live postings of a term.
      *
      * @param term The term text
-     * @return The occurrences by document, empty for an unknown term
+     * @return Occurrences by document, empty for an unknown term
      */
     NavigableMap<DocId, Occurrence> postings(final String term) {
         return this.term(term).map(Term::postings).orElseGet(
@@ -123,54 +123,55 @@ final class Store implements Stats {
     }
 
     /**
-     * Returns the live terms in use.
+     * Live terms in use.
      *
-     * @return The terms, ordered by {@link TermOrder}
+     * @return Terms, ordered by {@link TermOrder}
      */
     NavigableMap<String, Term> terms() {
         return this.terms;
     }
 
     /**
-     * Returns the live documents.
+     * Live documents.
      *
-     * @return The documents by identifier
+     * @return Documents by identifier
      */
     NavigableMap<DocId, Stored> docs() {
         return this.docs;
     }
 
     /**
-     * Returns the live metadata.
+     * Live metadata.
      *
-     * @return The metadata by key, ordered by {@link TermOrder}
+     * @return Metadata by key, ordered by {@link TermOrder}
      */
     NavigableMap<String, String> meta() {
         return this.meta;
     }
 
     /**
-     * Returns the highest document identifier ever used.
+     * Highest document identifier ever used.
      *
-     * @return The last identifier
+     * @return Last identifier
      */
     DocId last() {
         return this.last;
     }
 
     /**
-     * Returns the total length of every document.
+     * Total length of every document.
      *
-     * @return The total length
+     * @return Total length
      */
     long total() {
         return this.total;
     }
 
     /**
-     * Tests whether positions are present.
+     * Tests whether a document with positions was added since the store was
+     * last empty.
      *
-     * @return True when positions are present
+     * @return True when positions may be present
      */
     boolean positional() {
         return this.positional;
@@ -182,7 +183,7 @@ final class Store implements Stats {
      * <p>An absent document raises a document-not-found error.</p>
      *
      * @param docid The document identifier
-     * @return The stored document
+     * @return Stored document
      */
     Stored stored(final DocId docid) {
         final Stored found = this.docs.get(docid);
@@ -195,10 +196,10 @@ final class Store implements Stats {
     }
 
     /**
-     * Returns the statistics of a slot.
+     * Statistics of a slot.
      *
      * @param slot The value slot number
-     * @return The statistics, those of an unused slot when absent
+     * @return Statistics, those of an unused slot when absent
      */
     SlotStats slot(final ValueNo slot) {
         return this.slots.getOrDefault(slot, new SlotStats());
@@ -208,7 +209,7 @@ final class Store implements Stats {
      * Adds a document under the next identifier.
      *
      * @param stored The document
-     * @return The new identifier
+     * @return New identifier
      */
     DocId add(final Stored stored) {
         final DocId docid = this.last.next();
@@ -248,7 +249,7 @@ final class Store implements Stats {
      * Lists the documents indexed by a term.
      *
      * @param term The term text
-     * @return The identifiers in ascending order
+     * @return Identifiers in ascending order
      */
     List<DocId> indexed(final String term) {
         return new ArrayList<>(this.postings(term).keySet());

@@ -25,28 +25,28 @@ public interface ValueIterator extends AutoCloseable {
     /**
      * Tests whether another value is available.
      *
-     * @return True when a value is available
+     * @return True unless the values are exhausted
      */
     boolean hasNext();
 
     /**
      * Advances to the next value and returns it.
      *
-     * @return The value text
+     * @return Non-empty value
      */
     String next();
 
     /**
-     * Returns the slot number of the current value.
+     * Slot of the current value.
      *
-     * @return The slot number
+     * @return Slot holding the value
      */
     ValueNo slot();
 
     /**
-     * Returns the document holding the current value.
+     * Document holding the current value.
      *
-     * @return The document identifier
+     * @return Identifier of the document
      */
     DocId docId();
 
@@ -54,7 +54,7 @@ public interface ValueIterator extends AutoCloseable {
      * Skips the documents below a target, so the next value returned belongs
      * to the first document at or after it.
      *
-     * @param target The lowest document identifier wanted
+     * @param target Lowest document identifier wanted
      */
     void skipTo(DocId target);
 

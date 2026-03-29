@@ -23,14 +23,14 @@ public interface PostingIterator extends AutoCloseable {
     /**
      * Tests whether another posting is available.
      *
-     * @return True when a posting is available
+     * @return True unless the postings are exhausted
      */
     boolean hasNext();
 
     /**
      * Advances to the next posting and returns its document.
      *
-     * @return The document identifier
+     * @return Identifier above every one returned before
      */
     DocId next();
 
@@ -38,42 +38,42 @@ public interface PostingIterator extends AutoCloseable {
      * Skips the postings below a target, so the next posting returned is the
      * first one at or after it.
      *
-     * @param target The lowest document identifier wanted
+     * @param target Lowest document identifier wanted
      */
     void skipTo(DocId target);
 
     /**
-     * Returns the within-document frequency of the current posting.
+     * Within-document frequency of the current posting.
      *
-     * @return The frequency
+     * @return Frequency, one for every posting of the empty term
      */
     TermCount wdf();
 
     /**
-     * Returns the length of the current document.
+     * Length of the current document.
      *
-     * @return The sum of within-document frequencies of its terms
+     * @return Sum of the within-document frequencies of its terms
      */
     TermCount docLength();
 
     /**
-     * Returns the number of distinct terms in the current document.
+     * Number of distinct terms in the current document.
      *
-     * @return The distinct term count
+     * @return Distinct term count, at most the document length
      */
     TermCount uniqueTerms();
 
     /**
-     * Returns the number of positions of the current posting.
+     * Number of positions of the current posting.
      *
-     * @return The position count
+     * @return Position count, zero when unpositioned
      */
     TermCount positionCount();
 
     /**
      * Opens the positions of the current posting.
      *
-     * @return The position iterator
+     * @return Positions in ascending order
      */
     PositionIterator positions();
 

@@ -41,8 +41,8 @@ public record TotalLength(long value) implements Comparable<TotalLength> {
     /**
      * Creates a total length from its decimal text.
      *
-     * @param text Decimal digits of the total length
-     * @return The total length
+     * @param text Decimal digits without leading zeros
+     * @return Length carrying the parsed number
      */
     public static TotalLength parse(final String text) {
         Objects.requireNonNull(text, "TotalLength text");
@@ -57,8 +57,8 @@ public record TotalLength(long value) implements Comparable<TotalLength> {
     /**
      * Adds another total length.
      *
-     * @param other The length to add
-     * @return The sum
+     * @param other Length to add
+     * @return Sum of both lengths
      */
     public TotalLength plus(final TotalLength other) {
         final long sum;

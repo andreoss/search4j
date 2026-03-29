@@ -10,8 +10,8 @@ package io.github.andreoss.search4j.core.ser;
 /**
  * Keyword escaping for terms.
  *
- * <p>Non-alphanumeric bytes are percent-encoded so an arbitrary string forms
- * one safe keyword.</p>
+ * <p>Characters other than letters and digits become {@code %} and their
+ * code in upper-case hexadecimal, so any string forms one safe keyword.</p>
  *
  * @since 0.1.0
  */
@@ -27,8 +27,8 @@ public final class Keywords {
     /**
      * Escapes a string into a keyword-safe form.
      *
-     * @param text The text to escape
-     * @return The escaped keyword
+     * @param text Text to escape
+     * @return Letters and digits only, plus percent escapes
      */
     public static String escape(final String text) {
         final StringBuilder result = new StringBuilder();
@@ -46,8 +46,8 @@ public final class Keywords {
     /**
      * Unescapes a keyword back into its original form.
      *
-     * @param text The escaped keyword
-     * @return The original text
+     * @param text Keyword holding two-digit percent escapes
+     * @return Text with each escape decoded
      */
     public static String unescape(final String text) {
         final StringBuilder result = new StringBuilder();

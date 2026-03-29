@@ -33,8 +33,8 @@ public final class Zlib {
     /**
      * Compresses bytes with raw deflate.
      *
-     * @param input The bytes to compress
-     * @return The compressed bytes
+     * @param input Bytes to compress
+     * @return Raw deflate stream, without header or checksum
      */
     public static byte[] compress(final byte[] input) {
         final Deflater deflater = new Deflater(
@@ -57,8 +57,8 @@ public final class Zlib {
     /**
      * Decompresses bytes produced by {@link #compress(byte[])}.
      *
-     * @param input The compressed bytes
-     * @return The original bytes
+     * @param input Raw deflate stream
+     * @return Decompressed bytes
      * @throws IOException When the input is not valid deflate data
      */
     public static byte[] decompress(final byte[] input) throws IOException {

@@ -21,7 +21,7 @@ import java.util.function.Function;
 public final class ErrorDispatch {
 
     /**
-     * The dispatch entries in type-name order.
+     * The dispatch entries, one per concrete error type.
      */
     private static final Entry[] ENTRIES = {
         entry("InvariantError", InvariantError::new),
@@ -55,9 +55,9 @@ public final class ErrorDispatch {
     /**
      * Reconstructs an error from its type name and message.
      *
-     * @param type The error type name
-     * @param message The human-readable message
-     * @return The reconstructed error
+     * @param type Simple class name of a concrete error
+     * @param message Message carried by the error
+     * @return New error; an unknown type raises an illegal-argument error
      */
     public static SearchError of(final String type, final String message) {
         SearchError result = null;
@@ -77,8 +77,8 @@ public final class ErrorDispatch {
     /**
      * Tests whether an error type name is known.
      *
-     * @param type The error type name
-     * @return True when the type is known
+     * @param type Simple class name to look up
+     * @return True when {@link #of(String, String)} accepts the name
      */
     public static boolean known(final String type) {
         boolean found = false;

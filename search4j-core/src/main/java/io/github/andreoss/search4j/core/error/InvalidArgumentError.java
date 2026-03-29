@@ -22,7 +22,7 @@ public final class InvalidArgumentError extends LogicError {
     /**
      * Creates the error from a message.
      *
-     * @param message The human-readable message
+     * @param message Human-readable description of the failure
      */
     public InvalidArgumentError(final String message) {
         this(message, "", 0);
@@ -31,8 +31,8 @@ public final class InvalidArgumentError extends LogicError {
     /**
      * Creates the error from a message and context.
      *
-     * @param message The human-readable message
-     * @param context Optional context text
+     * @param message Human-readable description of the failure
+     * @param context Machine-oriented detail, empty when none
      */
     public InvalidArgumentError(final String message, final String context) {
         this(message, context, 0);
@@ -41,8 +41,8 @@ public final class InvalidArgumentError extends LogicError {
     /**
      * Creates the error from a message and a system error number.
      *
-     * @param message The human-readable message
-     * @param errno Optional system error number
+     * @param message Human-readable description of the failure
+     * @param errno System error number, zero when none
      */
     public InvalidArgumentError(final String message, final int errno) {
         this(message, "", errno);
@@ -51,9 +51,9 @@ public final class InvalidArgumentError extends LogicError {
     /**
      * Creates the error from a message, context and a system error number.
      *
-     * @param message The human-readable message
-     * @param context Optional context text
-     * @param errno Optional system error number
+     * @param message Human-readable description of the failure
+     * @param context Machine-oriented detail, empty when none
+     * @param errno System error number, zero when none
      */
     public InvalidArgumentError(
         final String message,

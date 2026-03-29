@@ -36,8 +36,8 @@ public final class FileOps {
     /**
      * Reads the whole contents of a file as a UTF-8 string.
      *
-     * @param path The file path
-     * @return The file contents
+     * @param path File to read
+     * @return Contents decoded as UTF-8
      * @throws IOException When the file cannot be read
      */
     public static String readAll(final Path path) throws IOException {
@@ -47,8 +47,8 @@ public final class FileOps {
     /**
      * Writes text to a file, creating or truncating it.
      *
-     * @param path The file path
-     * @param content The text to write
+     * @param path File to write
+     * @param content Text written as UTF-8
      * @throws IOException When the file cannot be written
      */
     public static void writeAll(final Path path, final String content)
@@ -59,8 +59,8 @@ public final class FileOps {
     /**
      * Tests whether a path names an existing regular file.
      *
-     * @param path The path
-     * @return True when the path names a regular file
+     * @param path Path to test
+     * @return True for a regular file, false when absent
      */
     public static boolean isFile(final Path path) {
         return Files.isRegularFile(path);
@@ -69,17 +69,17 @@ public final class FileOps {
     /**
      * Tests whether a path names an existing directory.
      *
-     * @param path The path
-     * @return True when the path names a directory
+     * @param path Path to test
+     * @return True for a directory, false when absent
      */
     public static boolean isDirectory(final Path path) {
         return Files.isDirectory(path);
     }
 
     /**
-     * Deletes a path, whether it is a file or an empty directory.
+     * Deletes a file or an empty directory; an absent path is ignored.
      *
-     * @param path The path to delete
+     * @param path Path to delete
      * @throws IOException When the path cannot be removed
      */
     public static void delete(final Path path) throws IOException {
@@ -89,8 +89,8 @@ public final class FileOps {
     /**
      * Lists the entries of a directory in name order.
      *
-     * @param path The directory path
-     * @return The entry paths, sorted by name
+     * @param path Directory to list, not null
+     * @return Entries sorted by path
      * @throws IOException When the directory cannot be listed
      */
     public static List<Path> list(final Path path) throws IOException {

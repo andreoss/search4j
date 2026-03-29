@@ -24,8 +24,8 @@ public final class UnicodeData {
     /**
      * Lowercases a code point.
      *
-     * @param codepoint The code point
-     * @return The lowercased code point
+     * @param codepoint Code point to map
+     * @return Simple lowercase mapping, the input when there is none
      */
     public static int lowercase(final int codepoint) {
         return Character.toLowerCase(codepoint);
@@ -34,8 +34,8 @@ public final class UnicodeData {
     /**
      * Uppercases a code point.
      *
-     * @param codepoint The code point
-     * @return The uppercased code point
+     * @param codepoint Code point to map
+     * @return Simple uppercase mapping, the input when there is none
      */
     public static int uppercase(final int codepoint) {
         return Character.toUpperCase(codepoint);
@@ -44,8 +44,8 @@ public final class UnicodeData {
     /**
      * Tests whether a code point is alphabetic.
      *
-     * @param codepoint The code point
-     * @return True when alphabetic
+     * @param codepoint Code point to classify
+     * @return True when the code point has the Alphabetic property
      */
     public static boolean alphabetic(final int codepoint) {
         return Character.isAlphabetic(codepoint);

@@ -18,55 +18,55 @@ import io.github.andreoss.search4j.core.types.ValueNo;
 public interface Bounds {
 
     /**
-     * Returns a lower bound on the length of any non-empty document.
+     * Lower bound on document length, ignoring empty documents.
      *
-     * @return The lower bound
+     * @return Length no non-empty document goes below
      */
     TermCount docLengthLowerBound();
 
     /**
-     * Returns an upper bound on the length of any document.
+     * Upper bound on document length.
      *
-     * @return The upper bound
+     * @return Length no document exceeds
      */
     TermCount docLengthUpperBound();
 
     /**
-     * Returns an upper bound on the within-document frequency of a term.
+     * Upper bound on the within-document frequency of a term.
      *
-     * @param term The term text
-     * @return The upper bound, zero for the empty term
+     * @param term Term to bound
+     * @return Highest possible frequency, zero for the empty term
      */
     TermCount wdfUpperBound(String term);
 
     /**
-     * Returns the number of documents with a value in a slot.
+     * Number of documents holding a value in a slot.
      *
-     * @param slot The value slot number
-     * @return The value frequency
+     * @param slot Slot to count
+     * @return Document count, zero for an unused slot
      */
     TermCount valueFrequency(ValueNo slot);
 
     /**
-     * Returns a lower bound on the values in a slot, empty when unused.
+     * Lower bound on the values in a slot.
      *
-     * @param slot The value slot number
-     * @return The lower bound
+     * @param slot Slot to bound
+     * @return Bound, empty when the slot is unused
      */
     String valueLowerBound(ValueNo slot);
 
     /**
-     * Returns an upper bound on the values in a slot, empty when unused.
+     * Upper bound on the values in a slot.
      *
-     * @param slot The value slot number
-     * @return The upper bound
+     * @param slot Slot to bound
+     * @return Bound, empty when the slot is unused
      */
     String valueUpperBound(ValueNo slot);
 
     /**
      * Tests whether any document carries term positions.
      *
-     * @return True when positions are stored
+     * @return True when at least one term has a position
      */
     boolean hasPositions();
 }

@@ -78,9 +78,9 @@ final class Seek<K, V> {
     }
 
     /**
-     * Returns the next entry without advancing.
+     * Next entry without advancing.
      *
-     * @return The entry, empty at the end
+     * @return Entry, empty at the end
      */
     Optional<Map.Entry<K, V>> peek() {
         Map.Entry<K, V> entry = null;
@@ -100,7 +100,7 @@ final class Seek<K, V> {
     /**
      * Advances to the next entry.
      *
-     * @return The entry
+     * @return Entry
      */
     Map.Entry<K, V> advance() {
         final Map.Entry<K, V> entry = this.peek().orElseThrow(
@@ -126,9 +126,9 @@ final class Seek<K, V> {
     }
 
     /**
-     * Returns the entry most recently returned.
+     * Entry most recently returned.
      *
-     * @return The entry
+     * @return Entry
      */
     Map.Entry<K, V> current() {
         if (this.visited.isEmpty()) {

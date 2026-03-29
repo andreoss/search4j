@@ -25,9 +25,9 @@ public abstract class RuntimeError extends SearchError {
     /**
      * Creates a runtime error.
      *
-     * @param message The human-readable message
-     * @param context Optional context text
-     * @param errno Optional system error number
+     * @param message Human-readable description of the failure
+     * @param context Machine-oriented detail, empty when none
+     * @param errno System error number, zero when none
      */
     protected RuntimeError(
         final String message,

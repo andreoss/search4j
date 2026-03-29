@@ -39,7 +39,7 @@ final class Corpus {
     /**
      * Builds the fixture database.
      *
-     * @return The database
+     * @return Database
      */
     static InMemoryDatabase build() {
         final InMemoryDatabase database = new InMemoryDatabase();
@@ -52,7 +52,7 @@ final class Corpus {
     /**
      * Builds the first fixture document.
      *
-     * @return The document
+     * @return Document
      */
     static InMemoryDocument first() {
         final InMemoryDocument doc = new InMemoryDocument();
@@ -68,7 +68,7 @@ final class Corpus {
     /**
      * Builds the second fixture document.
      *
-     * @return The document
+     * @return Document
      */
     static InMemoryDocument second() {
         final InMemoryDocument doc = new InMemoryDocument();
@@ -82,7 +82,7 @@ final class Corpus {
     /**
      * Builds the third fixture document.
      *
-     * @return The document
+     * @return Document
      */
     static InMemoryDocument third() {
         final InMemoryDocument doc = new InMemoryDocument();
@@ -95,7 +95,7 @@ final class Corpus {
      * Builds a document holding one unpositioned term.
      *
      * @param term The term text
-     * @return The document
+     * @return Document
      */
     static InMemoryDocument plain(final String term) {
         final InMemoryDocument doc = new InMemoryDocument();
@@ -108,7 +108,7 @@ final class Corpus {
      * Drains a posting iterator.
      *
      * @param iter The iterator
-     * @return The document identifiers
+     * @return Document identifiers
      */
     static List<DocId> docs(final PostingIterator iter) {
         final List<DocId> result = new ArrayList<>(3);
@@ -122,7 +122,7 @@ final class Corpus {
      * Drains a posting iterator into frequencies.
      *
      * @param iter The iterator
-     * @return The within-document frequencies
+     * @return Within-document frequencies
      */
     static List<TermCount> wdfs(final PostingIterator iter) {
         final List<TermCount> result = new ArrayList<>(3);
@@ -137,7 +137,7 @@ final class Corpus {
      * Drains a term iterator.
      *
      * @param iter The iterator
-     * @return The terms
+     * @return Terms
      */
     static List<String> terms(final TermIterator iter) {
         final List<String> result = new ArrayList<>(3);
@@ -151,7 +151,7 @@ final class Corpus {
      * Drains a position iterator.
      *
      * @param iter The iterator
-     * @return The positions
+     * @return Positions
      */
     static List<TermPos> positions(final PositionIterator iter) {
         final List<TermPos> result = new ArrayList<>(3);
@@ -165,7 +165,7 @@ final class Corpus {
      * Drains a value iterator into "docid:value" entries.
      *
      * @param iter The iterator
-     * @return The entries
+     * @return Entries
      */
     static List<String> values(final ValueIterator iter) {
         final List<String> result = new ArrayList<>(3);
@@ -180,7 +180,7 @@ final class Corpus {
      * Builds a list of positions.
      *
      * @param values The position numbers
-     * @return The positions
+     * @return Positions
      */
     static List<TermPos> at(final int... values) {
         final List<TermPos> result = new ArrayList<>(values.length);
@@ -194,7 +194,7 @@ final class Corpus {
      * Builds a list of document identifiers.
      *
      * @param values The identifier numbers
-     * @return The identifiers
+     * @return Identifiers
      */
     static List<DocId> ids(final int... values) {
         final List<DocId> result = new ArrayList<>(values.length);

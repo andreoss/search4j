@@ -10,6 +10,8 @@ package io.github.andreoss.search4j.core.ser;
 /**
  * Bit-level reader that consumes bits most significant first.
  *
+ * <p>Reading past the end yields zero bits.</p>
+ *
  * @since 0.1.0
  */
 public final class BitReader {
@@ -25,19 +27,19 @@ public final class BitReader {
     private int bit;
 
     /**
-     * Creates a reader over the given bytes.
+     * Creates a reader over a copy of the bytes.
      *
-     * @param data The source bytes
+     * @param data Bytes to read
      */
     public BitReader(final byte[] data) {
         this.data = data.clone();
     }
 
     /**
-     * Reads a value using the given number of bits.
+     * Reads an unsigned value of a given bit width.
      *
-     * @param bits The number of bits, at least one
-     * @return The value read
+     * @param bits Width from 1 to 32; others raise an illegal-argument error
+     * @return Value in the low bits
      */
     public long read(final int bits) {
         if (bits < 1 || bits > 32) {

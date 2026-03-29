@@ -8,7 +8,7 @@
 package io.github.andreoss.search4j.core.error;
 
 /**
- * Base of every checked exception thrown by the search engine.
+ * Base of every unchecked exception thrown by the search engine.
  *
  * <p>Concrete failures are reported as subclasses. Instances carry a
  * human-readable message, optional context text, an error type name, and an
@@ -41,9 +41,9 @@ public abstract class SearchError extends RuntimeException {
     /**
      * Creates an error from a message, context and a system error number.
      *
-     * @param message The human-readable message
-     * @param context Optional context text
-     * @param errno Optional system error number
+     * @param message Human-readable description of the failure
+     * @param context Machine-oriented detail, empty when none
+     * @param errno System error number, zero when none
      */
     protected SearchError(
         final String message,
@@ -57,9 +57,9 @@ public abstract class SearchError extends RuntimeException {
     }
 
     /**
-     * Returns the error type name.
+     * Name of the error type.
      *
-     * @return The type name
+     * @return Simple class name of the concrete error
      */
     public String getType() {
         return this.getClass().getSimpleName();
@@ -71,18 +71,18 @@ public abstract class SearchError extends RuntimeException {
     }
 
     /**
-     * Returns the optional context text.
+     * Machine-oriented detail, such as which remote source raised the error.
      *
-     * @return The context, or an empty string when absent
+     * @return Context, empty when absent
      */
     public String getContext() {
         return this.context;
     }
 
     /**
-     * Returns the system error string for the stored number.
+     * Text naming the system error number.
      *
-     * @return The system string, or an empty string when no number is set
+     * @return Text {@code system error N}, empty when the number is zero
      */
     public String getSystemMessage() {
         final String result;
@@ -95,18 +95,18 @@ public abstract class SearchError extends RuntimeException {
     }
 
     /**
-     * Returns the stored system error number.
+     * System error number behind the failure.
      *
-     * @return The error number, or zero when absent
+     * @return Number, zero when absent
      */
     public int getErrno() {
         return this.errno;
     }
 
     /**
-     * Returns a description of this error.
+     * Type, message and context in one line.
      *
-     * @return The description
+     * @return Text {@code Type: message}, plus {@code (...) context} when set
      */
     public String getDescription() {
         final StringBuilder result = new StringBuilder(this.getType());

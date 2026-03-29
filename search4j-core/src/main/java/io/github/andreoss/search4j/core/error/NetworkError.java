@@ -8,7 +8,7 @@
 package io.github.andreoss.search4j.core.error;
 
 /**
- * A network failure occurred.
+ * Communication with a remote database failed.
  *
  * @since 0.1.0
  */
@@ -22,7 +22,7 @@ public class NetworkError extends RuntimeError {
     /**
      * Creates the error from a message.
      *
-     * @param message The human-readable message
+     * @param message Human-readable description of the failure
      */
     public NetworkError(final String message) {
         this(message, "", 0);
@@ -31,8 +31,8 @@ public class NetworkError extends RuntimeError {
     /**
      * Creates the error from a message and context.
      *
-     * @param message The human-readable message
-     * @param context Optional context text
+     * @param message Human-readable description of the failure
+     * @param context Machine-oriented detail, empty when none
      */
     public NetworkError(final String message, final String context) {
         this(message, context, 0);
@@ -41,8 +41,8 @@ public class NetworkError extends RuntimeError {
     /**
      * Creates the error from a message and a system error number.
      *
-     * @param message The human-readable message
-     * @param errno Optional system error number
+     * @param message Human-readable description of the failure
+     * @param errno System error number, zero when none
      */
     public NetworkError(final String message, final int errno) {
         this(message, "", errno);
@@ -51,9 +51,9 @@ public class NetworkError extends RuntimeError {
     /**
      * Creates the error from a message, context and a system error number.
      *
-     * @param message The human-readable message
-     * @param context Optional context text
-     * @param errno Optional system error number
+     * @param message Human-readable description of the failure
+     * @param context Machine-oriented detail, empty when none
+     * @param errno System error number, zero when none
      */
     protected NetworkError(
         final String message,

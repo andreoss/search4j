@@ -39,7 +39,7 @@ public enum QueryOp {
     XOR(3),
 
     /**
-     * Intersection where only the first subquery contributes weight.
+     * Matches what the first subquery matches; the others add weight only.
      */
     AND_MAYBE(4),
 
@@ -49,12 +49,12 @@ public enum QueryOp {
     FILTER(5),
 
     /**
-     * Ordered proximity; subqueries appear near each other.
+     * Proximity; subqueries appear within a window, in any order.
      */
     NEAR(6),
 
     /**
-     * Ordered adjacency; subqueries appear as a phrase.
+     * Ordered proximity; subqueries appear within a window, in query order.
      */
     PHRASE(7),
 
@@ -99,7 +99,7 @@ public enum QueryOp {
     WILDCARD(15),
 
     /**
-     * Placeholder for an invalid operator.
+     * Invalid query, used as a placeholder.
      */
     INVALID(99),
 
@@ -138,9 +138,9 @@ public enum QueryOp {
     }
 
     /**
-     * Returns the numeric value.
+     * Numeric code of the operator or leaf type.
      *
-     * @return The numeric code
+     * @return Code below 100 for operators, 100 and above for leaves
      */
     public int code() {
         return this.code;
@@ -158,8 +158,8 @@ public enum QueryOp {
     /**
      * Resolves an operator from its numeric value.
      *
-     * @param code The numeric code
-     * @return The matching operator
+     * @param code Code of a constant; others raise an illegal-argument error
+     * @return Operator or leaf type carrying the code
      */
     public static QueryOp of(final int code) {
         for (final QueryOp value : values()) {

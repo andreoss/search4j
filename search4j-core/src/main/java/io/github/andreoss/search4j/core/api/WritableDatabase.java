@@ -23,8 +23,8 @@ public interface WritableDatabase extends Database {
     /**
      * Adds a copy of a document under the next identifier.
      *
-     * @param document The document to add
-     * @return The new document identifier
+     * @param document Document to copy in
+     * @return One above the last identifier ever used
      */
     DocId addDocument(Document document);
 
@@ -33,22 +33,22 @@ public interface WritableDatabase extends Database {
      *
      * <p>An absent document raises a document-not-found error.</p>
      *
-     * @param docid The document identifier
+     * @param docid Non-zero document identifier
      */
     void deleteDocument(DocId docid);
 
     /**
      * Deletes every document indexed by a term.
      *
-     * @param term The non-empty term text
+     * @param term Non-empty term; an unknown term deletes nothing
      */
     void deleteDocument(String term);
 
     /**
      * Stores a copy of a document at an identifier, adding it when absent.
      *
-     * @param docid The document identifier
-     * @param document The replacement document
+     * @param docid Non-zero document identifier
+     * @param document Document to copy in
      */
     void replaceDocument(DocId docid, Document document);
 
@@ -56,17 +56,17 @@ public interface WritableDatabase extends Database {
      * Replaces the first document indexed by a term and deletes the others,
      * or adds the document when the term indexes none.
      *
-     * @param term The non-empty term text
-     * @param document The replacement document
-     * @return The identifier of the stored document
+     * @param term Non-empty term
+     * @param document Document to copy in
+     * @return Lowest identifier indexed by the term, or a new identifier
      */
     DocId replaceDocument(String term, Document document);
 
     /**
      * Stores metadata under a key; an empty value removes the key.
      *
-     * @param key The non-empty key
-     * @param value The metadata
+     * @param key Non-empty key
+     * @param value Value to store, empty to remove
      */
     void setMetadata(String key, String value);
 

@@ -21,8 +21,8 @@ public interface DocumentTerms {
      * Adds a term without a position, increasing its within-document
      * frequency.
      *
-     * @param term The term text
-     * @param increment The frequency increment
+     * @param term Non-empty term
+     * @param increment Amount added to the frequency, zero for a boolean term
      */
     void addTerm(String term, TermCount increment);
 
@@ -32,9 +32,9 @@ public interface DocumentTerms {
      * <p>A position already present is kept once; the frequency still
      * grows.</p>
      *
-     * @param term The term text
-     * @param position The term position
-     * @param increment The frequency increment
+     * @param term Non-empty term
+     * @param position Position to record
+     * @param increment Amount added to the frequency
      */
     void addPosting(String term, TermPos position, TermCount increment);
 
@@ -43,7 +43,7 @@ public interface DocumentTerms {
      *
      * <p>An absent term raises an invalid-argument error.</p>
      *
-     * @param term The term text
+     * @param term Non-empty term present in the document
      */
     void removeTerm(String term);
 
@@ -53,9 +53,9 @@ public interface DocumentTerms {
      *
      * <p>An absent term or position raises an invalid-argument error.</p>
      *
-     * @param term The term text
-     * @param position The term position
-     * @param decrement The frequency decrement
+     * @param term Non-empty term present in the document
+     * @param position Position present for the term
+     * @param decrement Amount taken from the frequency
      */
     void removePosting(String term, TermPos position, TermCount decrement);
 
@@ -65,16 +65,16 @@ public interface DocumentTerms {
     void clearTerms();
 
     /**
-     * Returns the number of distinct terms in the document.
+     * Number of distinct terms in the document.
      *
-     * @return The term count
+     * @return Distinct term count, zero when empty
      */
     TermCount termCount();
 
     /**
      * Opens the terms in ascending order with frequencies and positions.
      *
-     * @return The term iterator
+     * @return Iterator over a snapshot of the terms
      */
     TermIterator termList();
 }

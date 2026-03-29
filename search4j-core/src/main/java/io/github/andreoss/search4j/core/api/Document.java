@@ -18,16 +18,16 @@ package io.github.andreoss.search4j.core.api;
 public interface Document extends DocumentValues, DocumentTerms {
 
     /**
-     * Returns the opaque data associated with the document.
+     * Opaque data of the document.
      *
-     * @return The data text
+     * @return Data, empty when never set
      */
     String data();
 
     /**
-     * Replaces the opaque data associated with the document.
+     * Replaces the opaque data of the document.
      *
-     * @param data The new data text
+     * @param data New data, not null
      */
     void setData(String data);
 }

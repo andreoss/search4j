@@ -57,9 +57,9 @@ public enum DbFlag {
     }
 
     /**
-     * Returns the numeric value.
+     * Bit of the flag.
      *
-     * @return The numeric value
+     * @return Single-bit mask, combined into a flag set by bitwise or
      */
     public int code() {
         return this.code;
@@ -68,8 +68,8 @@ public enum DbFlag {
     /**
      * Tests whether an opening flag set carries this flag.
      *
-     * @param flags The opening flags
-     * @return True when the flag is present
+     * @param flags Opening flag set to inspect
+     * @return True when the bit of this flag is set
      */
     public boolean present(final int flags) {
         return (flags & this.code) != 0;
@@ -78,8 +78,8 @@ public enum DbFlag {
     /**
      * Adds this flag to an opening flag set.
      *
-     * @param flags The opening flags
-     * @return The flags with this flag set
+     * @param flags Opening flag set to extend
+     * @return The set with this bit added
      */
     public int add(final int flags) {
         return flags | this.code;

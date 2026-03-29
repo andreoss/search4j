@@ -75,27 +75,27 @@ final class SlotStats {
     }
 
     /**
-     * Returns the number of documents holding the slot.
+     * Number of documents holding the slot.
      *
-     * @return The value frequency
+     * @return Value frequency
      */
     TermCount frequency() {
         return new TermCount(this.count);
     }
 
     /**
-     * Returns the lower bound.
+     * Lower bound.
      *
-     * @return The lower bound, empty when unused
+     * @return Lower bound, empty when unused
      */
     String lower() {
         return this.lower;
     }
 
     /**
-     * Returns the upper bound.
+     * Upper bound.
      *
-     * @return The upper bound, empty when unused
+     * @return Upper bound, empty when unused
      */
     String upper() {
         return this.upper;

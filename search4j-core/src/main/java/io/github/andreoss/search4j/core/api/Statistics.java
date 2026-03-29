@@ -20,81 +20,78 @@ import io.github.andreoss.search4j.core.types.TotalLength;
 public interface Statistics {
 
     /**
-     * Returns the number of documents in the database.
+     * Number of documents in the database.
      *
-     * @return The document count
+     * @return Document count, zero when empty
      */
     TermCount docCount();
 
     /**
-     * Returns the highest document identifier ever used.
+     * Highest document identifier ever used, even if since deleted.
      *
-     * @return The last document identifier
+     * @return Identifier, {@link DocId#NONE} when none was used
      */
     DocId lastDocId();
 
     /**
-     * Returns the average document length, zero when empty.
+     * Average document length.
      *
-     * @return The average length
+     * @return Total length over document count, zero when empty
      */
     DocLength averageLength();
 
     /**
-     * Returns the total length of every document.
+     * Total length of every document.
      *
-     * @return The total length
+     * @return Sum of all document lengths
      */
     TotalLength totalLength();
 
     /**
-     * Returns the number of documents indexed by a term; the empty term
-     * stands for every document.
+     * Number of documents indexed by a term.
      *
-     * @param term The term text
-     * @return The term frequency
+     * @param term Term to count, empty for every document
+     * @return Document count, zero for an unknown term
      */
     TermCount termFrequency(String term);
 
     /**
-     * Returns the sum of the within-document frequencies of a term; the empty
-     * term stands for every document.
+     * Sum of the within-document frequencies of a term.
      *
-     * @param term The term text
-     * @return The collection frequency
+     * @param term Term to count, empty for every document
+     * @return Frequency sum, the document count for the empty term
      */
     TermCount collectionFrequency(String term);
 
     /**
-     * Tests whether a term indexes any document; the empty term tests whether
-     * any document exists.
+     * Tests whether a term indexes any document.
      *
-     * @param term The term text
-     * @return True when the term is in use
+     * @param term Term to test, empty to test for any document
+     * @return True when the term frequency is above zero
      */
     boolean termExists(String term);
 
     /**
-     * Returns the length of a document.
+     * Length of a document.
      *
-     * @param docid The document identifier
-     * @return The sum of within-document frequencies of its terms
+     * @param docid Non-zero identifier of a present document
+     * @return Sum of the within-document frequencies of its terms
      */
     TermCount docLength(DocId docid);
 
     /**
-     * Returns the number of distinct terms of a document, at most its length.
+     * Number of distinct terms of a document.
      *
-     * @param docid The document identifier
-     * @return The distinct term count
+     * @param docid Non-zero identifier of a present document
+     * @return Distinct term count, at most the document length
      */
     TermCount uniqueTerms(DocId docid);
 
     /**
-     * Returns the highest within-document frequency in a document.
+     * Highest within-document frequency in a document.
      *
-     * @param docid The document identifier
-     * @return The highest frequency
+     * @param docid Non-zero identifier of a present document
+     * @return Highest frequency, zero for an empty document
      */
     TermCount wdfDocMax(DocId docid);
 }

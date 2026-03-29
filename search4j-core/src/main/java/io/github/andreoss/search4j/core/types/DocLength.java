@@ -8,10 +8,10 @@
 package io.github.andreoss.search4j.core.types;
 
 /**
- * Normalised document length: the document length divided by the average
- * document length in the database.
+ * Fractional document length, such as an average length or a normalised one.
  *
- * <p>Carried as a finite, non-negative {@code double}.</p>
+ * <p>A normalised length is a document length divided by the average length
+ * in the database. Carried as a finite, non-negative {@code double}.</p>
  *
  * @param value The underlying number
  * @since 0.1.0
@@ -40,8 +40,8 @@ public record DocLength(double value) implements Comparable<DocLength> {
     /**
      * Creates a normalised document length from its decimal text.
      *
-     * @param text Decimal text of the length
-     * @return The normalised document length
+     * @param text Decimal text of a finite, non-negative number
+     * @return Length carrying the parsed number
      */
     public static DocLength parse(final String text) {
         return new DocLength(Double.parseDouble(text));

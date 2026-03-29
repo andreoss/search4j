@@ -41,8 +41,8 @@ public record TermCount(int value) implements Comparable<TermCount> {
     /**
      * Creates a term count from its decimal text.
      *
-     * @param text Decimal digits of the count
-     * @return The term count
+     * @param text Decimal digits without leading zeros, at most 2147483647
+     * @return Count carrying the parsed number
      */
     public static TermCount parse(final String text) {
         Objects.requireNonNull(text, "TermCount text");
@@ -63,8 +63,8 @@ public record TermCount(int value) implements Comparable<TermCount> {
     /**
      * Adds another count.
      *
-     * @param other The count to add
-     * @return The sum
+     * @param other Count to add
+     * @return Sum of both counts
      */
     public TermCount plus(final TermCount other) {
         final long sum = (long) this.value + other.value;

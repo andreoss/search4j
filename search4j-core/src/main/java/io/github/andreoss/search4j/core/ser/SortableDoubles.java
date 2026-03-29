@@ -28,8 +28,8 @@ public final class SortableDoubles {
     /**
      * Encodes a double into eight sortable bytes.
      *
-     * @param value The double to encode
-     * @return The eight-byte sortable representation
+     * @param value Number to encode
+     * @return Eight bytes whose unsigned order matches numeric order
      */
     public static byte[] serialise(final double value) {
         return bigEndian(encode(Double.doubleToLongBits(value)));
@@ -38,8 +38,8 @@ public final class SortableDoubles {
     /**
      * Decodes eight sortable bytes back into a double.
      *
-     * @param bytes The eight sortable bytes
-     * @return The decoded double
+     * @param bytes Bytes from {@link #serialise(double)}
+     * @return Original number
      */
     public static double deserialise(final byte[] bytes) {
         long bits = 0L;
@@ -50,11 +50,11 @@ public final class SortableDoubles {
     }
 
     /**
-     * Verifies that the encoding preserves numeric ordering.
+     * Tests whether one encoding sorts at or before another.
      *
-     * @param smaller The smaller double
-     * @param larger The larger double
-     * @return True when the encoded bytes sort in numeric order
+     * @param smaller Number expected to sort first
+     * @param larger Number expected to sort last
+     * @return True when the first encoding sorts at or before the second
      */
     public static boolean ordered(final double smaller, final double larger) {
         return compareBytes(serialise(smaller), serialise(larger)) <= 0;

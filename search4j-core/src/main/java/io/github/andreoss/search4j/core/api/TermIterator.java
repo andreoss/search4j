@@ -23,14 +23,14 @@ public interface TermIterator extends AutoCloseable {
     /**
      * Tests whether another term is available.
      *
-     * @return True when a term is available
+     * @return True unless the terms are exhausted
      */
     boolean hasNext();
 
     /**
      * Advances to the next term and returns it.
      *
-     * @return The term text
+     * @return Term above every one returned before
      */
     String next();
 
@@ -38,35 +38,35 @@ public interface TermIterator extends AutoCloseable {
      * Skips the terms below a target, so the next term returned is the first
      * one at or after it.
      *
-     * @param target The lowest term wanted
+     * @param target Lowest term wanted
      */
     void skipTo(String target);
 
     /**
-     * Returns the within-document frequency of the current term.
+     * Within-document frequency of the current term.
      *
-     * @return The frequency
+     * @return Frequency in the document listed
      */
     TermCount wdf();
 
     /**
-     * Returns the number of documents indexed by the current term.
+     * Number of documents indexed by the current term.
      *
-     * @return The term frequency
+     * @return Document count in the database
      */
     TermCount termFrequency();
 
     /**
-     * Returns the number of positions of the current term.
+     * Number of positions of the current term.
      *
-     * @return The position count
+     * @return Position count, zero when unpositioned
      */
     TermCount positionCount();
 
     /**
      * Opens the positions of the current term.
      *
-     * @return The position iterator
+     * @return Positions in ascending order
      */
     PositionIterator positions();
 

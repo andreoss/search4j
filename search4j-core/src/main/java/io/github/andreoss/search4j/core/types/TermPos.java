@@ -41,8 +41,8 @@ public record TermPos(int value) implements Comparable<TermPos> {
     /**
      * Creates a term position from its decimal text.
      *
-     * @param text Decimal digits of the position
-     * @return The term position
+     * @param text Decimal digits without leading zeros, at most 2147483647
+     * @return Position carrying the parsed number
      */
     public static TermPos parse(final String text) {
         Objects.requireNonNull(text, "TermPos text");
@@ -61,9 +61,9 @@ public record TermPos(int value) implements Comparable<TermPos> {
     }
 
     /**
-     * Next term position.
+     * Position one above this one.
      *
-     * @return The following position
+     * @return Successor, an illegal-state error past the maximum
      */
     public TermPos next() {
         if (this.value == Integer.MAX_VALUE) {

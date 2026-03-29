@@ -26,23 +26,23 @@ public interface Database
     /**
      * Adds another database to this handle for combined search.
      *
-     * @param database The database to add
+     * @param database Shard searched alongside this one
      */
     void addDatabase(Database database);
 
     /**
-     * Returns the metadata stored under a key.
+     * Metadata stored under a key.
      *
-     * @param key The non-empty key
-     * @return The metadata, empty when unset
+     * @param key Non-empty key
+     * @return Value, empty when unset
      */
     String metadata(String key);
 
     /**
-     * Returns a detached copy of a document.
+     * Detached copy of a document; edits to it do not reach the database.
      *
-     * @param docid The document identifier
-     * @return The document
+     * @param docid Non-zero identifier of a present document
+     * @return Editable copy
      */
     Document document(DocId docid);
 

@@ -20,14 +20,14 @@ public interface PositionIterator extends AutoCloseable {
     /**
      * Tests whether another position is available.
      *
-     * @return True when a position is available
+     * @return True unless the positions are exhausted
      */
     boolean hasNext();
 
     /**
-     * Returns the next position and advances.
+     * Advances to the next position and returns it.
      *
-     * @return The term position
+     * @return Next position, above every one returned before
      */
     TermPos next();
 
@@ -35,7 +35,7 @@ public interface PositionIterator extends AutoCloseable {
      * Skips the positions below a target, so the next position returned is
      * the first one at or after it.
      *
-     * @param target The lowest position wanted
+     * @param target Lowest position wanted
      */
     void skipTo(TermPos target);
 

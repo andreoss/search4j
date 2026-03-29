@@ -43,8 +43,8 @@ public record ValueNo(long value) implements Comparable<ValueNo> {
     /**
      * Creates a value slot number from its decimal text.
      *
-     * @param text Decimal digits of the slot number
-     * @return The value slot number
+     * @param text Decimal digits without leading zeros, at most {@link #BAD}
+     * @return Slot carrying the parsed number
      */
     public static ValueNo parse(final String text) {
         Objects.requireNonNull(text, "ValueNo text");

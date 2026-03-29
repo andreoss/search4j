@@ -42,8 +42,8 @@ public record DocId(int value) implements Comparable<DocId> {
     /**
      * Creates a document identifier from a positive number.
      *
-     * @param number A positive document number
-     * @return The document identifier
+     * @param number Positive document number
+     * @return Valid identifier
      */
     public static DocId of(final int number) {
         if (number <= 0) {
@@ -57,8 +57,8 @@ public record DocId(int value) implements Comparable<DocId> {
     /**
      * Creates a document identifier from its decimal text.
      *
-     * @param text Decimal digits of the document number
-     * @return The document identifier
+     * @param text Decimal digits without leading zeros, at most 2147483647
+     * @return Identifier, {@link #NONE} for "0"
      */
     public static DocId parse(final String text) {
         Objects.requireNonNull(text, "DocId text");
@@ -86,9 +86,9 @@ public record DocId(int value) implements Comparable<DocId> {
     }
 
     /**
-     * Next document identifier.
+     * Identifier one above this one.
      *
-     * @return The following identifier
+     * @return Successor, an illegal-state error past the maximum
      */
     public DocId next() {
         if (this.value == Integer.MAX_VALUE) {

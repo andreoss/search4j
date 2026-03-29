@@ -29,8 +29,8 @@ public final class Varints {
     /**
      * Encodes an unsigned integer into its variable-length form.
      *
-     * @param value The non-negative value
-     * @return The encoded bytes
+     * @param value Non-negative value; a negative one raises an error
+     * @return One to nine bytes
      */
     public static byte[] pack(final long value) {
         if (value < 0) {
@@ -51,8 +51,8 @@ public final class Varints {
     /**
      * Decodes a variable-length integer from its encoded form.
      *
-     * @param bytes The encoded bytes
-     * @return The decoded value
+     * @param bytes Bytes from {@link #pack(long)}
+     * @return Original value
      */
     public static long unpack(final byte[] bytes) {
         long result = 0L;

@@ -15,8 +15,7 @@ import java.util.Objects;
 /**
  * Temporary files created under a caller-provided directory.
  *
- * <p>Files land under {@code scratch/} in the repository, never in the system
- * temporary directory, so that runs never write outside the repository.</p>
+ * <p>Files are never placed in the system temporary directory.</p>
  *
  * @since 0.1.0
  */
@@ -30,12 +29,12 @@ public final class TempFiles {
     }
 
     /**
-     * Creates a new empty temporary file in the given directory.
+     * Creates a new empty file with a unique name in a directory.
      *
-     * @param directory The scratch directory
-     * @param prefix The file name prefix
-     * @param suffix The file name suffix
-     * @return The created path
+     * @param directory Existing parent directory, not null
+     * @param prefix Start of the file name
+     * @param suffix End of the file name, null for {@code .tmp}
+     * @return Path of the new file
      * @throws IOException When the file cannot be created
      */
     public static Path create(
@@ -48,9 +47,9 @@ public final class TempFiles {
     }
 
     /**
-     * Deletes a temporary file, ignoring absence.
+     * Deletes a temporary file; an absent file is ignored.
      *
-     * @param path The path to delete
+     * @param path File to delete
      * @throws IOException When the file cannot be removed
      */
     public static void delete(final Path path) throws IOException {

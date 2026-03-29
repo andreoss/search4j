@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Decoding of UTF-8 code points from a byte sequence.
  *
- * <p>Yields one code point per iteration, rejecting malformed sequences.</p>
+ * <p>Malformed sequences decode to the replacement character U+FFFD.</p>
  *
  * @since 0.1.0
  */
@@ -28,18 +28,18 @@ public final class Utf8 {
     /**
      * Decodes a UTF-8 byte sequence into its code points.
      *
-     * @param bytes The UTF-8 bytes
-     * @return The code points in order
+     * @param bytes UTF-8 bytes
+     * @return Code points in input order
      */
     public static int[] codepoints(final byte[] bytes) {
         return new String(bytes, StandardCharsets.UTF_8).codePoints().toArray();
     }
 
     /**
-     * Returns the number of bytes in the lead byte of a code point.
+     * Length of the UTF-8 sequence a lead byte starts.
      *
-     * @param lead The leading byte
-     * @return The sequence length, between one and four
+     * @param lead First byte of a sequence
+     * @return Byte count from 1 to 4
      */
     public static int length(final byte lead) {
         final int value = lead & 0xFF;

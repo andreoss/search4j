@@ -59,9 +59,9 @@ public enum Backend {
     }
 
     /**
-     * Returns the numeric value.
+     * Bits of the backend within an opening flag set.
      *
-     * @return The numeric value
+     * @return Value under {@link #MASK}
      */
     public int code() {
         return this.code;
@@ -70,8 +70,8 @@ public enum Backend {
     /**
      * Tests whether an opening flag set names this backend.
      *
-     * @param flags The opening flags
-     * @return True when the backend bits equal this backend's value
+     * @param flags Opening flag set to inspect
+     * @return True when the bits under {@link #MASK} equal this backend's value
      */
     public boolean selected(final int flags) {
         return (flags & MASK) == this.code;
@@ -80,8 +80,8 @@ public enum Backend {
     /**
      * Adds this backend to an opening flag set.
      *
-     * @param flags The opening flags
-     * @return The flags naming this backend
+     * @param flags Opening flag set to extend
+     * @return The set with its backend bits replaced by this backend's
      */
     public int add(final int flags) {
         return (flags & ~MASK) | this.code;
@@ -90,8 +90,8 @@ public enum Backend {
     /**
      * Resolves the backend carried in an opening flag set.
      *
-     * @param flags The opening flags
-     * @return The backend, empty when the flag set names no backend
+     * @param flags Opening flag set to inspect
+     * @return Backend, empty when the bits under {@link #MASK} name none
      */
     public static Optional<Backend> of(final int flags) {
         final int value = flags & MASK;

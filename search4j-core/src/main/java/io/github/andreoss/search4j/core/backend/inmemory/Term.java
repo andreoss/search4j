@@ -62,27 +62,27 @@ final class Term {
     }
 
     /**
-     * Returns the number of documents indexed.
+     * Number of documents indexed.
      *
-     * @return The term frequency
+     * @return Term frequency
      */
     TermCount frequency() {
         return new TermCount(this.postings.size());
     }
 
     /**
-     * Returns the sum of the within-document frequencies.
+     * Sum of the within-document frequencies.
      *
-     * @return The collection frequency
+     * @return Collection frequency
      */
     TermCount collection() {
         return this.collection;
     }
 
     /**
-     * Returns the live occurrences by document.
+     * Live occurrences by document.
      *
-     * @return The postings
+     * @return Postings
      */
     NavigableMap<DocId, Occurrence> postings() {
         return this.postings;

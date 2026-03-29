@@ -24,18 +24,18 @@ public final class Strings {
     /**
      * Tests whether a text is null or empty.
      *
-     * @param text The text to check
-     * @return True when the text is null or empty
+     * @param text Text to test, may be null
+     * @return True for null or the empty string
      */
     public static boolean empty(final String text) {
         return text == null || text.isEmpty();
     }
 
     /**
-     * Returns the text unchanged, or an empty string when null.
+     * Replaces null with the empty string.
      *
-     * @param text The text to normalise
-     * @return The non-null text
+     * @param text Text to normalise, may be null
+     * @return The text, or the empty string for null
      */
     public static String orEmpty(final String text) {
         final String result;

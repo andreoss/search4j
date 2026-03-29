@@ -24,8 +24,8 @@ public final class CharTypes {
     /**
      * Tests whether a code point is a word character.
      *
-     * @param codepoint The code point
-     * @return True when a letter, digit or connector is present
+     * @param codepoint Code point to classify
+     * @return True for a letter, a digit or connector punctuation
      */
     public static boolean word(final int codepoint) {
         return Character.isLetterOrDigit(codepoint)
@@ -35,8 +35,8 @@ public final class CharTypes {
     /**
      * Tests whether a code point is whitespace.
      *
-     * @param codepoint The code point
-     * @return True when whitespace
+     * @param codepoint Code point to classify
+     * @return True for whitespace other than non-breaking spaces
      */
     public static boolean space(final int codepoint) {
         return Character.isWhitespace(codepoint);
@@ -45,8 +45,8 @@ public final class CharTypes {
     /**
      * Tests whether a code point is a decimal digit.
      *
-     * @param codepoint The code point
-     * @return True when a decimal digit
+     * @param codepoint Code point to classify
+     * @return True for a decimal digit in any script
      */
     public static boolean digit(final int codepoint) {
         return Character.isDigit(codepoint);
@@ -55,8 +55,8 @@ public final class CharTypes {
     /**
      * Tests whether a code point is an uppercase letter.
      *
-     * @param codepoint The code point
-     * @return True when uppercase
+     * @param codepoint Code point to classify
+     * @return True for an uppercase character
      */
     public static boolean upper(final int codepoint) {
         return Character.isUpperCase(codepoint);

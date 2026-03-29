@@ -26,10 +26,10 @@ interface Stats {
     boolean live();
 
     /**
-     * Returns the number of documents indexed by a term.
+     * Number of documents indexed by a term.
      *
      * @param term The term text
-     * @return The term frequency
+     * @return Term frequency
      */
     TermCount frequency(String term);
 }

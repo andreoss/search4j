@@ -63,9 +63,9 @@ public enum DatabaseAction {
     }
 
     /**
-     * Returns the numeric value.
+     * Bits of the action within an opening flag set.
      *
-     * @return The numeric value
+     * @return Value under {@link #MASK}
      */
     public int code() {
         return this.code;
@@ -74,8 +74,8 @@ public enum DatabaseAction {
     /**
      * Resolves the action carried in an opening flag set.
      *
-     * @param flags The opening flags
-     * @return The action encoded in the low two bits, empty when none matches
+     * @param flags Opening flag set to inspect
+     * @return Action in the low two bits; present for every flag set
      */
     public static Optional<DatabaseAction> of(final int flags) {
         final int value = flags & MASK;

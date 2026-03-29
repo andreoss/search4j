@@ -19,25 +19,25 @@ import java.util.Optional;
 public interface DocumentValues {
 
     /**
-     * Returns the value stored in a slot.
+     * Value stored in a slot.
      *
-     * @param slot The value slot number
-     * @return The value, empty when the slot has no value
+     * @param slot Slot to read
+     * @return Value, empty when the slot has none
      */
     Optional<String> value(ValueNo slot);
 
     /**
      * Stores a value in a numbered slot; an empty value clears the slot.
      *
-     * @param slot The value slot number
-     * @param value The value text
+     * @param slot Slot to write
+     * @param value Value to store, empty to clear
      */
     void addValue(ValueNo slot, String value);
 
     /**
      * Removes the value from a numbered slot.
      *
-     * @param slot The value slot number
+     * @param slot Slot to clear
      */
     void removeValue(ValueNo slot);
 
@@ -47,16 +47,16 @@ public interface DocumentValues {
     void clearValues();
 
     /**
-     * Returns the number of slots holding a value.
+     * Number of slots holding a value.
      *
-     * @return The value count
+     * @return Slot count, zero when none is set
      */
     TermCount valueCount();
 
     /**
      * Opens the values in ascending slot order.
      *
-     * @return The value iterator
+     * @return Iterator over a snapshot of the values
      */
     ValueIterator values();
 }

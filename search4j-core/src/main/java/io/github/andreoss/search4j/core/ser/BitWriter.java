@@ -44,10 +44,10 @@ public final class BitWriter {
     }
 
     /**
-     * Writes a value using the given number of bits.
+     * Writes the low bits of a value.
      *
-     * @param value The value to write
-     * @param bits The number of bits, at least one
+     * @param value Value whose higher bits are ignored
+     * @param bits Width from 1 to 32; others raise an illegal-argument error
      */
     public void write(final long value, final int bits) {
         if (bits < 1 || bits > 32) {
@@ -66,7 +66,7 @@ public final class BitWriter {
     /**
      * Flushes pending bits, padding with zero bits to a byte boundary.
      *
-     * @return The completed byte array
+     * @return Every byte written
      */
     public byte[] finish() {
         if (this.count != 0) {
