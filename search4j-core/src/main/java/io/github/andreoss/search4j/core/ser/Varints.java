@@ -1,0 +1,66 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+/**
+ * Serialisation, compression and bit-level I/O of the search engine.
+ */
+package io.github.andreoss.search4j.core.ser;
+
+import java.io.ByteArrayOutputStream;
+
+/**
+ * Variable-length unsigned integer packing.
+ *
+ * <p>Each value is written as seven-bit groups, least significant first, with
+ * the high bit marking a continuation byte.</p>
+ *
+ * @since 0.1.0
+ */
+@SuppressWarnings("PMD.ProhibitPublicStaticMethods")
+public final class Varints {
+
+    /**
+     * Utility class, no instances.
+     */
+    private Varints() {
+    }
+
+    /**
+     * Encodes an unsigned integer into its variable-length form.
+     *
+     * @param value The non-negative value
+     * @return The encoded bytes
+     */
+    public static byte[] pack(final long value) {
+        if (value < 0) {
+            throw new IllegalArgumentException(
+                String.format("Negative value: %d", value)
+            );
+        }
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        long remaining = value;
+        while (remaining >= 0x80) {
+            out.write((int) (remaining & 0x7F) | 0x80);
+            remaining >>>= 7;
+        }
+        out.write((int) remaining);
+        return out.toByteArray();
+    }
+
+    /**
+     * Decodes a variable-length integer from its encoded form.
+     *
+     * @param bytes The encoded bytes
+     * @return The decoded value
+     */
+    public static long unpack(final byte[] bytes) {
+        long result = 0L;
+        int shift = 0;
+        for (final byte item : bytes) {
+            result |= (item & 0x7FL) << shift;
+            shift += 7;
+        }
+        return result;
+    }
+}
