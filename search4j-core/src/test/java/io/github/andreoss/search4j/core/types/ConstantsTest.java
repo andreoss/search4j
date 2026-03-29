@@ -88,11 +88,6 @@ final class ConstantsTest {
     }
 
     @Test
-    void chertCode() {
-        Assertions.assertEquals(0x200, Backend.CHERT.code(), "Chert value");
-    }
-
-    @Test
     void stubCode() {
         Assertions.assertEquals(0x300, Backend.STUB.code(), "Stub value");
     }
@@ -132,7 +127,7 @@ final class ConstantsTest {
     @Test
     void rejectsOtherBackend() {
         Assertions.assertFalse(
-            Backend.CHERT.selected(Backend.VIDRIO.code()),
+            Backend.STUB.selected(Backend.VIDRIO.code()),
             "Different backend not selected"
         );
     }

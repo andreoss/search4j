@@ -25,11 +25,6 @@ public enum Backend {
     VIDRIO(0x100),
 
     /**
-     * The legacy chert backend.
-     */
-    CHERT(0x200),
-
-    /**
      * A stub database file naming other databases.
      */
     STUB(0x300),
