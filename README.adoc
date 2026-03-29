@@ -1,0 +1,19 @@
+= search4j
+
+A pure Java rewrite of the Xapian search engine library.
+
+== Build
+
+  mvn verify
+
+== Test
+
+  mvn test
+
+== Coverage
+
+  mvn verify -Ppitest
+
+== Licence
+
+GPL-3.0-or-later
