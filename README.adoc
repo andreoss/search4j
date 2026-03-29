@@ -2,6 +2,11 @@
 
 A pure Java rewrite of the Xapian search engine library.
 
+It offers a document database with an in-memory backend and an on-disk
+B-tree backend named Vidrio, a query engine with boolean, positional and
+value operators, ranking weight schemes, a query parser, stemming, and a
+remote protocol.
+
 == Build
 
   mvn verify

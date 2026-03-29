@@ -1,3 +1,6 @@
 .spec/
 scratch/
-AGENTS.mdreference/
+AGENTS.md
+reference/
+target/
+.mvn/wrapper/maven-wrapper.jar
