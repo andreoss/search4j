@@ -7,14 +7,15 @@
  */
 package io.github.andreoss.search4j.core.api;
 
+import io.github.andreoss.search4j.core.backend.inmemory.InMemoryDatabase;
 import java.nio.file.Path;
 import java.util.Objects;
 
 /**
  * Factory for opening databases.
  *
- * <p>The concrete backend is chosen from the action bits of the opening
- * flags; a backend implementation is selected in a later layer.</p>
+ * <p>An in-memory database needs no path. Opening by path is rejected until
+ * an on-disk backend is provided.</p>
  *
  * @since 0.1.0
  */
@@ -25,6 +26,15 @@ public final class DatabaseFactory {
      * Utility class, no instances.
      */
     private DatabaseFactory() {
+    }
+
+    /**
+     * Creates an empty writable database held in memory.
+     *
+     * @return The writable database
+     */
+    public static WritableDatabase inMemory() {
+        return new InMemoryDatabase();
     }
 
     /**

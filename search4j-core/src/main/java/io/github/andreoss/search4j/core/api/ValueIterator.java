@@ -7,10 +7,16 @@
  */
 package io.github.andreoss.search4j.core.api;
 
+import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.ValueNo;
 
 /**
- * Iterator over the value slots of a document.
+ * Iterator over values: the slots of one document in ascending slot order, or
+ * one slot across documents in ascending identifier order.
+ *
+ * <p>The accessors describe the value most recently returned by
+ * {@link #next()}. Over a single document, {@link #docId()} and
+ * {@link #skipTo(DocId)} raise an invalid-operation error.</p>
  *
  * @since 0.1.0
  */
@@ -24,7 +30,7 @@ public interface ValueIterator extends AutoCloseable {
     boolean hasNext();
 
     /**
-     * Returns the current value and advances.
+     * Advances to the next value and returns it.
      *
      * @return The value text
      */
@@ -36,6 +42,21 @@ public interface ValueIterator extends AutoCloseable {
      * @return The slot number
      */
     ValueNo slot();
+
+    /**
+     * Returns the document holding the current value.
+     *
+     * @return The document identifier
+     */
+    DocId docId();
+
+    /**
+     * Skips the documents below a target, so the next value returned belongs
+     * to the first document at or after it.
+     *
+     * @param target The lowest document identifier wanted
+     */
+    void skipTo(DocId target);
 
     @Override
     void close();
