@@ -59,16 +59,36 @@ public final class Zlib {
      *
      * @param input Raw deflate stream
      * @return Decompressed bytes
-     * @throws IOException When the input is not valid deflate data
+     * @throws IOException When the input is not valid, complete deflate data
      */
     public static byte[] decompress(final byte[] input) throws IOException {
-        final Inflater inflater = new Inflater(true);
+        return Zlib.decompress(input, true);
+    }
+
+    /**
+     * Decompresses raw or wrapped deflate bytes.
+     *
+     * @param input Deflate stream
+     * @param raw Whether the stream has no header nor checksum
+     * @return Decompressed bytes
+     * @throws IOException When the input is not valid, ends early or needs
+     *  a dictionary
+     */
+    static byte[] decompress(final byte[] input, final boolean raw)
+        throws IOException {
+        final Inflater inflater = new Inflater(raw);
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             inflater.setInput(input);
             final byte[] buffer = new byte[1024];
             while (!inflater.finished()) {
-                out.write(buffer, 0, inflater.inflate(buffer));
+                final int count = inflater.inflate(buffer);
+                if (count == 0 && !inflater.finished()) {
+                    throw new IOException(
+                        "Deflate data ends early or needs a dictionary"
+                    );
+                }
+                out.write(buffer, 0, count);
             }
             return out.toByteArray();
         } catch (final DataFormatException bad) {

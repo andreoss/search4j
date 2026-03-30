@@ -14,8 +14,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.Inflater;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * Tests of {@link ZlibChunks}.
@@ -91,6 +93,38 @@ final class ZlibChunksTest {
                     new ByteArrayOutputStream()
                 ),
                 "Bad block type"
+            );
+        }
+    }
+
+    @Test
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void stopsOnTruncatedStream() throws IOException {
+        final byte[] packed = Zlib.compress(
+            "truncated chunk ".repeat(500).getBytes(StandardCharsets.US_ASCII)
+        );
+        try (ZlibChunks chunks = new ZlibChunks()) {
+            Assertions.assertFalse(
+                chunks.feed(
+                    ByteBuffer.wrap(packed, 0, packed.length / 2),
+                    new ByteArrayOutputStream()
+                ),
+                "Waits for more input"
+            );
+        }
+    }
+
+    @Test
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void rejectsStreamNeedingDictionary() {
+        try (ZlibChunks chunks = new ZlibChunks(new Inflater())) {
+            Assertions.assertThrows(
+                IOException.class,
+                () -> chunks.feed(
+                    ByteBuffer.wrap(ZlibTest.withDictionary()),
+                    new ByteArrayOutputStream()
+                ),
+                "Preset dictionary"
             );
         }
     }

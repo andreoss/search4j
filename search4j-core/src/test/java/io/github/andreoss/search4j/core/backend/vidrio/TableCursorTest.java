@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * Tests of {@link TableCursor} over multi-level trees.
@@ -371,6 +372,7 @@ final class TableCursorTest {
     }
 
     @Test
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     void rejectsTooFewCompressedChunks() {
         final byte[] packed = Zlib.compress(TableCursorTest.tag(5));
         final VidrioTable table = TableCursorTest.damaged(
@@ -384,6 +386,24 @@ final class TableCursorTest {
                 DatabaseCorruptError.class,
                 () -> table.get(Trees.key("a")),
                 "Stream continues past last item"
+            );
+        }
+    }
+
+    @Test
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void rejectsEmptyCompressedTag() {
+        final VidrioTable table = TableCursorTest.damaged(
+            LeafItem.of(
+                ItemKey.of(Trees.key("a")), new TagPart(1, true, true),
+                new byte[0]
+            )
+        );
+        try (table) {
+            Assertions.assertThrows(
+                DatabaseCorruptError.class,
+                () -> table.get(Trees.key("a")),
+                "No compressed bytes"
             );
         }
     }

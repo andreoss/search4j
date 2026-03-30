@@ -37,13 +37,22 @@ public final class ZlibChunks implements AutoCloseable {
      * Creates a decompressor at the start of a stream.
      */
     public ZlibChunks() {
-        this(ZlibChunks.raw(), new byte[8192]);
+        this(ZlibChunks.raw());
+    }
+
+    /**
+     * Creates a decompressor over an inflater.
+     *
+     * @param inflater Inflater, ended on close
+     */
+    ZlibChunks(final Inflater inflater) {
+        this(inflater, new byte[8192]);
     }
 
     /**
      * Creates a decompressor over its parts.
      *
-     * @param inflater Raw inflater
+     * @param inflater Inflater, ended on close
      * @param buffer Output buffer
      */
     private ZlibChunks(final Inflater inflater, final byte[] buffer) {
@@ -69,6 +78,9 @@ public final class ZlibChunks implements AutoCloseable {
                 count = this.inflater.inflate(this.buffer);
                 out.write(this.buffer, 0, count);
             } while (count > 0 && !this.inflater.finished());
+            if (this.inflater.needsDictionary()) {
+                throw new IOException("Deflate data needs a dictionary");
+            }
         } catch (final DataFormatException bad) {
             throw new IOException("Bad deflate data", bad);
         }
