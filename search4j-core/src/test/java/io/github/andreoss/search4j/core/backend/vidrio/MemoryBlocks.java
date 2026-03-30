@@ -9,14 +9,15 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Blocks held in memory, for trees built by tests.
+ * Blocks held in memory, for trees built and written by tests.
  *
  * @since 0.1.0
  */
-final class MemoryBlocks implements Blocks {
+final class MemoryBlocks implements BlockStore {
 
     /**
      * Block bytes by block number.
@@ -39,6 +40,11 @@ final class MemoryBlocks implements Blocks {
     private final AtomicInteger closes;
 
     /**
+     * Whether writes fail.
+     */
+    private final AtomicBoolean failing;
+
+    /**
      * Creates a source.
      *
      * @param data Block bytes by number, shared
@@ -49,6 +55,7 @@ final class MemoryBlocks implements Blocks {
         this.bsize = size;
         this.reads = new AtomicInteger();
         this.closes = new AtomicInteger();
+        this.failing = new AtomicBoolean();
     }
 
     @Override
@@ -65,6 +72,17 @@ final class MemoryBlocks implements Blocks {
         }
         this.reads.incrementAndGet();
         return Block.parse(number, this.data.get(number.value()).clone());
+    }
+
+    @Override
+    public void write(final BlockNumber number, final byte[] bytes) {
+        if (bytes.length != this.bsize.bytes()) {
+            throw new IllegalArgumentException("Bad block length");
+        }
+        if (this.failing.get()) {
+            throw new DatabaseCorruptError("Error writing block");
+        }
+        this.data.put(number.value(), bytes.clone());
     }
 
     @Override
@@ -98,6 +116,15 @@ final class MemoryBlocks implements Blocks {
      */
     int reads() {
         return this.reads.get();
+    }
+
+    /**
+     * Makes writes fail or succeed.
+     *
+     * @param flag True to fail
+     */
+    void broken(final boolean flag) {
+        this.failing.set(flag);
     }
 
     /**

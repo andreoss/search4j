@@ -338,6 +338,15 @@ public final class Block {
         );
     }
 
+    /**
+     * Copy of the block bytes.
+     *
+     * @return Bytes of the block size
+     */
+    byte[] copy() {
+        return this.data.clone();
+    }
+
     private int compareBranch(
         final int index, final byte[] key, final int len
     ) {
