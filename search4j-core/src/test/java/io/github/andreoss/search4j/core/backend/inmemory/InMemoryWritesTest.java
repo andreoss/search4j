@@ -7,8 +7,11 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
+import io.github.andreoss.search4j.core.api.DatabaseFactory;
 import io.github.andreoss.search4j.core.api.PositionIterator;
 import io.github.andreoss.search4j.core.api.PostingIterator;
+import io.github.andreoss.search4j.core.api.WritableDatabase;
+import io.github.andreoss.search4j.core.backend.DocumentInternal;
 import io.github.andreoss.search4j.core.error.DocNotFoundError;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.DocId;
@@ -21,7 +24,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests of the write side of {@link InMemoryDatabase}.
+ * Tests of the write side of {@link InMemoryShard}.
  *
  * @since 0.1.0
  */
@@ -29,7 +32,7 @@ final class InMemoryWritesTest {
 
     @Test
     void addAssignsSequentialIds() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 DocId.of(4), db.addDocument(Corpus.plain("d")), "Next id"
             );
@@ -38,8 +41,8 @@ final class InMemoryWritesTest {
 
     @Test
     void addCopiesValues() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
-            final InMemoryDocument doc = Corpus.first();
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
+            final DocumentInternal doc = Corpus.first();
             final DocId docid = db.addDocument(doc);
             doc.addValue(new ValueNo(1L), "changed");
             Assertions.assertEquals(
@@ -51,8 +54,8 @@ final class InMemoryWritesTest {
 
     @Test
     void addCopiesPositions() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
-            final InMemoryDocument doc = Corpus.second();
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
+            final DocumentInternal doc = Corpus.second();
             final DocId docid = db.addDocument(doc);
             doc.addPosting("apple", new TermPos(9), new TermCount(1));
             try (PositionIterator iter = db.positions(docid, "apple")) {
@@ -65,7 +68,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteReducesCount() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(1));
             Assertions.assertEquals(new TermCount(2), db.docCount(), "Count");
         }
@@ -73,7 +76,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteReducesTermFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(1));
             Assertions.assertEquals(
                 new TermCount(1), db.termFrequency("apple"), "Frequency"
@@ -83,7 +86,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteReducesCollectionFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(1));
             Assertions.assertEquals(
                 new TermCount(1), db.collectionFrequency("banana"), "Sum"
@@ -93,7 +96,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteReducesTotalLength() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(1));
             Assertions.assertEquals(
                 new TotalLength(3L), db.totalLength(), "Total length"
@@ -103,7 +106,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteDropsUnusedTerm() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(2));
             Assertions.assertFalse(db.termExists("cherry"), "Term gone");
         }
@@ -111,7 +114,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteKeepsLastDocId() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(3));
             Assertions.assertEquals(DocId.of(3), db.lastDocId(), "Last id");
         }
@@ -119,7 +122,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deletedIdIsNotReused() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(3));
             Assertions.assertEquals(
                 DocId.of(4), db.addDocument(Corpus.plain("d")), "Fresh id"
@@ -129,7 +132,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteReducesValueFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(2));
             Assertions.assertEquals(
                 new TermCount(1), db.valueFrequency(new ValueNo(1L)), "Slot"
@@ -139,7 +142,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteKeepsLooseValueBound() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(2));
             Assertions.assertEquals(
                 "a", db.valueLowerBound(new ValueNo(1L)), "Bound not tightened"
@@ -149,7 +152,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteResetsBoundsOfUnusedSlot() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(1));
             Assertions.assertEquals(
                 "", db.valueUpperBound(new ValueNo(2L)), "Bound reset"
@@ -159,7 +162,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteResetsLowerBoundOfUnusedSlot() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(1));
             Assertions.assertEquals(
                 "", db.valueLowerBound(new ValueNo(2L)), "Bound reset"
@@ -169,7 +172,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deletingEveryDocumentClearsPositions() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             db.deleteDocument(db.addDocument(Corpus.second()));
             Assertions.assertFalse(db.hasPositions(), "No positions");
         }
@@ -177,7 +180,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deletingSomeDocumentsKeepsPositions() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(1));
             db.deleteDocument(DocId.of(2));
             Assertions.assertTrue(db.hasPositions(), "Crude flag kept");
@@ -186,7 +189,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteMissingDocumentFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 DocNotFoundError.class,
                 () -> db.deleteDocument(DocId.of(4)),
@@ -197,7 +200,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteZeroIdFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 DocNotFoundError.class,
                 () -> db.deleteDocument(DocId.NONE),
@@ -208,7 +211,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteTwiceFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(2));
             Assertions.assertThrows(
                 DocNotFoundError.class,
@@ -220,7 +223,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteByTermRemovesEveryIndexedDocument() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument("apple");
             Assertions.assertEquals(new TermCount(1), db.docCount(), "Count");
         }
@@ -228,7 +231,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteByUnknownTermDoesNothing() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument("zebra");
             Assertions.assertEquals(new TermCount(3), db.docCount(), "Count");
         }
@@ -236,7 +239,7 @@ final class InMemoryWritesTest {
 
     @Test
     void deleteByEmptyTermFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class,
                 () -> db.deleteDocument(""),
@@ -247,7 +250,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceSwapsData() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument(DocId.of(1), Corpus.plain("new"));
             Assertions.assertEquals(
                 "new", db.document(DocId.of(1)).data(), "Data replaced"
@@ -257,7 +260,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceDropsOldTerms() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument(DocId.of(1), Corpus.plain("new"));
             Assertions.assertEquals(
                 new TermCount(1), db.termFrequency("banana"), "Old term gone"
@@ -267,7 +270,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceAdjustsTotalLength() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument(DocId.of(1), Corpus.plain("new"));
             Assertions.assertEquals(
                 new TotalLength(4L), db.totalLength(), "Total length"
@@ -277,7 +280,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceAdjustsValueFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument(DocId.of(1), Corpus.plain("new"));
             Assertions.assertEquals(
                 TermCount.ZERO, db.valueFrequency(new ValueNo(2L)), "Slot"
@@ -287,7 +290,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceKeepsCount() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument(DocId.of(2), Corpus.plain("new"));
             Assertions.assertEquals(new TermCount(3), db.docCount(), "Count");
         }
@@ -295,7 +298,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceBeyondLastAdds() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument(DocId.of(7), Corpus.plain("new"));
             Assertions.assertEquals(DocId.of(7), db.lastDocId(), "Last id");
         }
@@ -303,7 +306,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceBeyondLastCounts() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument(DocId.of(7), Corpus.plain("new"));
             Assertions.assertEquals(new TermCount(4), db.docCount(), "Count");
         }
@@ -311,7 +314,7 @@ final class InMemoryWritesTest {
 
     @Test
     void addFollowsReplacedId() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument(DocId.of(7), Corpus.plain("new"));
             Assertions.assertEquals(
                 DocId.of(8), db.addDocument(Corpus.plain("d")), "Next id"
@@ -321,7 +324,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceBelowLastKeepsLastId() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(2));
             db.replaceDocument(DocId.of(2), Corpus.plain("back"));
             Assertions.assertEquals(DocId.of(3), db.lastDocId(), "Last id");
@@ -330,7 +333,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceRestoresDeletedDocument() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(2));
             db.replaceDocument(DocId.of(2), Corpus.plain("back"));
             Assertions.assertEquals(
@@ -341,7 +344,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceZeroIdFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class,
                 () -> db.replaceDocument(DocId.NONE, Corpus.plain("x")),
@@ -352,7 +355,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceByUnknownTermAdds() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 DocId.of(4),
                 db.replaceDocument("zebra", Corpus.plain("zebra")),
@@ -363,7 +366,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceByTermReusesFirstId() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 DocId.of(1),
                 db.replaceDocument("banana", Corpus.plain("kiwi")),
@@ -374,7 +377,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceByTermDeletesOthers() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument("banana", Corpus.plain("kiwi"));
             try (PostingIterator iter = db.postings("")) {
                 Assertions.assertEquals(
@@ -386,7 +389,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceByTermStoresDocument() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.replaceDocument("banana", Corpus.plain("kiwi"));
             Assertions.assertEquals(
                 "kiwi", db.document(DocId.of(1)).data(), "Stored"
@@ -396,7 +399,7 @@ final class InMemoryWritesTest {
 
     @Test
     void replaceByEmptyTermFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class,
                 () -> db.replaceDocument("", Corpus.plain("x")),
@@ -407,7 +410,7 @@ final class InMemoryWritesTest {
 
     @Test
     void cancelKeepsChanges() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.addDocument(Corpus.plain("d"));
             db.cancel();
             Assertions.assertEquals(new TermCount(4), db.docCount(), "Kept");
@@ -416,7 +419,7 @@ final class InMemoryWritesTest {
 
     @Test
     void commitKeepsChanges() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(1));
             db.commit();
             Assertions.assertEquals(new TermCount(2), db.docCount(), "Kept");
@@ -425,7 +428,7 @@ final class InMemoryWritesTest {
 
     @Test
     void storesMetadata() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             db.setMetadata("key", "value");
             Assertions.assertEquals("value", db.metadata("key"), "Metadata");
         }
@@ -433,14 +436,14 @@ final class InMemoryWritesTest {
 
     @Test
     void unsetMetadataIsEmpty() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             Assertions.assertEquals("", db.metadata("key"), "Unset");
         }
     }
 
     @Test
     void emptyMetadataRemovesKey() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             db.setMetadata("key", "value");
             db.setMetadata("key", "");
             Assertions.assertEquals("", db.metadata("key"), "Removed");
@@ -449,7 +452,7 @@ final class InMemoryWritesTest {
 
     @Test
     void readingEmptyMetadataKeyFails() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class, () -> db.metadata(""), "Empty key"
             );
@@ -458,7 +461,7 @@ final class InMemoryWritesTest {
 
     @Test
     void writingEmptyMetadataKeyFails() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class,
                 () -> db.setMetadata("", "value"),
@@ -469,8 +472,8 @@ final class InMemoryWritesTest {
 
     @Test
     void zeroWdfTermStillCountsDocument() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
-            final InMemoryDocument doc = new InMemoryDocument();
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
+            final DocumentInternal doc = new DocumentInternal();
             doc.addTerm("a", TermCount.ZERO);
             db.addDocument(doc);
             Assertions.assertEquals(

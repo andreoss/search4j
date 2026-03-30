@@ -7,8 +7,11 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
+import io.github.andreoss.search4j.core.api.DatabaseFactory;
 import io.github.andreoss.search4j.core.api.TermIterator;
 import io.github.andreoss.search4j.core.api.ValueIterator;
+import io.github.andreoss.search4j.core.api.WritableDatabase;
+import io.github.andreoss.search4j.core.backend.DocumentInternal;
 import io.github.andreoss.search4j.core.error.InvalidOperationError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
@@ -19,7 +22,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests of the term, metadata and value listings of {@link InMemoryDatabase}.
+ * Tests of the term, metadata and value listings of {@link InMemoryShard}.
  *
  * @since 0.1.0
  */
@@ -28,7 +31,7 @@ final class ListingsTest {
     @Test
     void listsAllTerms() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("")
         ) {
             Assertions.assertEquals(
@@ -39,7 +42,7 @@ final class ListingsTest {
 
     @Test
     void listsPrefixedTerms() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.addDocument(Corpus.plain("bb"));
             db.addDocument(Corpus.plain("c"));
             try (TermIterator iter = db.allTerms("b")) {
@@ -53,7 +56,7 @@ final class ListingsTest {
     @Test
     void unmatchedPrefixListsNothing() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("z")
         ) {
             Assertions.assertFalse(iter.hasNext(), "No terms");
@@ -63,7 +66,7 @@ final class ListingsTest {
     @Test
     void allTermsReportFrequency() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("ban")
         ) {
             iter.next();
@@ -76,7 +79,7 @@ final class ListingsTest {
     @Test
     void allTermsSkipForward() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("")
         ) {
             iter.skipTo("b");
@@ -87,7 +90,7 @@ final class ListingsTest {
     @Test
     void allTermsSkipStaysWithinPrefix() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("c")
         ) {
             iter.skipTo("a");
@@ -98,7 +101,7 @@ final class ListingsTest {
     @Test
     void allTermsSkipPastEnd() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("")
         ) {
             iter.skipTo("d");
@@ -109,7 +112,7 @@ final class ListingsTest {
     @Test
     void allTermsEndRaises() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("c")
         ) {
             iter.next();
@@ -121,7 +124,7 @@ final class ListingsTest {
 
     @Test
     void allTermsSkipDeletedTerms() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(2));
             try (TermIterator iter = db.allTerms("")) {
                 Assertions.assertEquals(
@@ -134,7 +137,7 @@ final class ListingsTest {
     @Test
     void allTermsHaveNoWdf() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("")
         ) {
             iter.next();
@@ -147,7 +150,7 @@ final class ListingsTest {
     @Test
     void allTermsHaveNoPositions() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("")
         ) {
             iter.next();
@@ -160,7 +163,7 @@ final class ListingsTest {
     @Test
     void allTermsHaveNoPositionCount() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("")
         ) {
             iter.next();
@@ -172,7 +175,7 @@ final class ListingsTest {
 
     @Test
     void closedAllTermsEnd() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             final TermIterator iter = db.allTerms("");
             iter.close();
             Assertions.assertFalse(iter.hasNext(), "Closed iterator ends");
@@ -181,7 +184,7 @@ final class ListingsTest {
 
     @Test
     void listsMetadataKeys() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             db.setMetadata("k2", "b");
             db.setMetadata("j", "c");
             db.setMetadata("k1", "a");
@@ -195,7 +198,7 @@ final class ListingsTest {
 
     @Test
     void metadataKeysHaveNoFrequency() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             db.setMetadata("k", "v");
             try (TermIterator iter = db.metadataKeys("")) {
                 iter.next();
@@ -211,7 +214,7 @@ final class ListingsTest {
     @Test
     void streamsSlotValues() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             ValueIterator iter = db.valueStream(new ValueNo(1L))
         ) {
             Assertions.assertEquals(
@@ -222,8 +225,8 @@ final class ListingsTest {
 
     @Test
     void streamSkipsDocumentsWithoutSlot() {
-        try (InMemoryDatabase db = Corpus.build()) {
-            final InMemoryDocument doc = Corpus.plain("d");
+        try (WritableDatabase db = Corpus.build()) {
+            final DocumentInternal doc = Corpus.plain("d");
             doc.addValue(new ValueNo(2L), "y");
             db.addDocument(doc);
             try (ValueIterator iter = db.valueStream(new ValueNo(2L))) {
@@ -237,7 +240,7 @@ final class ListingsTest {
     @Test
     void streamReportsSlot() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             ValueIterator iter = db.valueStream(new ValueNo(2L))
         ) {
             iter.next();
@@ -248,7 +251,7 @@ final class ListingsTest {
     @Test
     void streamSkipsForward() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             ValueIterator iter = db.valueStream(new ValueNo(1L))
         ) {
             iter.skipTo(DocId.of(2));
@@ -259,7 +262,7 @@ final class ListingsTest {
     @Test
     void streamOfUnusedSlotIsEmpty() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             ValueIterator iter = db.valueStream(new ValueNo(9L))
         ) {
             Assertions.assertFalse(iter.hasNext(), "Empty stream");
@@ -268,7 +271,7 @@ final class ListingsTest {
 
     @Test
     void closedStreamEnds() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             final ValueIterator iter = db.valueStream(new ValueNo(1L));
             iter.close();
             Assertions.assertFalse(iter.hasNext(), "Closed iterator ends");
@@ -278,7 +281,7 @@ final class ListingsTest {
     @Test
     void streamSlotBeforeStartFails() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             ValueIterator iter = db.valueStream(new ValueNo(1L))
         ) {
             Assertions.assertThrows(

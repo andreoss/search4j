@@ -7,10 +7,13 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
+import io.github.andreoss.search4j.core.api.DatabaseFactory;
 import io.github.andreoss.search4j.core.api.PositionIterator;
 import io.github.andreoss.search4j.core.api.PostingIterator;
 import io.github.andreoss.search4j.core.api.TermIterator;
 import io.github.andreoss.search4j.core.api.ValueIterator;
+import io.github.andreoss.search4j.core.api.WritableDatabase;
+import io.github.andreoss.search4j.core.backend.DocumentInternal;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.TermPos;
@@ -41,8 +44,8 @@ final class Corpus {
      *
      * @return Database
      */
-    static InMemoryDatabase build() {
-        final InMemoryDatabase database = new InMemoryDatabase();
+    static WritableDatabase build() {
+        final WritableDatabase database = DatabaseFactory.inMemory();
         database.addDocument(Corpus.first());
         database.addDocument(Corpus.second());
         database.addDocument(Corpus.third());
@@ -54,8 +57,8 @@ final class Corpus {
      *
      * @return Document
      */
-    static InMemoryDocument first() {
-        final InMemoryDocument doc = new InMemoryDocument();
+    static DocumentInternal first() {
+        final DocumentInternal doc = new DocumentInternal();
         doc.setData("one");
         doc.addValue(new ValueNo(1L), "b");
         doc.addValue(new ValueNo(2L), "x");
@@ -70,8 +73,8 @@ final class Corpus {
      *
      * @return Document
      */
-    static InMemoryDocument second() {
-        final InMemoryDocument doc = new InMemoryDocument();
+    static DocumentInternal second() {
+        final DocumentInternal doc = new DocumentInternal();
         doc.setData("two");
         doc.addValue(new ValueNo(1L), "a");
         doc.addPosting("apple", new TermPos(2), new TermCount(1));
@@ -84,8 +87,8 @@ final class Corpus {
      *
      * @return Document
      */
-    static InMemoryDocument third() {
-        final InMemoryDocument doc = new InMemoryDocument();
+    static DocumentInternal third() {
+        final DocumentInternal doc = new DocumentInternal();
         doc.setData("three");
         doc.addTerm("banana", new TermCount(1));
         return doc;
@@ -97,8 +100,8 @@ final class Corpus {
      * @param term The term text
      * @return Document
      */
-    static InMemoryDocument plain(final String term) {
-        final InMemoryDocument doc = new InMemoryDocument();
+    static DocumentInternal plain(final String term) {
+        final DocumentInternal doc = new DocumentInternal();
         doc.setData(term);
         doc.addTerm(term, new TermCount(1));
         return doc;

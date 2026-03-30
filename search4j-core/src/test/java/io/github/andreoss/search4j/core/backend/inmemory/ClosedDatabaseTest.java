@@ -11,6 +11,7 @@ import io.github.andreoss.search4j.core.api.PositionIterator;
 import io.github.andreoss.search4j.core.api.PostingIterator;
 import io.github.andreoss.search4j.core.api.TermIterator;
 import io.github.andreoss.search4j.core.api.ValueIterator;
+import io.github.andreoss.search4j.core.api.WritableDatabase;
 import io.github.andreoss.search4j.core.error.DatabaseClosedError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
@@ -20,7 +21,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests of a closed {@link InMemoryDatabase}.
+ * Tests of a closed {@link InMemoryShard}.
  *
  * @since 0.1.0
  */
@@ -329,7 +330,7 @@ final class ClosedDatabaseTest {
 
     @Test
     void closingTwiceIsAllowed() {
-        final InMemoryDatabase database = ClosedDatabaseTest.closed();
+        final WritableDatabase database = ClosedDatabaseTest.closed();
         database.close();
         Assertions.assertEquals(
             new TotalLength(8L), database.totalLength(), "Still closed"
@@ -339,7 +340,7 @@ final class ClosedDatabaseTest {
     @Test
     void openPostingsFailAfterClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             ClosedDatabaseTest.shut(db);
@@ -352,7 +353,7 @@ final class ClosedDatabaseTest {
     @Test
     void openPostingAccessorsFailAfterClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             iter.next();
@@ -366,7 +367,7 @@ final class ClosedDatabaseTest {
     @Test
     void openPostingAdvanceFailsAfterClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             ClosedDatabaseTest.shut(db);
@@ -379,7 +380,7 @@ final class ClosedDatabaseTest {
     @Test
     void openEveryDocumentFailsAfterClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("")
         ) {
             ClosedDatabaseTest.shut(db);
@@ -392,7 +393,7 @@ final class ClosedDatabaseTest {
     @Test
     void openTermListFailsAfterClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.termList(DocId.of(1))
         ) {
             ClosedDatabaseTest.shut(db);
@@ -405,7 +406,7 @@ final class ClosedDatabaseTest {
     @Test
     void openTermFrequencyFailsAfterClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.termList(DocId.of(1))
         ) {
             iter.next();
@@ -419,7 +420,7 @@ final class ClosedDatabaseTest {
     @Test
     void openAllTermsFailAfterClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.allTerms("")
         ) {
             ClosedDatabaseTest.shut(db);
@@ -431,7 +432,7 @@ final class ClosedDatabaseTest {
 
     @Test
     void openMetadataKeysFailAfterClose() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.setMetadata("k", "v");
             try (TermIterator iter = db.metadataKeys("")) {
                 ClosedDatabaseTest.shut(db);
@@ -445,7 +446,7 @@ final class ClosedDatabaseTest {
     @Test
     void openStreamFailsAfterClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             ValueIterator iter = db.valueStream(new ValueNo(1L))
         ) {
             ClosedDatabaseTest.shut(db);
@@ -458,7 +459,7 @@ final class ClosedDatabaseTest {
     @Test
     void openPositionsSurviveClose() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PositionIterator iter = db.positions(DocId.of(1), "apple")
         ) {
             ClosedDatabaseTest.shut(db);
@@ -468,13 +469,13 @@ final class ClosedDatabaseTest {
         }
     }
 
-    private static InMemoryDatabase closed() {
-        final InMemoryDatabase database = Corpus.build();
+    private static WritableDatabase closed() {
+        final WritableDatabase database = Corpus.build();
         database.close();
         return database;
     }
 
-    private static void shut(final InMemoryDatabase database) {
+    private static void shut(final WritableDatabase database) {
         database.close();
     }
 }

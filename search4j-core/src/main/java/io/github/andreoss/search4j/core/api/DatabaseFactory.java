@@ -7,12 +7,14 @@
  */
 package io.github.andreoss.search4j.core.api;
 
-import io.github.andreoss.search4j.core.backend.inmemory.InMemoryDatabase;
+import io.github.andreoss.search4j.core.backend.DocumentInternal;
+import io.github.andreoss.search4j.core.backend.ShardDatabase;
+import io.github.andreoss.search4j.core.backend.inmemory.InMemoryShard;
 import java.nio.file.Path;
 import java.util.Objects;
 
 /**
- * Factory for opening databases.
+ * Factory for opening databases and creating documents.
  *
  * <p>An in-memory database needs no path. Opening by path is rejected until
  * an on-disk backend is provided.</p>
@@ -34,7 +36,16 @@ public final class DatabaseFactory {
      * @return New database, independent of any other
      */
     public static WritableDatabase inMemory() {
-        return new InMemoryDatabase();
+        return new ShardDatabase(new InMemoryShard());
+    }
+
+    /**
+     * Creates an empty document belonging to no database.
+     *
+     * @return New editable document
+     */
+    public static Document document() {
+        return new DocumentInternal();
     }
 
     /**

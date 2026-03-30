@@ -7,6 +7,8 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
+import io.github.andreoss.search4j.core.backend.TermOrder;
+import io.github.andreoss.search4j.core.backend.ValueStats;
 import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
@@ -90,6 +92,15 @@ final class SlotStats {
      */
     String lower() {
         return this.lower;
+    }
+
+    /**
+     * Snapshot of the statistics.
+     *
+     * @return Frequency and bounds
+     */
+    ValueStats snapshot() {
+        return new ValueStats(this.frequency(), this.lower, this.upper);
     }
 
     /**

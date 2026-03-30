@@ -7,10 +7,13 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
+import io.github.andreoss.search4j.core.api.DatabaseFactory;
 import io.github.andreoss.search4j.core.api.Document;
 import io.github.andreoss.search4j.core.api.PositionIterator;
 import io.github.andreoss.search4j.core.api.PostingIterator;
 import io.github.andreoss.search4j.core.api.TermIterator;
+import io.github.andreoss.search4j.core.api.WritableDatabase;
+import io.github.andreoss.search4j.core.backend.DocumentInternal;
 import io.github.andreoss.search4j.core.error.DocNotFoundError;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.error.UnimplementedError;
@@ -26,7 +29,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests of the read side of {@link InMemoryDatabase}.
+ * Tests of the read side of {@link InMemoryShard}.
  *
  * @since 0.1.0
  */
@@ -34,28 +37,28 @@ final class InMemoryDatabaseTest {
 
     @Test
     void countsDocuments() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(new TermCount(3), db.docCount(), "Count");
         }
     }
 
     @Test
     void reportsLastDocId() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(DocId.of(3), db.lastDocId(), "Last id");
         }
     }
 
     @Test
     void emptyDatabaseHasNoLastDocId() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             Assertions.assertEquals(DocId.NONE, db.lastDocId(), "No id");
         }
     }
 
     @Test
     void sumsTotalLengthOfWdfs() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TotalLength(8L), db.totalLength(), "Total length"
             );
@@ -64,7 +67,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void averagesLength() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new DocLength(8.0 / 3.0), db.averageLength(), "Average"
             );
@@ -73,7 +76,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void emptyDatabaseHasZeroAverage() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             Assertions.assertEquals(
                 DocLength.ZERO, db.averageLength(), "Zero average"
             );
@@ -82,7 +85,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void countsTermFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(2), db.termFrequency("apple"), "Frequency"
             );
@@ -91,7 +94,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void unknownTermHasZeroFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 TermCount.ZERO, db.termFrequency("zebra"), "Unknown"
             );
@@ -100,7 +103,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void emptyTermFrequencyIsDocCount() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(3), db.termFrequency(""), "Every document"
             );
@@ -109,7 +112,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void sumsCollectionFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(4), db.collectionFrequency("banana"), "Sum"
             );
@@ -118,7 +121,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void unknownTermHasZeroCollectionFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 TermCount.ZERO, db.collectionFrequency("zebra"), "Unknown"
             );
@@ -127,7 +130,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void emptyTermCollectionFrequencyIsDocCount() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(3), db.collectionFrequency(""), "Every doc"
             );
@@ -136,35 +139,35 @@ final class InMemoryDatabaseTest {
 
     @Test
     void knownTermExists() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertTrue(db.termExists("cherry"), "Exists");
         }
     }
 
     @Test
     void unknownTermDoesNotExist() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertFalse(db.termExists("zebra"), "Absent");
         }
     }
 
     @Test
     void emptyTermExistsWithDocuments() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertTrue(db.termExists(""), "Documents exist");
         }
     }
 
     @Test
     void emptyTermAbsentWithoutDocuments() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             Assertions.assertFalse(db.termExists(""), "No documents");
         }
     }
 
     @Test
     void docLengthIsSumOfWdfs() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(5), db.docLength(DocId.of(1)), "Sum of wdfs"
             );
@@ -173,7 +176,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void docLengthOfMissingDocFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 DocNotFoundError.class,
                 () -> db.docLength(DocId.of(9)),
@@ -184,7 +187,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void docLengthOfZeroIdFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class,
                 () -> db.docLength(DocId.NONE),
@@ -195,7 +198,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void countsUniqueTerms() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(2), db.uniqueTerms(DocId.of(1)), "Distinct"
             );
@@ -204,8 +207,8 @@ final class InMemoryDatabaseTest {
 
     @Test
     void uniqueTermsCappedByLength() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
-            final InMemoryDocument doc = new InMemoryDocument();
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
+            final DocumentInternal doc = new DocumentInternal();
             doc.addTerm("a", TermCount.ZERO);
             doc.addTerm("b", new TermCount(1));
             Assertions.assertEquals(
@@ -218,7 +221,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void findsHighestWdf() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(3), db.wdfDocMax(DocId.of(1)), "Highest wdf"
             );
@@ -227,10 +230,10 @@ final class InMemoryDatabaseTest {
 
     @Test
     void highestWdfOfEmptyDocIsZero() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             Assertions.assertEquals(
                 TermCount.ZERO,
-                db.wdfDocMax(db.addDocument(new InMemoryDocument())),
+                db.wdfDocMax(db.addDocument(new DocumentInternal())),
                 "Zero"
             );
         }
@@ -238,7 +241,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void lengthLowerBoundIsOne() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(1), db.docLengthLowerBound(), "Lower bound"
             );
@@ -247,7 +250,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void lengthUpperBoundIsTotal() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(8), db.docLengthUpperBound(), "Upper bound"
             );
@@ -256,7 +259,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void wdfUpperBoundIsCollectionFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(3), db.wdfUpperBound("apple"), "Wdf bound"
             );
@@ -265,7 +268,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void emptyTermWdfUpperBoundIsZero() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 TermCount.ZERO, db.wdfUpperBound(""), "Empty term"
             );
@@ -274,7 +277,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void countsValueFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(2), db.valueFrequency(new ValueNo(1L)), "Slot"
             );
@@ -283,7 +286,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void tracksValueLowerBound() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 "a", db.valueLowerBound(new ValueNo(1L)), "Lower bound"
             );
@@ -292,7 +295,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void tracksValueUpperBound() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 "b", db.valueUpperBound(new ValueNo(1L)), "Upper bound"
             );
@@ -301,7 +304,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void unusedSlotHasNoFrequency() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 TermCount.ZERO, db.valueFrequency(new ValueNo(5L)), "Unused"
             );
@@ -310,7 +313,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void unusedSlotHasEmptyBound() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 "", db.valueUpperBound(new ValueNo(5L)), "Unused"
             );
@@ -319,14 +322,14 @@ final class InMemoryDatabaseTest {
 
     @Test
     void reportsPositions() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertTrue(db.hasPositions(), "Positions present");
         }
     }
 
     @Test
     void reportsNoPositions() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
             db.addDocument(Corpus.third());
             Assertions.assertFalse(db.hasPositions(), "No positions");
         }
@@ -335,7 +338,7 @@ final class InMemoryDatabaseTest {
     @Test
     void listsPostingDocuments() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             Assertions.assertEquals(
@@ -347,7 +350,7 @@ final class InMemoryDatabaseTest {
     @Test
     void listsPostingWdfs() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("banana")
         ) {
             Assertions.assertEquals(
@@ -361,7 +364,7 @@ final class InMemoryDatabaseTest {
     @Test
     void postingReportsDocLength() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             iter.next();
@@ -375,7 +378,7 @@ final class InMemoryDatabaseTest {
     @Test
     void postingReportsUniqueTerms() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("banana")
         ) {
             iter.next();
@@ -389,7 +392,7 @@ final class InMemoryDatabaseTest {
     @Test
     void postingReportsPositionCount() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             iter.next();
@@ -402,7 +405,7 @@ final class InMemoryDatabaseTest {
     @Test
     void postingReportsPositions() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             iter.next();
@@ -417,7 +420,7 @@ final class InMemoryDatabaseTest {
     @Test
     void postingSkipsForward() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("banana")
         ) {
             iter.skipTo(DocId.of(2));
@@ -428,7 +431,7 @@ final class InMemoryDatabaseTest {
     @Test
     void postingNeverSkipsBackwards() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             iter.next();
@@ -441,7 +444,7 @@ final class InMemoryDatabaseTest {
     @Test
     void unknownTermHasNoPostings() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("zebra")
         ) {
             Assertions.assertFalse(iter.hasNext(), "No postings");
@@ -451,7 +454,7 @@ final class InMemoryDatabaseTest {
     @Test
     void postingsSeeLaterDeletion() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("apple")
         ) {
             db.deleteDocument(DocId.of(2));
@@ -463,7 +466,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void emptyTermListsEveryDocument() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.deleteDocument(DocId.of(2));
             try (PostingIterator iter = db.postings("")) {
                 Assertions.assertEquals(
@@ -476,7 +479,7 @@ final class InMemoryDatabaseTest {
     @Test
     void everyDocumentHasWdfOne() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("")
         ) {
             Assertions.assertEquals(
@@ -490,7 +493,7 @@ final class InMemoryDatabaseTest {
     @Test
     void everyDocumentReportsLength() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("")
         ) {
             iter.next();
@@ -503,7 +506,7 @@ final class InMemoryDatabaseTest {
     @Test
     void everyDocumentReportsUniqueTerms() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("")
         ) {
             iter.next();
@@ -516,7 +519,7 @@ final class InMemoryDatabaseTest {
     @Test
     void everyDocumentSkipsForward() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("")
         ) {
             iter.skipTo(DocId.of(3));
@@ -527,7 +530,7 @@ final class InMemoryDatabaseTest {
     @Test
     void everyDocumentHasNoPositions() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("")
         ) {
             iter.next();
@@ -540,7 +543,7 @@ final class InMemoryDatabaseTest {
     @Test
     void everyDocumentHasNoPositionCount() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PostingIterator iter = db.postings("")
         ) {
             iter.next();
@@ -552,7 +555,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void closedPostingsEnd() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             final PostingIterator iter = db.postings("");
             iter.close();
             Assertions.assertFalse(iter.hasNext(), "Closed iterator ends");
@@ -562,7 +565,7 @@ final class InMemoryDatabaseTest {
     @Test
     void listsDocumentTerms() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.termList(DocId.of(2))
         ) {
             Assertions.assertEquals(
@@ -574,7 +577,7 @@ final class InMemoryDatabaseTest {
     @Test
     void documentTermReportsWdf() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.termList(DocId.of(1))
         ) {
             iter.skipTo("b");
@@ -586,7 +589,7 @@ final class InMemoryDatabaseTest {
     @Test
     void documentTermReportsTermFrequency() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.termList(DocId.of(2))
         ) {
             iter.next();
@@ -599,7 +602,7 @@ final class InMemoryDatabaseTest {
     @Test
     void documentTermReportsPositions() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.termList(DocId.of(2))
         ) {
             iter.next();
@@ -615,7 +618,7 @@ final class InMemoryDatabaseTest {
     @Test
     void documentTermReportsPositionCount() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             TermIterator iter = db.termList(DocId.of(1))
         ) {
             iter.next();
@@ -627,7 +630,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void termListOfMissingDocFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 DocNotFoundError.class,
                 () -> db.termList(DocId.of(4)),
@@ -639,7 +642,7 @@ final class InMemoryDatabaseTest {
     @Test
     void readsPositions() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PositionIterator iter = db.positions(DocId.of(1), "apple")
         ) {
             Assertions.assertEquals(
@@ -651,7 +654,7 @@ final class InMemoryDatabaseTest {
     @Test
     void unpositionedTermHasNoPositions() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PositionIterator iter = db.positions(DocId.of(1), "banana")
         ) {
             Assertions.assertFalse(iter.hasNext(), "No positions");
@@ -661,7 +664,7 @@ final class InMemoryDatabaseTest {
     @Test
     void absentTermHasNoPositions() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PositionIterator iter = db.positions(DocId.of(1), "cherry")
         ) {
             Assertions.assertFalse(iter.hasNext(), "Term not in document");
@@ -671,7 +674,7 @@ final class InMemoryDatabaseTest {
     @Test
     void missingDocumentHasNoPositions() {
         try (
-            InMemoryDatabase db = Corpus.build();
+            WritableDatabase db = Corpus.build();
             PositionIterator iter = db.positions(DocId.of(7), "apple")
         ) {
             Assertions.assertFalse(iter.hasNext(), "No document");
@@ -680,7 +683,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void positionsRejectZeroId() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class,
                 () -> db.positions(DocId.NONE, "apple"),
@@ -691,7 +694,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void positionsRejectEmptyTerm() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class,
                 () -> db.positions(DocId.of(1), ""),
@@ -702,7 +705,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void countsPositions() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 new TermCount(2),
                 db.positionCount(DocId.of(1), "apple"),
@@ -713,7 +716,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void absentPairHasNoPositionCount() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 TermCount.ZERO,
                 db.positionCount(DocId.of(3), "apple"),
@@ -724,7 +727,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void readsDocumentData() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 "two", db.document(DocId.of(2)).data(), "Data"
             );
@@ -733,7 +736,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void readsDocumentValue() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertEquals(
                 Optional.of("x"),
                 db.document(DocId.of(1)).value(new ValueNo(2L)),
@@ -744,7 +747,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void readsDocumentPositions() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             final Document doc = db.document(DocId.of(1));
             try (
                 TermIterator iter = doc.termList();
@@ -759,8 +762,8 @@ final class InMemoryDatabaseTest {
 
     @Test
     void documentKeepsWdfAbovePositionCount() {
-        try (InMemoryDatabase db = new InMemoryDatabase()) {
-            final InMemoryDocument doc = new InMemoryDocument();
+        try (WritableDatabase db = DatabaseFactory.inMemory()) {
+            final DocumentInternal doc = new DocumentInternal();
             doc.addPosting("a", new TermPos(1), new TermCount(4));
             try (TermIterator iter = db.document(db.addDocument(doc)).termList()) {
                 iter.next();
@@ -771,7 +774,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void documentIsDetached() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             db.document(DocId.of(3)).addTerm("extra", new TermCount(1));
             Assertions.assertEquals(
                 new TermCount(1), db.docLength(DocId.of(3)), "Unchanged"
@@ -781,7 +784,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void missingDocumentFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 DocNotFoundError.class,
                 () -> db.document(DocId.of(4)),
@@ -792,7 +795,7 @@ final class InMemoryDatabaseTest {
 
     @Test
     void zeroDocumentIdFails() {
-        try (InMemoryDatabase db = Corpus.build()) {
+        try (WritableDatabase db = Corpus.build()) {
             Assertions.assertThrows(
                 InvalidArgumentError.class,
                 () -> db.document(DocId.NONE),
@@ -804,8 +807,8 @@ final class InMemoryDatabaseTest {
     @Test
     void cannotCombineDatabases() {
         try (
-            InMemoryDatabase db = Corpus.build();
-            InMemoryDatabase other = new InMemoryDatabase()
+            WritableDatabase db = Corpus.build();
+            WritableDatabase other = DatabaseFactory.inMemory()
         ) {
             Assertions.assertThrows(
                 UnimplementedError.class,

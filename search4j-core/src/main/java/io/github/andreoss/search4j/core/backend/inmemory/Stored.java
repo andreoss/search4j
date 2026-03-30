@@ -11,13 +11,13 @@ import io.github.andreoss.search4j.core.api.Document;
 import io.github.andreoss.search4j.core.api.PositionIterator;
 import io.github.andreoss.search4j.core.api.TermIterator;
 import io.github.andreoss.search4j.core.api.ValueIterator;
+import io.github.andreoss.search4j.core.backend.TermOrder;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.TermPos;
 import io.github.andreoss.search4j.core.types.ValueNo;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
@@ -101,27 +101,6 @@ record Stored(
             if (occurrence.wdf().compareTo(result) > 0) {
                 result = occurrence.wdf();
             }
-        }
-        return result;
-    }
-
-    /**
-     * Builds a detached, editable copy.
-     *
-     * @return Document
-     */
-    Document document() {
-        final InMemoryDocument result = new InMemoryDocument();
-        result.setData(this.data);
-        for (final Map.Entry<ValueNo, String> entry : this.values.entrySet()) {
-            result.addValue(entry.getKey(), entry.getValue());
-        }
-        for (final Map.Entry<String, Occurrence> entry
-            : this.terms.entrySet()) {
-            for (final TermPos position : entry.getValue().positions()) {
-                result.addPosting(entry.getKey(), position, TermCount.ZERO);
-            }
-            result.addTerm(entry.getKey(), entry.getValue().wdf());
         }
         return result;
     }

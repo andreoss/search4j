@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 final class ConstantsTest {
 
     @Test
-    void createOrOpenCode() {
+    void createOrOpenNumber() {
         Assertions.assertEquals(
             0x00, DatabaseAction.CREATE_OR_OPEN.code(), "Database value"
         );
@@ -40,7 +40,7 @@ final class ConstantsTest {
     }
 
     @Test
-    void openCode() {
+    void openNumber() {
         Assertions.assertEquals(
             0x03, DatabaseAction.OPEN.code(), "Database value"
         );

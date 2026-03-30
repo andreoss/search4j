@@ -7,10 +7,12 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
+import io.github.andreoss.search4j.core.backend.TermOrder;
 import io.github.andreoss.search4j.core.error.DatabaseClosedError;
 import io.github.andreoss.search4j.core.error.DocNotFoundError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
+import io.github.andreoss.search4j.core.types.TermPos;
 import io.github.andreoss.search4j.core.types.ValueNo;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -243,6 +245,22 @@ final class Store implements Stats {
         if (this.docs.isEmpty()) {
             this.positional = false;
         }
+    }
+
+    /**
+     * Positions of a term in a document.
+     *
+     * @param docid The document identifier
+     * @param term The term text
+     * @return Ascending positions, none when either is absent
+     */
+    List<TermPos> positions(final DocId docid, final String term) {
+        List<TermPos> result = Collections.emptyList();
+        final Stored found = this.docs.get(docid);
+        if (found != null && found.terms().containsKey(term)) {
+            result = found.terms().get(term).positions();
+        }
+        return result;
     }
 
     /**

@@ -8,16 +8,16 @@
 package io.github.andreoss.search4j.core.backend.inmemory;
 
 import io.github.andreoss.search4j.core.error.InvalidOperationError;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Predicate;
 
 /**
  * Forward cursor over a live sorted map, tolerant of changes between steps.
+ *
+ * <p>The cursor starts before its first entry and ends once a move finds
+ * none.</p>
  *
  * @param <K> The key type
  * @param <V> The value type
@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 final class Seek<K, V> {
 
     /**
-     * The map walked.
+     * The map walked, with an explicit comparator.
      */
     private final NavigableMap<K, V> map;
 
@@ -36,31 +36,24 @@ final class Seek<K, V> {
     private final Predicate<? super V> keep;
 
     /**
-     * The key the next entry is searched from.
+     * The lowest key visited.
      */
-    private K bound;
+    private final K start;
 
     /**
-     * Whether an entry at the bound itself is eligible.
+     * The entry the cursor is on, empty before the first.
      */
-    private boolean inclusive;
+    private Optional<Map.Entry<K, V>> current;
 
     /**
-     * The entry most recently returned, none before the first.
+     * Whether the walk is over.
      */
-    private final List<Map.Entry<K, V>> visited;
-
-    /**
-     * Whether the walk was ended.
-     */
-    private boolean done;
+    private boolean ended;
 
     /**
      * Creates a cursor starting at a key.
      *
-     * <p>The map must carry an explicit comparator.</p>
-     *
-     * @param map The map walked
+     * @param map The map walked, with an explicit comparator
      * @param start The lowest key visited
      * @param keep The test an entry value passes to be visited
      */
@@ -69,78 +62,98 @@ final class Seek<K, V> {
         final K start,
         final Predicate<? super V> keep
     ) {
+        this(map, start, keep, Optional.empty());
+    }
+
+    /**
+     * Creates a cursor on an entry.
+     *
+     * @param map The map walked, with an explicit comparator
+     * @param start The lowest key visited
+     * @param keep The test an entry value passes to be visited
+     * @param current The entry the cursor is on, empty before the first
+     */
+    private Seek(
+        final NavigableMap<K, V> map,
+        final K start,
+        final Predicate<? super V> keep,
+        final Optional<Map.Entry<K, V>> current
+    ) {
         this.map = map;
         this.keep = keep;
-        this.bound = start;
-        this.inclusive = true;
-        this.visited = new ArrayList<>(1);
-        this.done = false;
+        this.start = start;
+        this.current = current;
+        this.ended = false;
     }
 
     /**
-     * Next entry without advancing.
-     *
-     * @return Entry, empty at the end
+     * Moves to the next entry, or ends the walk when there is none.
      */
-    Optional<Map.Entry<K, V>> peek() {
-        Map.Entry<K, V> entry = null;
-        if (!this.done) {
-            if (this.inclusive) {
-                entry = this.map.ceilingEntry(this.bound);
+    void step() {
+        if (!this.ended) {
+            final Map.Entry<K, V> from;
+            if (this.current.isPresent()) {
+                from = this.map.higherEntry(this.current.get().getKey());
             } else {
-                entry = this.map.higherEntry(this.bound);
+                from = this.map.ceilingEntry(this.start);
             }
-            while (entry != null && !this.keep.test(entry.getValue())) {
-                entry = this.map.higherEntry(entry.getKey());
-            }
+            this.land(from);
         }
-        return Optional.ofNullable(entry);
     }
 
     /**
-     * Advances to the next entry.
-     *
-     * @return Entry
-     */
-    Map.Entry<K, V> advance() {
-        final Map.Entry<K, V> entry = this.peek().orElseThrow(
-            () -> new NoSuchElementException("Iteration is over")
-        );
-        this.bound = entry.getKey();
-        this.inclusive = false;
-        this.visited.clear();
-        this.visited.add(entry);
-        return entry;
-    }
-
-    /**
-     * Moves the search start forward to a target, never backwards.
+     * Moves to the first entry at or after a target, never backwards.
      *
      * @param target The lowest key wanted
      */
-    void skipTo(final K target) {
-        if (this.map.comparator().compare(target, this.bound) > 0) {
-            this.bound = target;
-            this.inclusive = true;
+    void seek(final K target) {
+        if (!this.ended && this.current.map(
+            entry -> this.map.comparator().compare(target, entry.getKey()) > 0
+        ).orElse(true)) {
+            K from = target;
+            if (this.map.comparator().compare(this.start, target) > 0) {
+                from = this.start;
+            }
+            this.land(this.map.ceilingEntry(from));
         }
     }
 
     /**
-     * Entry most recently returned.
+     * Entry the cursor is on.
      *
-     * @return Entry
+     * @return Entry, the last one reached once ended
      */
     Map.Entry<K, V> current() {
-        if (this.visited.isEmpty()) {
-            throw new InvalidOperationError("Iteration has not started");
-        }
-        return this.visited.get(0);
+        return this.current.orElseThrow(
+            () -> new InvalidOperationError("Iteration has not started")
+        );
+    }
+
+    /**
+     * Tests whether the walk is over.
+     *
+     * @return True once a move found no entry or the walk was ended
+     */
+    boolean ended() {
+        return this.ended;
     }
 
     /**
      * Ends the walk.
      */
     void finish() {
-        this.done = true;
+        this.ended = true;
+    }
+
+    private void land(final Map.Entry<K, V> from) {
+        Map.Entry<K, V> entry = from;
+        while (entry != null && !this.keep.test(entry.getValue())) {
+            entry = this.map.higherEntry(entry.getKey());
+        }
+        if (entry == null) {
+            this.ended = true;
+        } else {
+            this.current = Optional.of(entry);
+        }
     }
 }
