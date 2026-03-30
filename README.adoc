@@ -9,6 +9,8 @@ remote protocol.
 
 == Build
 
+Requires JDK 21 or later and Maven 3.9.16 or later.
+
   mvn verify
 
 == Test
