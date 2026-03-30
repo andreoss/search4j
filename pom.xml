@@ -53,6 +53,8 @@
     <install.version>3.2.0</install.version>
     <deploy.version>3.2.0</deploy.version>
     <clean.version>3.5.0</clean.version>
+    <antrun.version>3.2.0</antrun.version>
+    <tool.tmpdir>${project.build.directory}/tmp</tool.tmpdir>
   </properties>
 
   <modules>
@@ -79,6 +81,9 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${surefire.version}</version>
+          <configuration>
+            <argLine>-Djava.io.tmpdir=${tool.tmpdir} -XX:-UsePerfData</argLine>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -107,6 +112,27 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>${antrun.version}</version>
+        <executions>
+          <execution>
+            <id>tool-tmpdir</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <mkdir dir="${tool.tmpdir}"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>
@@ -135,6 +161,8 @@
               </targetTests>
               <jvmArgs>
                 <jvmArg>-Xmx1g</jvmArg>
+                <jvmArg>-Djava.io.tmpdir=${tool.tmpdir}</jvmArg>
+                <jvmArg>-XX:-UsePerfData</jvmArg>
               </jvmArgs>
             </configuration>
             <dependencies>
