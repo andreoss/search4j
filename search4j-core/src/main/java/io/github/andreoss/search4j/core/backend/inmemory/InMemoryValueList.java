@@ -36,8 +36,8 @@ final class InMemoryValueList implements ValueList {
     /**
      * Creates a list over a slot.
      *
-     * @param store The store holding the documents
-     * @param number The slot read
+     * @param store Store holding the documents
+     * @param number Slot read
      */
     InMemoryValueList(final Store store, final ValueNo number) {
         this(
@@ -54,9 +54,9 @@ final class InMemoryValueList implements ValueList {
     /**
      * Creates a list from its parts.
      *
-     * @param store The store holding the documents
-     * @param number The slot read
-     * @param seek The cursor over the documents holding the slot
+     * @param store Store holding the documents
+     * @param number Slot read
+     * @param seek Cursor over the documents holding the slot
      */
     private InMemoryValueList(
         final Store store,

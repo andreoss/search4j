@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -70,7 +72,7 @@ public final class Block {
      *
      * @param num Number of the block
      * @param data Block bytes of a valid block size, not copied
-     * @return Block
+     * @return Block over the bytes
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static Block parse(final BlockNumber num, final byte[] data) {
@@ -118,7 +120,7 @@ public final class Block {
     /**
      * Revision that last wrote the block.
      *
-     * @return Revision
+     * @return Revision number
      */
     public RevisionNumber revision() {
         return RevisionNumber.fromBits(this.view.getInt(0));
@@ -227,7 +229,7 @@ public final class Block {
      * Key of a leaf item.
      *
      * @param index Directory index
-     * @return Key
+     * @return Key of the item
      */
     public ItemKey leafKey(final int index) {
         return ItemKey.parse(this.data, this.leafKeyAt(index));
@@ -237,7 +239,7 @@ public final class Block {
      * Key of a branch item.
      *
      * @param index Directory index
-     * @return Key
+     * @return Key of the item
      */
     public ItemKey branchKey(final int index) {
         return ItemKey.parse(this.data, this.branchKeyAt(index));

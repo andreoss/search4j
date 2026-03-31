@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -86,7 +87,7 @@ public final class VidrioWritableShard implements Shard, AutoCloseable {
     /**
      * Creates the shard over a session.
      *
-     * @param session The session written
+     * @param session Session written
      * @param reads Read side of the session
      * @param threshold Document changes buffered before a flush
      */

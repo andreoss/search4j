@@ -30,7 +30,7 @@ public interface Shard extends ShardStatistics, ShardBounds, ShardListings,
     /**
      * Backend kind of the shard.
      *
-     * @return Backend
+     * @return Backend kind
      */
     Backend backend();
 
@@ -123,7 +123,10 @@ public interface Shard extends ShardStatistics, ShardBounds, ShardListings,
     }
 
     /**
-     * Returns a shard holding the lock wanted.
+     * Shard holding the lock wanted.
+     *
+     * <p>The default cannot lock for writing and raises a database-lock
+     * error.</p>
      *
      * @param writable True to lock for writing
      * @return This shard when read-only access is wanted

@@ -48,7 +48,7 @@ final class SlotStats {
     /**
      * Accounts for a value arriving.
      *
-     * @param value The value text
+     * @param value Value arriving
      */
     void add(final String value) {
         if (this.count == 0) {

@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -28,7 +29,7 @@ public record PostingSources(
      * frequencies read from them.
      *
      * @param table Posting list table
-     * @return Sources
+     * @return Sources over the table
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static PostingSources committed(final TableLookup table) {
@@ -42,7 +43,7 @@ public record PostingSources(
      *
      * @param table Posting list table
      * @param freqs Source of the term frequencies of term lists
-     * @return Sources
+     * @return Sources over the table
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static PostingSources pending(

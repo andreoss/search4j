@@ -38,8 +38,8 @@ final class PostingAdapter implements PostingIterator {
     /**
      * Creates the iterator.
      *
-     * @param list The posting list, before its first document
-     * @param stats The statistics of the shard listed
+     * @param list Posting list, before its first document
+     * @param stats Statistics of the shard listed
      */
     PostingAdapter(final PostList list, final ShardStatistics stats) {
         this.stats = stats;

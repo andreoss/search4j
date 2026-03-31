@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table and the version file.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -51,7 +52,7 @@ final class PostingChanges {
     /**
      * Adds a posting.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param wdf Frequency in the document
      */
     void add(final DocId doc, final TermCount wdf) {
@@ -63,7 +64,7 @@ final class PostingChanges {
     /**
      * Removes a posting.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param wdf Frequency the document had
      */
     void remove(final DocId doc, final TermCount wdf) {
@@ -75,7 +76,7 @@ final class PostingChanges {
     /**
      * Changes the frequency of a posting.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param old Frequency the document had
      * @param wdf New frequency
      */

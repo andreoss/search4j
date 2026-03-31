@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -117,7 +118,7 @@ public final class WriteSession implements TableSet {
     /**
      * Database directory.
      *
-     * @return Directory
+     * @return Database directory
      */
     public Path dir() {
         return this.files.dir();
@@ -126,7 +127,7 @@ public final class WriteSession implements TableSet {
     /**
      * Version file of the revision being written.
      *
-     * @return Version file
+     * @return Version file being written
      */
     public VersionFile version() {
         return this.version;
@@ -135,7 +136,7 @@ public final class WriteSession implements TableSet {
     /**
      * The tables.
      *
-     * @return Tables
+     * @return Tables open
      */
     public WriteTables tables() {
         return this.tables;
@@ -144,7 +145,7 @@ public final class WriteSession implements TableSet {
     /**
      * Buffered posting, length and position changes.
      *
-     * @return Inverter
+     * @return Pending posting changes
      */
     public Inverter inverter() {
         return this.inverter;

@@ -19,8 +19,8 @@ import java.util.function.Predicate;
  * <p>The cursor starts before its first entry and ends once a move finds
  * none.</p>
  *
- * @param <K> The key type
- * @param <V> The value type
+ * @param <K> Key type
+ * @param <V> Value type
  * @since 0.1.0
  */
 final class Seek<K, V> {
@@ -53,9 +53,9 @@ final class Seek<K, V> {
     /**
      * Creates a cursor starting at a key.
      *
-     * @param map The map walked, with an explicit comparator
-     * @param start The lowest key visited
-     * @param keep The test an entry value passes to be visited
+     * @param map Map walked, with an explicit comparator
+     * @param start Lowest key visited
+     * @param keep Test an entry value passes to be visited
      */
     Seek(
         final NavigableMap<K, V> map,
@@ -68,10 +68,10 @@ final class Seek<K, V> {
     /**
      * Creates a cursor on an entry.
      *
-     * @param map The map walked, with an explicit comparator
-     * @param start The lowest key visited
-     * @param keep The test an entry value passes to be visited
-     * @param current The entry the cursor is on, empty before the first
+     * @param map Map walked, with an explicit comparator
+     * @param start Lowest key visited
+     * @param keep Test an entry value passes to be visited
+     * @param current Entry the cursor is on, empty before the first
      */
     private Seek(
         final NavigableMap<K, V> map,
@@ -104,7 +104,7 @@ final class Seek<K, V> {
     /**
      * Moves to the first entry at or after a target, never backwards.
      *
-     * @param target The lowest key wanted
+     * @param target Lowest key wanted
      */
     void seek(final K target) {
         if (!this.ended && this.current.map(

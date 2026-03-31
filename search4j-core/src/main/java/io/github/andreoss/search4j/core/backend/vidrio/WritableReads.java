@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -54,7 +55,7 @@ public final class WritableReads
     /**
      * Creates the read side from its parts.
      *
-     * @param session The session written
+     * @param session Session written
      * @param reader Read side over the tables as changed so far
      */
     private WritableReads(final WriteSession session, final VidrioReader reader) {
@@ -66,8 +67,8 @@ public final class WritableReads
      * Opens the read side of a session; the term frequencies of term lists
      * carry the pending changes.
      *
-     * @param session The session written
-     * @return Read side
+     * @param session Session written
+     * @return Read side over the tables
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static WritableReads of(final WriteSession session) {
@@ -265,7 +266,7 @@ public final class WritableReads
      * Opens the values of a slot across documents, merging the pending
      * value changes first.
      *
-     * @param slot Slot
+     * @param slot Slot number
      * @return Values in ascending document order
      */
     public ValueList openValueList(final ValueNo slot) {

@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -102,7 +104,7 @@ final class ByteReader {
      * Decodes a flag stored as the digit 0 or 1.
      *
      * @param what Field name for the error
-     * @return Flag
+     * @return True for the digit 1
      */
     boolean flag(final String what) {
         if (this.pos == this.end) {

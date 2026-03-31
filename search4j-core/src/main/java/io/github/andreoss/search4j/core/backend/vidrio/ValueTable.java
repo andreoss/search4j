@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -50,7 +51,7 @@ public final class ValueTable {
      *
      * @param postings Posting list table holding the chunks and statistics
      * @param termlists Term list table holding the slots used
-     * @return Lookups
+     * @return Lookups over the tables
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static ValueTable of(
@@ -62,8 +63,8 @@ public final class ValueTable {
     /**
      * Value of a document in a slot.
      *
-     * @param doc Document
-     * @param slot Slot
+     * @param doc Document identifier
+     * @param slot Slot number
      * @return Value, empty when the document has none in the slot
      */
     public String value(final DocId doc, final ValueNo slot) {
@@ -82,7 +83,7 @@ public final class ValueTable {
     /**
      * Every value of a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @return Values by slot, empty when the document has none
      */
     public NavigableMap<ValueNo, String> values(final DocId doc) {
@@ -96,7 +97,7 @@ public final class ValueTable {
     /**
      * Slots a document uses.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @return Slots in ascending order, empty when the document has none
      */
     public List<ValueNo> slots(final DocId doc) {
@@ -107,7 +108,7 @@ public final class ValueTable {
     /**
      * Statistics of a slot.
      *
-     * @param slot Slot
+     * @param slot Slot number
      * @return Statistics, {@link ValueStats#NONE} for an unused slot
      */
     public ValueStats stats(final ValueNo slot) {
@@ -118,7 +119,7 @@ public final class ValueTable {
     /**
      * Opens the values of a slot across documents.
      *
-     * @param slot Slot
+     * @param slot Slot number
      * @return List before its first value
      */
     public VidrioValueList open(final ValueNo slot) {
@@ -128,8 +129,8 @@ public final class ValueTable {
     /**
      * Opens the chunk that may hold a document.
      *
-     * @param slot Slot
-     * @param doc Document
+     * @param slot Slot number
+     * @param doc Document identifier
      * @return Chunk on its first document, or empty when no chunk of the
      *  slot starts at or before the document
      */

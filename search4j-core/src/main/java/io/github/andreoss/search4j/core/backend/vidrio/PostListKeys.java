@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table and the version file.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -17,10 +18,10 @@ import java.nio.charset.StandardCharsets;
 /**
  * Keys of the posting list table.
  *
- * <p>The first chunk of a term is keyed by the term alone; every later
- * chunk by the term, a zero byte and the sort-preserving number of its
- * first document. The document lengths are the posting list of the empty
- * term, whose keys start with a two-byte prefix instead.</p>
+ * <p>The first chunk of a term is keyed by the sort-preserving term alone;
+ * every later chunk by the term with its terminator and the sort-preserving
+ * number of its first document. The document lengths are the posting list
+ * of the empty term, whose keys start with a two-byte prefix instead.</p>
  *
  * @since 0.1.0
  */

@@ -32,7 +32,7 @@ final class TermAdapter implements TermIterator {
     /**
      * Creates the iterator.
      *
-     * @param list The term list, before its first term
+     * @param list Term list, before its first term
      */
     TermAdapter(final TermList list) {
         this.stage = new Stage();

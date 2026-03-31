@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -63,7 +65,7 @@ public final class TableFile implements BlockStore {
      *
      * @param path Table file
      * @param size Block size of the table
-     * @return Table file
+     * @return File open to read and write
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static TableFile create(final Path path, final BlockSize size) {
@@ -91,7 +93,7 @@ public final class TableFile implements BlockStore {
      *
      * @param path Table file
      * @param size Block size of the table
-     * @return Table file
+     * @return File open to read and write
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static TableFile update(final Path path, final BlockSize size) {

@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -133,7 +135,7 @@ public final class TreePath {
     /**
      * Key of the current leaf item.
      *
-     * @return Key
+     * @return Key of the item
      */
     public ItemKey key() {
         return this.path[0].leafKey(this.pos[0]);

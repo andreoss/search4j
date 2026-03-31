@@ -103,7 +103,7 @@ final class Store implements Stats {
     /**
      * Collection frequency of a term.
      *
-     * @param term The term text
+     * @param term Term looked up
      * @return Collection frequency
      */
     TermCount collection(final String term) {
@@ -113,7 +113,7 @@ final class Store implements Stats {
     /**
      * Live postings of a term.
      *
-     * @param term The term text
+     * @param term Term looked up
      * @return Occurrences by document, empty for an unknown term
      */
     NavigableMap<DocId, Occurrence> postings(final String term) {
@@ -154,7 +154,7 @@ final class Store implements Stats {
     /**
      * Highest document identifier ever used.
      *
-     * @return Last identifier
+     * @return Highest identifier used
      */
     DocId last() {
         return this.last;
@@ -163,7 +163,7 @@ final class Store implements Stats {
     /**
      * Total length of every document.
      *
-     * @return Total length
+     * @return Sum of all document lengths
      */
     long total() {
         return this.total;
@@ -180,12 +180,12 @@ final class Store implements Stats {
     }
 
     /**
-     * Returns a stored document.
+     * Stored document.
      *
      * <p>An absent document raises a document-not-found error.</p>
      *
-     * @param docid The document identifier
-     * @return Stored document
+     * @param docid Document identifier
+     * @return Stored copy
      */
     Stored stored(final DocId docid) {
         final Stored found = this.docs.get(docid);
@@ -200,7 +200,7 @@ final class Store implements Stats {
     /**
      * Statistics of a slot.
      *
-     * @param slot The value slot number
+     * @param slot Value slot number
      * @return Statistics, those of an unused slot when absent
      */
     SlotStats slot(final ValueNo slot) {
@@ -210,7 +210,7 @@ final class Store implements Stats {
     /**
      * Adds a document under the next identifier.
      *
-     * @param stored The document
+     * @param stored Copy to store
      * @return New identifier
      */
     DocId add(final Stored stored) {
@@ -222,8 +222,8 @@ final class Store implements Stats {
     /**
      * Stores a document at an identifier, replacing any present.
      *
-     * @param docid The document identifier
-     * @param stored The document
+     * @param docid Document identifier
+     * @param stored Copy to store
      */
     void replace(final DocId docid, final Stored stored) {
         final Stored old = this.docs.get(docid);
@@ -238,7 +238,7 @@ final class Store implements Stats {
      *
      * <p>An absent document raises a document-not-found error.</p>
      *
-     * @param docid The document identifier
+     * @param docid Document identifier
      */
     void delete(final DocId docid) {
         this.unindex(docid, this.stored(docid));
@@ -250,8 +250,8 @@ final class Store implements Stats {
     /**
      * Positions of a term in a document.
      *
-     * @param docid The document identifier
-     * @param term The term text
+     * @param docid Document identifier
+     * @param term Term looked up
      * @return Ascending positions, none when either is absent
      */
     List<TermPos> positions(final DocId docid, final String term) {
@@ -266,7 +266,7 @@ final class Store implements Stats {
     /**
      * Lists the documents indexed by a term.
      *
-     * @param term The term text
+     * @param term Term looked up
      * @return Identifiers in ascending order
      */
     List<DocId> indexed(final String term) {

@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -178,7 +180,7 @@ public final class VersionFile {
      * Renames the temporary file over the version file; on failure the
      * temporary file is removed.
      *
-     * @param temp The file from {@link #write(RevisionNumber)}
+     * @param temp File from {@link #write(RevisionNumber)}
      * @param revision Revision written, above the synced one unless 0
      * @return Whether the revision is now the version file
      */
@@ -241,8 +243,8 @@ public final class VersionFile {
     /**
      * Root information of a table at the revision being written.
      *
-     * @param type Table
-     * @return State
+     * @param type Table wanted
+     * @return Root information
      */
     public TableState root(final TableType type) {
         final TableState state = this.roots.get(type);
@@ -257,7 +259,7 @@ public final class VersionFile {
     /**
      * Sets the root information of a table for the revision being written.
      *
-     * @param type Table
+     * @param type Table wanted
      * @param state State committed by the table
      */
     public void root(final TableType type, final TableState state) {
@@ -267,7 +269,7 @@ public final class VersionFile {
     /**
      * Statistics of the revision being written.
      *
-     * @return Statistics
+     * @return Statistics being written
      */
     public DatabaseStats stats() {
         return this.current;
@@ -276,7 +278,7 @@ public final class VersionFile {
     /**
      * Sets the statistics of the revision being written.
      *
-     * @param updated Statistics
+     * @param updated Statistics replacing the current ones
      */
     public void stats(final DatabaseStats updated) {
         this.current = updated;

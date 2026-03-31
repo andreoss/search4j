@@ -43,7 +43,7 @@ final class DocumentTermList implements TermList {
     /**
      * Creates a list over entries.
      *
-     * @param terms The entries by term, ordered by {@link TermOrder}
+     * @param terms Entries by term, ordered by {@link TermOrder}
      */
     DocumentTermList(final NavigableMap<String, TermEntry> terms) {
         this(terms, Optional.empty());
@@ -52,8 +52,8 @@ final class DocumentTermList implements TermList {
     /**
      * Creates a list on an entry.
      *
-     * @param terms The entries
-     * @param current The current entry, absent before the start
+     * @param terms Entries walked
+     * @param current Current entry, absent before the start
      */
     private DocumentTermList(
         final NavigableMap<String, TermEntry> terms,

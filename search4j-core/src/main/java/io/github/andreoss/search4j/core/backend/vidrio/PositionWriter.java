@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -36,7 +37,7 @@ public final class PositionWriter {
     /**
      * Sets the positions of a term in a document, replacing any present.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param term Term text
      * @param positions Strictly ascending positions, at least one
      */
@@ -49,7 +50,7 @@ public final class PositionWriter {
     /**
      * Deletes the positions of a term in a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param term Term text
      * @return True when they were present
      */

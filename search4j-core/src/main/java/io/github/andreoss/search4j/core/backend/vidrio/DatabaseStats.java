@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -247,9 +249,10 @@ public record DatabaseStats(
     }
 
     /**
-     * Lower bound on the number of unique terms of a document.
+     * Lower bound on the number of unique terms of a document: the length
+     * lower bound divided by the frequency upper bound, rounded up.
      *
-     * @return Bound, 0 for a database without lengths
+     * @return Bound, 0 when the total length is 0
      */
     public long uniqueTermsLowerBound() {
         if (this.total != 0L && (this.lower == 0L || this.wdf == 0L)) {

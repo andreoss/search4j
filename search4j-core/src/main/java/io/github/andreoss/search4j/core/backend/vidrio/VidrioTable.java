@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -64,7 +66,7 @@ public final class VidrioTable implements AutoCloseable, TableLookup {
      *
      * @param path Table file
      * @param root Root of the tree, with the file's block size
-     * @return Table
+     * @return Table open to read
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioTable open(final Path path, final TableRoot root) {
@@ -78,7 +80,7 @@ public final class VidrioTable implements AutoCloseable, TableLookup {
      *
      * @param blocks Source of the blocks, of the root's block size
      * @param root Root of the tree
-     * @return Table
+     * @return Table open to read
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioTable over(final Blocks blocks, final TableRoot root) {
@@ -101,7 +103,7 @@ public final class VidrioTable implements AutoCloseable, TableLookup {
     /**
      * Root of the tree.
      *
-     * @return Root
+     * @return Root read at opening
      */
     public TableRoot root() {
         return this.base;

@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table and the version file.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -91,7 +92,7 @@ final class PostingChunk {
     /**
      * Current document.
      *
-     * @return Document
+     * @return Document identifier
      */
     DocId doc() {
         return this.doc;
@@ -100,7 +101,7 @@ final class PostingChunk {
     /**
      * Frequency in the current document.
      *
-     * @return Frequency
+     * @return Within-document frequency
      */
     TermCount wdf() {
         return this.wdf;

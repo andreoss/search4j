@@ -38,7 +38,7 @@ public final class Transactions {
     /**
      * Current state.
      *
-     * @return State
+     * @return Current state
      */
     public TransactionState state() {
         return this.current;

@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -61,8 +62,8 @@ public final class VidrioReader
      * Creates the read side from its parts.
      *
      * @param version Version file holding the statistics
-     * @param tables The tables
-     * @param parts The lookups worked through
+     * @param tables Tables of the revision
+     * @param parts Lookups worked through
      */
     private VidrioReader(
         final VersionFile version, final TableSet tables,
@@ -78,8 +79,8 @@ public final class VidrioReader
      * read from the posting list table.
      *
      * @param version Version file holding the statistics
-     * @param tables The tables
-     * @return Read side
+     * @param tables Tables of the revision
+     * @return Read side over the tables
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioReader over(
@@ -100,9 +101,9 @@ public final class VidrioReader
      * opened afresh on every call so they see the changes.
      *
      * @param version Version file holding the statistics
-     * @param tables The tables
+     * @param tables Tables of the revision
      * @param freqs Source of the term frequencies of term lists
-     * @return Read side
+     * @return Read side over the tables
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioReader over(
@@ -325,7 +326,7 @@ public final class VidrioReader
     /**
      * Opens the values of a slot across documents.
      *
-     * @param slot Slot
+     * @param slot Slot number
      * @return Values in ascending document order
      */
     public ValueList openValueList(final ValueNo slot) {
@@ -351,7 +352,7 @@ public final class VidrioReader
     /**
      * Opens a document over a fetch of its parts.
      *
-     * @param docid Document
+     * @param docid Document identifier
      * @param fetch Reads of the stored parts
      * @param lazy True to skip the presence check
      * @return Document, a not-found error when eager and absent

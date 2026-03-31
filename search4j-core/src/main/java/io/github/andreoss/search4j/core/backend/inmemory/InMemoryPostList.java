@@ -36,8 +36,8 @@ final class InMemoryPostList extends LeafPostList {
     /**
      * Creates the list of a term.
      *
-     * @param store The store holding the documents
-     * @param term The non-empty term listed
+     * @param store Store holding the documents
+     * @param term Non-empty term listed
      */
     InMemoryPostList(final Store store, final String term) {
         this(
@@ -55,9 +55,9 @@ final class InMemoryPostList extends LeafPostList {
     /**
      * Creates the list of a term from its parts.
      *
-     * @param store The store holding the documents
-     * @param term The non-empty term listed
-     * @param opened The postings as opened
+     * @param store Store holding the documents
+     * @param term Non-empty term listed
+     * @param opened Postings as opened
      */
     private InMemoryPostList(
         final Store store,

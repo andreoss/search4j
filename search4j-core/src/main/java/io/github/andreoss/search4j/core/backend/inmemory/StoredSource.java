@@ -17,8 +17,8 @@ import java.util.TreeMap;
 /**
  * Source of a document read lazily from a store, frozen at opening.
  *
- * @param stored The stored copy of the document
- * @param store The store holding it
+ * @param stored Stored copy of the document
+ * @param store Store holding it
  * @since 0.1.0
  */
 record StoredSource(Stored stored, Store store) implements DocumentSource {

@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -55,7 +57,7 @@ public final class ItemKey implements Comparable<ItemKey> {
      * Creates a key.
      *
      * @param data Key bytes, at most 255, copied
-     * @return Key
+     * @return Key over copied bytes
      */
     public static ItemKey of(final byte[] data) {
         if (data.length > ItemKey.MAX_LENGTH) {
@@ -74,7 +76,7 @@ public final class ItemKey implements Comparable<ItemKey> {
      *
      * @param block Bytes holding the key
      * @param offset Offset of the length byte
-     * @return Key
+     * @return Key over copied bytes
      */
     public static ItemKey parse(final byte[] block, final int offset) {
         if (offset < 0 || offset >= block.length) {

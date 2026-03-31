@@ -43,7 +43,7 @@ final class DocumentValueList implements ValueList {
     /**
      * Creates a list over values.
      *
-     * @param values The values by slot
+     * @param values Values by slot
      */
     DocumentValueList(final NavigableMap<ValueNo, String> values) {
         this(values, Optional.empty());
@@ -52,8 +52,8 @@ final class DocumentValueList implements ValueList {
     /**
      * Creates a list on an entry.
      *
-     * @param values The entries
-     * @param current The current entry, absent before the start
+     * @param values Entries walked
+     * @param current Current entry, absent before the start
      */
     private DocumentValueList(
         final NavigableMap<ValueNo, String> values,

@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -19,7 +20,7 @@ import java.util.Optional;
  * Source of a document read lazily from a vidrio database: data, values
  * and terms are fetched when first needed.
  *
- * @param doc Document
+ * @param doc Document identifier
  * @param fetch Reads of the stored parts
  * @since 0.1.0
  */

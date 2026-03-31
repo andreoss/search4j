@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -25,7 +26,7 @@ public record ReadRevision(
      * Opens the latest revision of a database directory.
      *
      * @param files Table files of the directory
-     * @return Revision
+     * @return Revision open
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static ReadRevision open(final TableFiles files) {
@@ -39,7 +40,7 @@ public record ReadRevision(
      *
      * @param files Table files of the directory
      * @param version Version file read
-     * @return Revision
+     * @return Revision open
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static ReadRevision over(

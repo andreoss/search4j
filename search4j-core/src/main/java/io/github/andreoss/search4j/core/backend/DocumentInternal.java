@@ -93,8 +93,8 @@ public final class DocumentInternal implements Document {
     /**
      * Creates a document.
      *
-     * @param docid The identifier
-     * @param source The source, empty when standalone
+     * @param docid Identifier in the shard
+     * @param source Source, empty when standalone
      */
     private DocumentInternal(
         final DocId docid,

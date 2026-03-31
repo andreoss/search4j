@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table and the version file.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -159,7 +160,7 @@ final class ChunkWalker {
     /**
      * Current document.
      *
-     * @return Document
+     * @return Document identifier
      */
     DocId doc() {
         this.require();
@@ -169,7 +170,7 @@ final class ChunkWalker {
     /**
      * Frequency in the current document.
      *
-     * @return Frequency
+     * @return Within-document frequency
      */
     TermCount wdf() {
         this.require();

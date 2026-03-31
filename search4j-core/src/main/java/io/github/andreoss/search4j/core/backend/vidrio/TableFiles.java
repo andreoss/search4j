@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -41,7 +42,7 @@ public final class TableFiles {
     /**
      * Database directory.
      *
-     * @return Directory
+     * @return Database directory
      */
     public Path dir() {
         return this.dir;
@@ -50,7 +51,7 @@ public final class TableFiles {
     /**
      * File of a table.
      *
-     * @param type Table
+     * @param type Table wanted
      * @return Path inside the directory
      */
     public Path path(final TableType type) {
@@ -60,7 +61,7 @@ public final class TableFiles {
     /**
      * Tests whether a table file exists.
      *
-     * @param type Table
+     * @param type Table wanted
      * @return True when the file is present
      */
     public boolean exists(final TableType type) {
@@ -70,7 +71,7 @@ public final class TableFiles {
     /**
      * Opens a table to read.
      *
-     * @param type Table
+     * @param type Table wanted
      * @param state Root information of the revision read
      * @return Table, empty when optional and absent
      */
@@ -89,9 +90,9 @@ public final class TableFiles {
     /**
      * Creates a table file, replacing any present, and opens it to write.
      *
-     * @param type Table
+     * @param type Table wanted
      * @param state Root information to start from, its root not on disk
-     * @return Table writer
+     * @return Writer of the table
      */
     public TableWriter create(final TableType type, final TableState state) {
         return TableWriter.open(
@@ -102,9 +103,9 @@ public final class TableFiles {
     /**
      * Opens an existing table file to write.
      *
-     * @param type Table
+     * @param type Table wanted
      * @param state Root information of the revision continued from
-     * @return Table writer
+     * @return Writer of the table
      */
     public TableWriter update(final TableType type, final TableState state) {
         return TableWriter.open(
@@ -115,7 +116,7 @@ public final class TableFiles {
     /**
      * Removes a table file if present.
      *
-     * @param type Table
+     * @param type Table wanted
      */
     public void remove(final TableType type) {
         try {

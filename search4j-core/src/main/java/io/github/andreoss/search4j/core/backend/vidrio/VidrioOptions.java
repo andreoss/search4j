@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -54,7 +55,7 @@ public record VidrioOptions(int flags, BlockSize size, int threshold) {
      * threshold of the system property.
      *
      * @param flags Opening flags
-     * @return Options
+     * @return Options with the change
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioOptions of(final int flags) {
@@ -95,7 +96,7 @@ public record VidrioOptions(int flags, BlockSize size, int threshold) {
     /**
      * Action of the flags.
      *
-     * @return Action
+     * @return Action bits of the flags
      */
     public DatabaseAction action() {
         return DatabaseAction.of(this.flags).orElseThrow();
@@ -115,7 +116,7 @@ public record VidrioOptions(int flags, BlockSize size, int threshold) {
      * or not a power of two becomes the default.
      *
      * @param bytes Block size in bytes
-     * @return Options
+     * @return Options with the change
      */
     public VidrioOptions withBlockSize(final int bytes) {
         return new VidrioOptions(
@@ -127,7 +128,7 @@ public record VidrioOptions(int flags, BlockSize size, int threshold) {
      * Options with another flush threshold.
      *
      * @param count Document changes buffered before a flush, above 0
-     * @return Options
+     * @return Options with the change
      */
     public VidrioOptions withThreshold(final int count) {
         return new VidrioOptions(this.flags, this.size, count);

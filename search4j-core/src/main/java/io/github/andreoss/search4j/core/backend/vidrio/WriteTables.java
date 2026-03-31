@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -62,7 +63,7 @@ public final class WriteTables implements TableSet {
      *
      * @param files Table files of the directory
      * @param version Version file created
-     * @return Tables
+     * @return Tables open to write
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static WriteTables create(
@@ -90,7 +91,7 @@ public final class WriteTables implements TableSet {
      *
      * @param files Table files of the directory
      * @param version Version file read
-     * @return Tables
+     * @return Tables open to write
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static WriteTables open(
@@ -118,8 +119,8 @@ public final class WriteTables implements TableSet {
      * Writer of a table, opening the table when it is created on its first
      * write.
      *
-     * @param type Table
-     * @return Writer
+     * @param type Table wanted
+     * @return Writer, opened if needed
      */
     public TableWriter writer(final TableType type) {
         return this.writers.computeIfAbsent(
@@ -130,7 +131,7 @@ public final class WriteTables implements TableSet {
     /**
      * Writer of a table already open.
      *
-     * @param type Table
+     * @param type Table wanted
      * @return Writer, empty for a table created on its first write and
      *  not written yet
      */

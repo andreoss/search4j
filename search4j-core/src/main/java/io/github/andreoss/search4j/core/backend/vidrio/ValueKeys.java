@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -67,7 +68,7 @@ public final class ValueKeys {
     /**
      * Key of the statistics of a slot.
      *
-     * @param slot Slot
+     * @param slot Slot number
      * @return Key bytes
      */
     public static byte[] stats(final ValueNo slot) {
@@ -84,7 +85,7 @@ public final class ValueKeys {
     /**
      * Key of the slots a document uses.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @return Key bytes
      */
     public static byte[] slots(final DocId doc) {

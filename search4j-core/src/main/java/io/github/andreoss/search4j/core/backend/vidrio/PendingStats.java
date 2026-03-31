@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -49,7 +50,7 @@ final class PendingStats {
     /**
      * Statistics of a slot as changed so far.
      *
-     * @param slot Slot
+     * @param slot Slot number
      * @return Statistics, empty when the slot was not touched
      */
     Optional<ValueStats> get(final ValueNo slot) {
@@ -59,7 +60,7 @@ final class PendingStats {
     /**
      * Counts a value added to a slot.
      *
-     * @param slot Slot
+     * @param slot Slot number
      * @param value Value added
      */
     void added(final ValueNo slot, final String value) {
@@ -85,7 +86,7 @@ final class PendingStats {
     /**
      * Counts a value removed from a slot.
      *
-     * @param slot Slot
+     * @param slot Slot number
      */
     void removed(final ValueNo slot) {
         final ValueStats current = this.current(slot);

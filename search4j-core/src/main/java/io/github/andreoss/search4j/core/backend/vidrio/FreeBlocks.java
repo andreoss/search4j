@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -155,7 +157,7 @@ final class FreeBlocks {
      *
      * @param store Store of the blocks
      * @param info Committed state
-     * @return Free list
+     * @return Free list at the state
      */
     static FreeBlocks of(final BlockStore store, final FreeListInfo info) {
         final int size = store.size().bytes();
@@ -187,7 +189,7 @@ final class FreeBlocks {
     /**
      * State to store with the table's root information.
      *
-     * @return State
+     * @return Committed state
      */
     FreeListInfo info() {
         return new FreeListInfo(

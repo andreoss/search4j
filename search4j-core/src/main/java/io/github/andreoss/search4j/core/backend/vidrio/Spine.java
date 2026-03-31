@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -130,8 +132,8 @@ final class Spine {
     /**
      * Block at a level.
      *
-     * @param level Level
-     * @return Page
+     * @param level Level from 0 at the leaves
+     * @return Block bytes at the level
      */
     Page page(final int level) {
         return this.pages[level];
@@ -140,7 +142,7 @@ final class Spine {
     /**
      * Block number at a level.
      *
-     * @param level Level
+     * @param level Level from 0 at the leaves
      * @return Block number, {@link #NONE} when freed
      */
     long number(final int level) {
@@ -150,7 +152,7 @@ final class Spine {
     /**
      * Moves the block at a level to another block number.
      *
-     * @param level Level
+     * @param level Level from 0 at the leaves
      * @param block Block number
      */
     void number(final int level, final long block) {
@@ -160,7 +162,7 @@ final class Spine {
     /**
      * Directory offset at a level.
      *
-     * @param level Level
+     * @param level Level from 0 at the leaves
      * @return Directory offset
      */
     int position(final int level) {
@@ -170,7 +172,7 @@ final class Spine {
     /**
      * Sets the directory offset at a level.
      *
-     * @param level Level
+     * @param level Level from 0 at the leaves
      * @param offset Directory offset
      */
     void position(final int level, final int offset) {
@@ -180,7 +182,7 @@ final class Spine {
     /**
      * Sets whether the block at a level must be written back.
      *
-     * @param level Level
+     * @param level Level from 0 at the leaves
      * @param flag True to write it back
      */
     void dirty(final int level, final boolean flag) {
@@ -190,7 +192,7 @@ final class Spine {
     /**
      * Frees the block at a level, which is then not written back.
      *
-     * @param level Level
+     * @param level Level from 0 at the leaves
      */
     void release(final int level) {
         this.free.mark(this.numbers[level]);

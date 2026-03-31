@@ -40,7 +40,7 @@ final class AllDocsPostList extends LeafPostList {
     /**
      * Creates the list of every document.
      *
-     * @param store The store holding the documents
+     * @param store Store holding the documents
      */
     AllDocsPostList(final Store store) {
         this(
@@ -53,9 +53,9 @@ final class AllDocsPostList extends LeafPostList {
     /**
      * Creates the list of every document from its parts.
      *
-     * @param store The store holding the documents
-     * @param seek The cursor over the documents
-     * @param count The document count when opened
+     * @param store Store holding the documents
+     * @param seek Cursor over the documents
+     * @param count Document count when opened
      */
     private AllDocsPostList(
         final Store store,

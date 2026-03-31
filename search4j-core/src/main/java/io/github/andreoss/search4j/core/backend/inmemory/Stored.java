@@ -24,10 +24,10 @@ import java.util.TreeMap;
 /**
  * Immutable copy of a document held by a store.
  *
- * @param data The opaque data
- * @param values The values by slot
- * @param terms The occurrences by term, ordered by {@link TermOrder}
- * @param length The sum of the within-document frequencies
+ * @param data Opaque data
+ * @param values Values by slot
+ * @param terms Occurrences by term, ordered by {@link TermOrder}
+ * @param length Sum of the within-document frequencies
  * @since 0.1.0
  */
 record Stored(
@@ -40,10 +40,10 @@ record Stored(
     /**
      * Creates a stored document over unmodifiable views of its maps.
      *
-     * @param data The opaque data
-     * @param values The values by slot
-     * @param terms The occurrences by term, ordered by {@link TermOrder}
-     * @param length The sum of the within-document frequencies
+     * @param data Opaque data
+     * @param values Values by slot
+     * @param terms Occurrences by term, ordered by {@link TermOrder}
+     * @param length Sum of the within-document frequencies
      */
     Stored {
         values = Collections.unmodifiableNavigableMap(values);
@@ -53,7 +53,7 @@ record Stored(
     /**
      * Copies any document.
      *
-     * @param document The document to copy
+     * @param document Document to copy
      * @return Stored copy
      */
     static Stored of(final Document document) {

@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -36,7 +37,7 @@ public final class TermListWriter {
     /**
      * Sets the term list of a document, replacing any present.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param terms Terms of one to 255 bytes with their frequency; the
      *  document length is their sum
      */
@@ -47,7 +48,7 @@ public final class TermListWriter {
     /**
      * Deletes the term list of a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @return True when it was present
      */
     public boolean delete(final DocId doc) {

@@ -39,8 +39,8 @@ final class TermEntry {
     /**
      * Creates an entry.
      *
-     * @param wdf The within-document frequency
-     * @param positions The ascending positions
+     * @param wdf Within-document frequency
+     * @param positions Ascending positions
      */
     TermEntry(final TermCount wdf, final List<TermPos> positions) {
         this(new ArrayList<>(positions), wdf.value());
@@ -49,8 +49,8 @@ final class TermEntry {
     /**
      * Creates a live entry over owned positions.
      *
-     * @param positions The ascending positions, owned by the entry
-     * @param wdf The within-document frequency
+     * @param positions Ascending positions, owned by the entry
+     * @param wdf Within-document frequency
      */
     private TermEntry(final List<TermPos> positions, final int wdf) {
         this.positions = positions;
@@ -61,7 +61,7 @@ final class TermEntry {
     /**
      * Increases the frequency, reviving a removed term.
      *
-     * @param delta The increment
+     * @param delta Increment
      * @return True when the term was revived
      */
     boolean increase(final TermCount delta) {
@@ -79,7 +79,7 @@ final class TermEntry {
      * Decreases the frequency, never below zero, removing the term once it
      * has neither frequency nor positions.
      *
-     * @param delta The decrement
+     * @param delta Decrement
      * @return True when the term was removed
      */
     boolean decrease(final TermCount delta) {
@@ -99,8 +99,8 @@ final class TermEntry {
     /**
      * Adds a position and increases the frequency, reviving a removed term.
      *
-     * @param delta The increment
-     * @param position The position, kept once when repeated
+     * @param delta Increment
+     * @param position Position, kept once when repeated
      * @return True when the term was revived
      */
     boolean place(final TermCount delta, final TermPos position) {
@@ -115,7 +115,7 @@ final class TermEntry {
     /**
      * Removes a position, leaving the frequency alone.
      *
-     * @param position The position
+     * @param position Position removed
      * @return True when the position was present
      */
     boolean unplace(final TermPos position) {
@@ -143,7 +143,7 @@ final class TermEntry {
     /**
      * The within-document frequency.
      *
-     * @return Frequency
+     * @return Within-document frequency
      */
     TermCount wdf() {
         return new TermCount(this.wdf);

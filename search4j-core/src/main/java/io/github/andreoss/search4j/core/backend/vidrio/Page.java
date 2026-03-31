@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -75,8 +77,8 @@ final class Page {
     /**
      * A page over a copy of a block read.
      *
-     * @param block Block
-     * @return Page
+     * @param block Block copied
+     * @return Page over copied bytes
      */
     static Page of(final Block block) {
         return Page.over(block.copy());
@@ -88,7 +90,7 @@ final class Page {
      * @param size Block size
      * @param revision Revision writing the block
      * @param level Level of the block
-     * @return Page
+     * @return Page over new bytes
      */
     static Page fresh(final int size, final long revision, final int level) {
         final Page page = Page.over(new byte[size]);
@@ -105,7 +107,7 @@ final class Page {
      *
      * @param size Block size
      * @param revision Revision writing the block
-     * @return Page
+     * @return Page over new bytes
      */
     static Page fakeRoot(final int size, final long revision) {
         final Page page = Page.of(Block.fakeRoot(new BlockSize(size)));
@@ -171,7 +173,7 @@ final class Page {
     /**
      * Largest contiguous free run, between directory and items.
      *
-     * @return Bytes
+     * @return Size in bytes
      */
     int maxFree() {
         return Short.toUnsignedInt(this.view.getShort(Page.MAX_AT));
@@ -180,7 +182,7 @@ final class Page {
     /**
      * Total free space.
      *
-     * @return Bytes
+     * @return Size in bytes
      */
     int totalFree() {
         return Short.toUnsignedInt(this.view.getShort(Page.TOTAL_AT));
@@ -189,7 +191,7 @@ final class Page {
     /**
      * End of the item directory.
      *
-     * @return Offset
+     * @return Offset just past the last entry
      */
     int dirEnd() {
         return Short.toUnsignedInt(this.view.getShort(Page.END_AT));
@@ -198,7 +200,7 @@ final class Page {
     /**
      * Sets the total free space.
      *
-     * @param bytes Bytes
+     * @param bytes Free space in bytes
      */
     void totalFree(final int bytes) {
         this.view.putShort(Page.TOTAL_AT, (short) bytes);

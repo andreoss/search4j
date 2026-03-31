@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -70,7 +71,7 @@ public final class VidrioShard implements Shard, AutoCloseable {
      * Creates the shard from its parts.
      *
      * @param files Table files of the directory
-     * @param current The revision open
+     * @param current Revision open
      */
     private VidrioShard(final TableFiles files, final ReadRevision current) {
         this.files = files;
@@ -82,7 +83,7 @@ public final class VidrioShard implements Shard, AutoCloseable {
      * Opens a database directory to read at its latest revision.
      *
      * @param dir Database directory
-     * @return Shard
+     * @return Shard open at the latest revision
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioShard open(final Path dir) {

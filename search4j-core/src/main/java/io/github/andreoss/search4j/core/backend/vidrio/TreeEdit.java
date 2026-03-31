@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -130,7 +132,7 @@ final class TreeEdit {
     /**
      * Adds an item at the leaf position, splitting the leaf if full.
      *
-     * @param draft Item
+     * @param draft Item added
      */
     void addLeaf(final Draft draft) {
         final Page page = this.spine.page(0);

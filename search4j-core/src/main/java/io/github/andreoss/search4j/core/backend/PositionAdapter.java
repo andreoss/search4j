@@ -36,7 +36,7 @@ final class PositionAdapter implements PositionIterator {
     /**
      * Creates the iterator.
      *
-     * @param list The position list, before its first position
+     * @param list Position list, before its first position
      */
     PositionAdapter(final PositionList list) {
         this.stage = new Stage();

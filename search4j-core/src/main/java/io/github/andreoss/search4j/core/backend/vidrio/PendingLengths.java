@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -38,7 +39,7 @@ public final class PendingLengths {
     /**
      * Sets the length of a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param length Its length
      * @param added True when the document is added, so no length may be
      *  pending for it
@@ -56,7 +57,7 @@ public final class PendingLengths {
     /**
      * Removes the length of a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      */
     public void delete(final DocId doc) {
         final Optional<TermCount> pending = this.changes.get(doc);
@@ -73,7 +74,7 @@ public final class PendingLengths {
      *
      * <p>A document pending removal raises a document-not-found error.</p>
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @return Length, empty when no change is pending
      */
     public Optional<TermCount> get(final DocId doc) {

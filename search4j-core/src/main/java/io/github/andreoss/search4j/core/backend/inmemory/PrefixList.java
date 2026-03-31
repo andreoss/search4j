@@ -15,7 +15,7 @@ import java.util.NavigableMap;
 /**
  * Term list over the keys of a map that start with a prefix.
  *
- * @param <V> The value type
+ * @param <V> Value type
  * @since 0.1.0
  */
 final class PrefixList<V> implements AllTermsList {
@@ -43,9 +43,9 @@ final class PrefixList<V> implements AllTermsList {
     /**
      * Creates a list over prefixed keys.
      *
-     * @param map The map, ordered by term order
-     * @param prefix The prefix every key starts with
-     * @param stats The statistics behind the keys
+     * @param map Map, ordered by term order
+     * @param prefix Prefix every key starts with
+     * @param stats Statistics behind the keys
      */
     PrefixList(
         final NavigableMap<String, V> map,
@@ -58,10 +58,10 @@ final class PrefixList<V> implements AllTermsList {
     /**
      * Creates a list from its parts.
      *
-     * @param stats The statistics behind the keys
-     * @param prefix The prefix every key starts with
-     * @param count The number of keys in the map when opened
-     * @param seek The cursor over the keys
+     * @param stats Statistics behind the keys
+     * @param prefix Prefix every key starts with
+     * @param count Number of keys in the map when opened
+     * @param seek Cursor over the keys
      */
     private PrefixList(
         final Stats stats,

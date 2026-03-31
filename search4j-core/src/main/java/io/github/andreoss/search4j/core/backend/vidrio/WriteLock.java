@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -49,7 +50,7 @@ public final class WriteLock implements AutoCloseable {
      *
      * @param dir Database directory
      * @param channel Channel of the lock file
-     * @param lock The lock held
+     * @param lock Lock held
      */
     private WriteLock(
         final Path dir, final FileChannel channel, final FileLock lock

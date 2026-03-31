@@ -32,7 +32,7 @@ final class ValueAdapter implements ValueIterator {
     /**
      * Creates the iterator.
      *
-     * @param list The value list, before its first value
+     * @param list Value list, before its first value
      */
     ValueAdapter(final ValueList list) {
         this.stage = new Stage();

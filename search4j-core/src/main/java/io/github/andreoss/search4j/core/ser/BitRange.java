@@ -28,7 +28,7 @@ record BitRange(int bits, long spare, long middle) {
      * Layout of the values below a bound.
      *
      * @param outof Bound from 1 to 2 to the power of 32
-     * @return Layout
+     * @return Layout of the codes
      */
     static BitRange of(final long outof) {
         if (outof < 1L || outof > BitRange.LIMIT) {

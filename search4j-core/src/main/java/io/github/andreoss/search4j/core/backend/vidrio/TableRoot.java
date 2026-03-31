@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * On-disk table format definitions of the vidrio backend.
+ * On-disk tables of the vidrio backend: format definitions, the read and
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -50,7 +52,7 @@ public record TableRoot(
      *
      * @param size Block size of the table file
      * @param revision Revision being read
-     * @return Root
+     * @return Root at level 0
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static TableRoot empty(

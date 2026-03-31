@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -73,7 +74,7 @@ public final class ValueWriter {
     /**
      * Adds the values of a document without any.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param values Values by slot, none empty
      */
     public void add(final DocId doc, final SortedMap<ValueNo, String> values) {
@@ -95,7 +96,7 @@ public final class ValueWriter {
     /**
      * Removes the values of a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      */
     public void delete(final DocId doc) {
         final Optional<byte[]> used = this.used(doc);
@@ -111,7 +112,7 @@ public final class ValueWriter {
     /**
      * Replaces the values of a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param values Values by slot, none empty
      */
     public void replace(final DocId doc, final SortedMap<ValueNo, String> values) {
@@ -122,8 +123,8 @@ public final class ValueWriter {
     /**
      * Value of a document in a slot as changed so far.
      *
-     * @param doc Document
-     * @param slot Slot
+     * @param doc Document identifier
+     * @param slot Slot number
      * @return Value, empty when the document has none in the slot
      */
     public String value(final DocId doc, final ValueNo slot) {
@@ -146,7 +147,7 @@ public final class ValueWriter {
     /**
      * Every value of a document as changed so far.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @return Values by slot, empty when the document has none
      */
     public NavigableMap<ValueNo, String> values(final DocId doc) {
@@ -161,7 +162,7 @@ public final class ValueWriter {
     /**
      * Statistics of a slot as changed so far.
      *
-     * @param slot Slot
+     * @param slot Slot number
      * @return Statistics, {@link ValueStats#NONE} for an unused slot
      */
     public ValueStats stats(final ValueNo slot) {

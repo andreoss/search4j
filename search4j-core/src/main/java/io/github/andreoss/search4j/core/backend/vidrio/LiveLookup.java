@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -14,7 +15,7 @@ import java.util.Optional;
  * Lookups in one table of a set, resolved on every call so a table opened
  * or reopened later is seen.
  *
- * @param tables The tables
+ * @param tables Tables resolved on every call
  * @param type Table looked up
  * @since 0.1.0
  */

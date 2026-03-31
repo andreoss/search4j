@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -72,7 +73,7 @@ public final class Inverter {
     /**
      * Adds a posting.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param term Term text
      * @param wdf Frequency in the document
      */
@@ -83,7 +84,7 @@ public final class Inverter {
     /**
      * Removes a posting.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param term Term text
      * @param wdf Frequency the document had
      */
@@ -96,7 +97,7 @@ public final class Inverter {
     /**
      * Changes the frequency of a posting.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param term Term text
      * @param wdfs Frequency the document had and the new one
      */

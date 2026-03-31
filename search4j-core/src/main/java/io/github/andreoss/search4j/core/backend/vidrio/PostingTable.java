@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table and the version file.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -40,7 +41,7 @@ public final class PostingTable implements TermFrequencySource {
     /**
      * Creates the lookups from their parts.
      *
-     * @param table The table
+     * @param table Table looked up
      * @param lengths Walk over the document lengths
      */
     private PostingTable(final TableLookup table, final ChunkWalker lengths) {
@@ -52,7 +53,7 @@ public final class PostingTable implements TermFrequencySource {
      * Opens the lookups over a table.
      *
      * @param table Posting list table
-     * @return Lookups
+     * @return Lookups over the table
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static PostingTable of(final TableLookup table) {
@@ -112,7 +113,7 @@ public final class PostingTable implements TermFrequencySource {
     /**
      * Length of a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @return Sum of the frequencies of its terms
      */
     public TermCount docLength(final DocId doc) {
@@ -127,7 +128,7 @@ public final class PostingTable implements TermFrequencySource {
     /**
      * Tests whether a document exists.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @return True when it has a length
      */
     public boolean hasDocument(final DocId doc) {

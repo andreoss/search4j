@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -24,7 +25,7 @@ public interface TableLookup {
      * <p>Over a table being written the changed blocks are written first,
      * and the cursor does not see later changes.</p>
      *
-     * @return Cursor
+     * @return Unpositioned cursor
      */
     TableCursor cursor();
 

@@ -4,7 +4,8 @@
  */
 /**
  * On-disk tables of the vidrio backend: format definitions, the read and
- * write paths of a table, the version file and the posting lists.
+ * write paths of a table, the version file, the posting lists and the term
+ * lists.
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
@@ -31,7 +32,7 @@ public final class PositionKeys {
     /**
      * Key of the positions of a term in a document.
      *
-     * @param doc Document
+     * @param doc Document identifier
      * @param term Term text
      * @return Key bytes
      */

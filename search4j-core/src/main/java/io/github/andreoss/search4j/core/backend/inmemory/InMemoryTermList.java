@@ -41,8 +41,8 @@ final class InMemoryTermList implements TermList {
     /**
      * Creates a list over terms.
      *
-     * @param terms The occurrences by term, ordered by term order
-     * @param stats The statistics behind the terms
+     * @param terms Occurrences by term, ordered by term order
+     * @param stats Statistics behind the terms
      */
     InMemoryTermList(
         final NavigableMap<String, Occurrence> terms,
@@ -54,9 +54,9 @@ final class InMemoryTermList implements TermList {
     /**
      * Creates a list from its parts.
      *
-     * @param stats The statistics behind the terms
-     * @param count The number of terms
-     * @param seek The cursor over the terms
+     * @param stats Statistics behind the terms
+     * @param count Number of terms
+     * @param seek Cursor over the terms
      */
     private InMemoryTermList(
         final Stats stats,

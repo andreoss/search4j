@@ -27,7 +27,8 @@ public interface Transactional {
     void beginTransaction(boolean flushed);
 
     /**
-     * Commits the open transaction; an unflushed one stays pending.
+     * Ends the open transaction keeping its changes: a flushed transaction
+     * commits them, an unflushed one leaves them pending.
      */
     void commitTransaction();
 

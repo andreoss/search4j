@@ -57,7 +57,7 @@ public record Uuid(long high, long low) {
      *
      * @param text Thirty-six characters, hyphens after the 8th, 12th, 16th
      *  and 20th hexadecimal digit
-     * @return Identifier
+     * @return Parsed identifier
      */
     public static Uuid parse(final String text) {
         if (!Uuid.TEXT.matcher(text).matches()) {
@@ -75,7 +75,7 @@ public record Uuid(long high, long low) {
      * Reads the binary form.
      *
      * @param bytes Exactly sixteen bytes
-     * @return Identifier
+     * @return Identifier read
      */
     public static Uuid of(final byte[] bytes) {
         if (bytes.length != Uuid.BYTES) {
