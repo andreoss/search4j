@@ -30,14 +30,24 @@ public final class TermListTable {
     private final PostingTable postings;
 
     /**
+     * Position table the positions come from.
+     */
+    private final PositionTable positions;
+
+    /**
      * Creates the lookups from their parts.
      *
      * @param table The table
      * @param postings Posting list table the term frequencies come from
+     * @param positions Position table the positions come from
      */
-    private TermListTable(final VidrioTable table, final PostingTable postings) {
+    private TermListTable(
+        final VidrioTable table, final PostingTable postings,
+        final PositionTable positions
+    ) {
         this.table = table;
         this.postings = postings;
+        this.positions = positions;
     }
 
     /**
@@ -45,13 +55,15 @@ public final class TermListTable {
      *
      * @param table Term list table
      * @param postings Posting list table the term frequencies come from
+     * @param positions Position table the positions come from
      * @return Lookups
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static TermListTable of(
-        final VidrioTable table, final PostingTable postings
+        final VidrioTable table, final PostingTable postings,
+        final PositionTable positions
     ) {
-        return new TermListTable(table, postings);
+        return new TermListTable(table, postings, positions);
     }
 
     /**
@@ -75,8 +87,9 @@ public final class TermListTable {
      * @return List before its first term, or empty when absent
      */
     public Optional<VidrioTermList> find(final DocId doc) {
-        return this.table.get(TermListKeys.of(doc))
-            .map(tag -> VidrioTermList.over(tag, this.postings));
+        return this.table.get(TermListKeys.of(doc)).map(
+            tag -> VidrioTermList.over(tag, doc, this)
+        );
     }
 
     /**
@@ -87,5 +100,23 @@ public final class TermListTable {
      */
     public boolean contains(final DocId doc) {
         return this.table.contains(TermListKeys.of(doc));
+    }
+
+    /**
+     * Posting list table the term frequencies come from.
+     *
+     * @return Lookups
+     */
+    PostingTable postings() {
+        return this.postings;
+    }
+
+    /**
+     * Position table the positions come from.
+     *
+     * @return Lookups
+     */
+    PositionTable positions() {
+        return this.positions;
     }
 }

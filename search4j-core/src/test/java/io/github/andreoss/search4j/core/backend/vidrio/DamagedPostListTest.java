@@ -61,7 +61,9 @@ final class DamagedPostListTest {
                 seen.add(
                     Assertions.assertThrows(
                         DatabaseCorruptError.class,
-                        () -> VidrioPostList.open(table, DamagedPostListTest.TERM),
+                        () -> VidrioPostList.open(
+                            table, Positions.none(), DamagedPostListTest.TERM
+                        ),
                         item.getKey()
                     ).getMessage()
                 );
@@ -80,12 +82,12 @@ final class DamagedPostListTest {
         );
         try (table) {
             final VidrioPostList list =
-                VidrioPostList.open(table, DamagedPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), DamagedPostListTest.TERM);
             seen.add(
                 DamagedPostListTest.message(() -> list.skipTo(DocId.of(7)))
             );
             final VidrioPostList other =
-                VidrioPostList.open(table, DamagedPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), DamagedPostListTest.TERM);
             seen.add(
                 DamagedPostListTest.message(() -> other.jumpTo(DocId.of(7)))
             );
@@ -105,7 +107,7 @@ final class DamagedPostListTest {
         );
         try (alone) {
             final VidrioPostList list =
-                VidrioPostList.open(alone, DamagedPostListTest.TERM);
+                VidrioPostList.open(alone, Positions.none(), DamagedPostListTest.TERM);
             list.next();
             list.next();
             seen.add(DamagedPostListTest.message(list::next));
@@ -117,7 +119,7 @@ final class DamagedPostListTest {
         );
         try (table) {
             final VidrioPostList list =
-                VidrioPostList.open(table, DamagedPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), DamagedPostListTest.TERM);
             seen.add(
                 DamagedPostListTest.message(() -> list.skipTo(DocId.of(4)))
             );
@@ -149,7 +151,7 @@ final class DamagedPostListTest {
             );
             try (table) {
                 final VidrioPostList list =
-                    VidrioPostList.open(table, DamagedPostListTest.TERM);
+                    VidrioPostList.open(table, Positions.none(), DamagedPostListTest.TERM);
                 list.next();
                 list.next();
                 seen.add(DamagedPostListTest.message(list::next));
@@ -176,12 +178,12 @@ final class DamagedPostListTest {
         );
         try (table) {
             final VidrioPostList list =
-                VidrioPostList.open(table, DamagedPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), DamagedPostListTest.TERM);
             seen.add(
                 DamagedPostListTest.message(() -> list.skipTo(DocId.of(5)))
             );
             final VidrioPostList other =
-                VidrioPostList.open(table, DamagedPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), DamagedPostListTest.TERM);
             seen.add(
                 DamagedPostListTest.message(() -> other.jumpTo(DocId.of(5)))
             );

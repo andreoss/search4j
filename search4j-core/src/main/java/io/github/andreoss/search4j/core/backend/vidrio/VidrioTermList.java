@@ -10,20 +10,19 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.TermList;
-import io.github.andreoss.search4j.core.backend.list.VectorPositionList;
 import io.github.andreoss.search4j.core.error.InvalidOperationError;
+import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * Term list of one document of a committed term list table.
  *
  * <p>The term frequency is looked up in the posting list table when asked
  * for, and kept until the next move as the reference keeps it: a frequency
- * of 0 is looked up again. Positions are not read yet: the position list
- * is empty until the position table is ported.</p>
+ * of 0 is looked up again. Positions are read from the position table
+ * when asked for.</p>
  *
  * @since 0.1.0
  */
@@ -35,9 +34,14 @@ public final class VidrioTermList implements TermList {
     private final TermListReader reader;
 
     /**
-     * Posting list table the term frequencies come from.
+     * Document listed.
      */
-    private final PostingTable postings;
+    private final DocId doc;
+
+    /**
+     * Tables the term frequencies and positions come from.
+     */
+    private final TermListTable tables;
 
     /**
      * Term frequency of the current term, 0 until looked up.
@@ -58,13 +62,16 @@ public final class VidrioTermList implements TermList {
      * Creates the list from its parts.
      *
      * @param reader Decoder of the tag
-     * @param postings Posting list table the term frequencies come from
+     * @param doc Document listed
+     * @param tables Tables the term frequencies and positions come from
      */
     private VidrioTermList(
-        final TermListReader reader, final PostingTable postings
+        final TermListReader reader, final DocId doc,
+        final TermListTable tables
     ) {
         this.reader = reader;
-        this.postings = postings;
+        this.doc = doc;
+        this.tables = tables;
         this.freq = TermCount.ZERO;
         this.started = false;
         this.ended = false;
@@ -112,7 +119,8 @@ public final class VidrioTermList implements TermList {
     public TermCount termFrequency() {
         this.require();
         if (this.freq.value() == 0) {
-            this.freq = this.postings.stats(this.term()).freqs().termFrequency();
+            this.freq = this.tables.postings().stats(this.term()).freqs()
+                .termFrequency();
         }
         return this.freq;
     }
@@ -147,25 +155,26 @@ public final class VidrioTermList implements TermList {
 
     @Override
     public TermCount positionCount() {
-        this.require();
-        return TermCount.ZERO;
+        return this.tables.positions().count(this.doc, this.term());
     }
 
     @Override
     public PositionList positionList() {
-        this.require();
-        return new VectorPositionList(List.of());
+        return this.tables.positions().open(this.doc, this.term());
     }
 
     /**
      * Opens the list over a tag.
      *
      * @param tag Tag bytes of the document, not copied
-     * @param postings Posting list table the term frequencies come from
+     * @param doc Document listed
+     * @param tables Tables the term frequencies and positions come from
      * @return List before its first term
      */
-    static VidrioTermList over(final byte[] tag, final PostingTable postings) {
-        return new VidrioTermList(TermListReader.parse(tag), postings);
+    static VidrioTermList over(
+        final byte[] tag, final DocId doc, final TermListTable tables
+    ) {
+        return new VidrioTermList(TermListReader.parse(tag), doc, tables);
     }
 
     private void require() {

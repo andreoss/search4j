@@ -170,8 +170,11 @@ final class VidrioTermListTest {
         );
         try (postings) {
             final VidrioTermList list = VidrioTermList.over(
-                HexFormat.of().parseHex(VidrioTermListTest.FOUR),
-                PostingTable.of(postings)
+                HexFormat.of().parseHex(VidrioTermListTest.FOUR), DocId.of(1),
+                TermListTable.of(
+                    Readback.crafted(), PostingTable.of(postings),
+                    Positions.none()
+                )
             );
             list.next();
             seen.add(list.termFrequency());
@@ -197,7 +200,11 @@ final class VidrioTermListTest {
 
     private static VidrioTermList list(final String hex) {
         return VidrioTermList.over(
-            HexFormat.of().parseHex(hex), PostingTable.of(Readback.crafted())
+            HexFormat.of().parseHex(hex), DocId.of(1),
+            TermListTable.of(
+                Readback.crafted(), PostingTable.of(Readback.crafted()),
+                Positions.none()
+            )
         );
     }
 

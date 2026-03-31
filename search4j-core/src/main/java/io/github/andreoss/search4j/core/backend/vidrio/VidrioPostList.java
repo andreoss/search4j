@@ -12,26 +12,22 @@ import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.LeafPostList;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
-import io.github.andreoss.search4j.core.backend.list.VectorPositionList;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Posting list of one term of a committed posting list table.
- *
- * <p>Positions are not read yet: both position lists are empty until the
- * position table is ported.</p>
+ * Posting list of one term of a committed posting list table, with the
+ * positions of the current document read from the position table.
  *
  * @since 0.1.0
  */
 public final class VidrioPostList extends LeafPostList {
 
     /**
-     * Table the list is read from.
+     * Tables the list is read from.
      */
-    private final VidrioTable table;
+    private final Tables tables;
 
     /**
      * Walk over the chunks.
@@ -42,14 +38,14 @@ public final class VidrioPostList extends LeafPostList {
      * Creates the list from its parts.
      *
      * @param term Term listed
-     * @param table Table the list is read from
+     * @param tables Tables the list is read from
      * @param walker Walk over the chunks
      */
     private VidrioPostList(
-        final String term, final VidrioTable table, final ChunkWalker walker
+        final String term, final Tables tables, final ChunkWalker walker
     ) {
         super(term);
-        this.table = table;
+        this.tables = tables;
         this.walker = walker;
     }
 
@@ -57,13 +53,17 @@ public final class VidrioPostList extends LeafPostList {
      * Opens the list of a term.
      *
      * @param table Posting list table
+     * @param positions Position table the positions are read from
      * @param term Term listed, empty for the document lengths
      * @return List before its first document
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
-    public static VidrioPostList open(final VidrioTable table, final String term) {
+    public static VidrioPostList open(
+        final VidrioTable table, final PositionTable positions,
+        final String term
+    ) {
         return new VidrioPostList(
-            term, table,
+            term, new Tables(table, positions),
             ChunkWalker.open(table.cursor(), PostListKeys.bytes(term))
         );
     }
@@ -127,11 +127,15 @@ public final class VidrioPostList extends LeafPostList {
 
     @Override
     public Optional<LeafPostList> openNearby(
-        final String term, final boolean positions
+        final String term, final boolean needed
     ) {
         Optional<LeafPostList> result = Optional.empty();
         if (!term.isEmpty()) {
-            result = Optional.of(VidrioPostList.open(this.table, term));
+            result = Optional.of(
+                VidrioPostList.open(
+                    this.tables.table(), this.tables.positions(), term
+                )
+            );
         }
         return result;
     }
@@ -148,7 +152,16 @@ public final class VidrioPostList extends LeafPostList {
 
     @Override
     public PositionList openPositionList() {
-        this.walker.doc();
-        return new VectorPositionList(List.of());
+        return this.tables.positions().open(this.walker.doc(), this.term());
+    }
+
+    /**
+     * Tables a list is read from.
+     *
+     * @param table Posting list table
+     * @param positions Position table
+     * @since 0.1.0
+     */
+    private record Tables(VidrioTable table, PositionTable positions) {
     }
 }

@@ -182,7 +182,7 @@ final class PostingWriterTest {
                     .equals(corpus.expected(PostingWriterTest.TERM))
             );
             final VidrioPostList list =
-                VidrioPostList.open(table, PostingWriterTest.TERM);
+                VidrioPostList.open(table, Positions.none(), PostingWriterTest.TERM);
             list.next();
             seen.add(list.docId());
         }
@@ -209,7 +209,7 @@ final class PostingWriterTest {
             seen.add(Readback.chunks(table, PostingWriterTest.TERM));
             seen.add(Readback.postings(table, PostingWriterTest.TERM));
             final VidrioPostList list =
-                VidrioPostList.open(table, PostingWriterTest.TERM);
+                VidrioPostList.open(table, Positions.none(), PostingWriterTest.TERM);
             list.skipTo(DocId.of(last.value() - 1));
             seen.add(
                 list.docIdRange(new DocRange(DocId.of(1), DocId.of(9999)))

@@ -140,14 +140,14 @@ final class VidrioPostListTest {
                 for (int delta = -1; delta <= 1; ++delta) {
                     final DocId target = DocId.of(bound.value() + delta);
                     final VidrioPostList list =
-                        VidrioPostList.open(table, Corpus.EVERY);
+                        VidrioPostList.open(table, Positions.none(), Corpus.EVERY);
                     list.skipTo(target);
                     if (!list.docId().equals(target)) {
                         faults.add(String.format("%s -> %s", target, list.docId()));
                     }
                 }
             }
-            final VidrioPostList list = VidrioPostList.open(table, Corpus.EVERY);
+            final VidrioPostList list = VidrioPostList.open(table, Positions.none(), Corpus.EVERY);
             for (final DocId bound : bounds) {
                 list.skipTo(bound);
                 list.next();
@@ -177,12 +177,12 @@ final class VidrioPostListTest {
         }
         final List<Object> seen = new ArrayList<>(4);
         try (VidrioTable table = corpus.table(corpus.commit(2L))) {
-            final VidrioPostList list = VidrioPostList.open(table, Corpus.EVERY);
+            final VidrioPostList list = VidrioPostList.open(table, Positions.none(), Corpus.EVERY);
             list.skipTo(DocId.of(bound.value() - 2));
             seen.add(list.docId().value() - bound.value());
             seen.add(list.docIdRange(VidrioPostListTest.WHOLE).first());
             final VidrioPostList other =
-                VidrioPostList.open(table, Corpus.EVERY);
+                VidrioPostList.open(table, Positions.none(), Corpus.EVERY);
             other.skipTo(bound);
             seen.add(other.docId().value() - bound.value());
             seen.add(
@@ -223,7 +223,7 @@ final class VidrioPostListTest {
         );
         try (table) {
             final VidrioPostList list =
-                VidrioPostList.open(table, VidrioPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), VidrioPostListTest.TERM);
             seen.add(VidrioPostListTest.failure(list::docId));
             seen.add(VidrioPostListTest.failure(list::wdf));
             seen.add(VidrioPostListTest.failure(list::openPositionList));
@@ -252,7 +252,7 @@ final class VidrioPostListTest {
             VidrioPostListTest.KEY, VidrioPostListTest.SINGLE
         );
         try (table) {
-            final VidrioPostList list = VidrioPostList.open(table, "b");
+            final VidrioPostList list = VidrioPostList.open(table, Positions.none(), "b");
             seen.add(list.termFrequency());
             seen.add(list.collectionFrequency());
             seen.add(list.wdfUpperBound());
@@ -264,7 +264,7 @@ final class VidrioPostListTest {
             list.skipTo(DocId.of(1));
             seen.add(list.description());
             final VidrioPostList other =
-                VidrioPostList.open(table, VidrioPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), VidrioPostListTest.TERM);
             seen.add(other.jumpTo(DocId.of(3)));
             seen.add(other.jumpTo(DocId.of(2)));
             seen.add(other.jumpTo(DocId.of(1)));
@@ -290,7 +290,7 @@ final class VidrioPostListTest {
         );
         try (table) {
             final VidrioPostList list =
-                VidrioPostList.open(table, VidrioPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), VidrioPostListTest.TERM);
             seen.add(list.description());
             seen.add(list.openNearby("", true).isPresent());
             final LeafPostList near = list.openNearby("b", false).orElseThrow();
@@ -319,7 +319,7 @@ final class VidrioPostListTest {
         );
         try (table) {
             final VidrioPostList list =
-                VidrioPostList.open(table, VidrioPostListTest.TERM);
+                VidrioPostList.open(table, Positions.none(), VidrioPostListTest.TERM);
             seen.add(list.docIdRange(VidrioPostListTest.WHOLE));
             list.skipTo(DocId.of(5));
             seen.add(list.docIdRange(VidrioPostListTest.WHOLE));

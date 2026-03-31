@@ -36,7 +36,7 @@ final class Readback {
      */
     static List<String> postings(final VidrioTable table, final String term) {
         final List<String> result = new ArrayList<>(0);
-        final VidrioPostList list = VidrioPostList.open(table, term);
+        final VidrioPostList list = VidrioPostList.open(table, Positions.none(), term);
         list.next();
         while (!list.atEnd()) {
             result.add(Readback.posting(list.docId(), list.wdf()));

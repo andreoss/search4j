@@ -10,6 +10,7 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 import io.github.andreoss.search4j.core.backend.TermOrder;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
+import io.github.andreoss.search4j.core.types.TermPos;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,8 +18,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Documents written to a term list table and a posting list table, with
- * the term lists the model expects.
+ * Documents written to a term list table, a posting list table and a
+ * position table, with the term lists the model expects.
  *
  * @since 0.1.0
  */
@@ -40,6 +41,11 @@ final class Documents {
     private final TableWriter table;
 
     /**
+     * Position table written.
+     */
+    private final Positions positions;
+
+    /**
      * Term lists committed, by document.
      */
     private TermListTable lists;
@@ -50,13 +56,16 @@ final class Documents {
      * @param corpus Posting lists of the documents
      * @param blocks Blocks of the term list table
      * @param table Term list table written
+     * @param positions Position table written
      */
     private Documents(
-        final Corpus corpus, final MemoryBlocks blocks, final TableWriter table
+        final Corpus corpus, final MemoryBlocks blocks,
+        final TableWriter table, final Positions positions
     ) {
         this.corpus = corpus;
         this.blocks = blocks;
         this.table = table;
+        this.positions = positions;
     }
 
     /**
@@ -69,7 +78,7 @@ final class Documents {
         final MemoryBlocks blocks = new MemoryBlocks(new HashMap<>(), BlockSize.MIN);
         return new Documents(
             Corpus.of(seed, BlockSize.MIN, 1), blocks,
-            TableWriter.create(blocks, 18)
+            TableWriter.create(blocks, 18), Positions.of()
         );
     }
 
@@ -85,14 +94,26 @@ final class Documents {
     }
 
     /**
-     * Commits both tables as revision 1.
+     * Sets the positions of a term in a document.
+     *
+     * @param doc Document number
+     * @param term Term
+     * @param list Ascending positions
+     */
+    void positions(final int doc, final String term, final List<TermPos> list) {
+        this.positions.set(doc, term, list);
+    }
+
+    /**
+     * Commits every table as revision 1.
      */
     void commit() {
         this.lists = TermListTable.of(
             VidrioTable.over(
                 this.blocks, this.table.commit(new RevisionNumber(1L)).root()
             ),
-            PostingTable.of(this.corpus.table(this.corpus.commit(1L)))
+            PostingTable.of(this.corpus.table(this.corpus.commit(1L))),
+            this.positions.commit()
         );
     }
 

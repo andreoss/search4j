@@ -46,7 +46,9 @@ final class TermListTableTest {
         final VidrioTable postings = TermListTableTest.fixture("postlist");
         try (VidrioTable terms = TermListTableTest.fixture("termlist"); postings) {
             final TermListTable table =
-                TermListTable.of(terms, PostingTable.of(postings));
+                TermListTable.of(
+                    terms, PostingTable.of(postings), Positions.none()
+                );
             int empty = 0;
             for (int doc = 1; doc <= TermListTableTest.DOCS; ++doc) {
                 final VidrioTermList list = table.open(DocId.of(doc));
@@ -119,7 +121,10 @@ final class TermListTableTest {
         );
         try (committed) {
             final TermListTable lists =
-                TermListTable.of(committed, PostingTable.of(Readback.crafted()));
+                TermListTable.of(
+                    committed, PostingTable.of(Readback.crafted()),
+                    Positions.none()
+                );
             seen.add(Documents.read(lists.open(DocId.of(1))));
             seen.add(lists.contains(DocId.of(2)));
         }

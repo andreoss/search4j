@@ -10,22 +10,25 @@ package io.github.andreoss.search4j.core.ser;
 import java.io.ByteArrayOutputStream;
 
 /**
- * Bit-level writer that accumulates bits most significant first.
+ * Bit-level writer of values below a known bound, least significant bit
+ * first, with interpolative coding of ascending sequences.
  *
- * <p>Values are written in whole-bit chunks and padded to a byte boundary
- * when the stream is finished.</p>
+ * <p>A value below a bound takes as many bits as the bound needs; when
+ * the width leaves codes spare, the values of the middle band take one
+ * bit less. The stream is padded with zero bits to a byte boundary when
+ * frozen.</p>
  *
  * @since 0.1.0
  */
 public final class BitWriter {
 
     /**
-     * Backing byte buffer.
+     * Bytes written.
      */
     private final ByteArrayOutputStream out;
 
     /**
-     * Pending bits not yet flushed.
+     * Pending bits not yet written.
      */
     private long pending;
 
@@ -35,7 +38,7 @@ public final class BitWriter {
     private int count;
 
     /**
-     * Creates an empty bit writer.
+     * Creates an empty writer.
      */
     public BitWriter() {
         this.out = new ByteArrayOutputStream();
@@ -44,33 +47,69 @@ public final class BitWriter {
     }
 
     /**
-     * Writes the low bits of a value.
+     * Encodes a value known to be below a bound.
      *
-     * @param value Value whose higher bits are ignored
-     * @param bits Width from 1 to 32; others raise an illegal-argument error
+     * @param value Value from 0 below the bound
+     * @param outof Bound from 1 to 2 to the power of 32
      */
-    public void write(final long value, final int bits) {
-        if (bits < 1 || bits > 32) {
+    public void encode(final long value, final long outof) {
+        if (value < 0L || value >= outof) {
             throw new IllegalArgumentException(
-                String.format("Bits out of range: %d", bits)
+                String.format("Value %d is not below %d", value, outof)
             );
         }
-        this.pending = this.pending << bits | value & (1L << bits) - 1L;
+        final BitRange range = BitRange.of(outof);
+        int bits = range.bits();
+        long code = value;
+        if (range.spare() != 0L) {
+            final long upper = range.middle() + range.spare();
+            if (value >= upper) {
+                code = value - upper | 1L << bits - 1;
+            } else if (value >= range.middle()) {
+                bits = bits - 1;
+            }
+        }
+        this.pending |= code << this.count;
         this.count = this.count + bits;
-        while (this.count >= 8) {
-            this.count = this.count - 8;
-            this.out.write((int) (this.pending >>> this.count) & 0xFF);
+        while (this.count >= Byte.SIZE) {
+            this.out.write((int) (this.pending & 0xFFL));
+            this.pending >>>= Byte.SIZE;
+            this.count = this.count - Byte.SIZE;
         }
     }
 
     /**
-     * Flushes pending bits, padding with zero bits to a byte boundary.
+     * Encodes the values strictly between two indexes of an ascending
+     * sequence, given that the values at the indexes are known.
      *
-     * @return Every byte written
+     * @param values Strictly ascending values
+     * @param low Index of the first value known
+     * @param high Index of the last value known
      */
-    public byte[] finish() {
+    public void encodeInterpolative(
+        final long[] values, final int low, final int high
+    ) {
+        int start = low;
+        while (start + 1 < high) {
+            final int mid = start + (high - start) / 2;
+            final long outof = values[high] - values[start] + start - high + 1L;
+            final long lowest = values[start] + mid - start;
+            this.encode(values[mid] - lowest, outof);
+            this.encodeInterpolative(values, start, mid);
+            start = mid;
+        }
+    }
+
+    /**
+     * Pads the pending bits with zero bits to a byte boundary and returns
+     * every byte written.
+     *
+     * @return Bytes of the stream
+     */
+    public byte[] freeze() {
         if (this.count != 0) {
-            this.out.write((int) (this.pending << 8 - this.count) & 0xFF);
+            this.out.write((int) (this.pending & 0xFFL));
+            this.pending = 0L;
             this.count = 0;
         }
         return this.out.toByteArray();
