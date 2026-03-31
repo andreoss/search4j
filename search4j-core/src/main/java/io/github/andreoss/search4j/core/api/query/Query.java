@@ -515,6 +515,26 @@ public final class Query {
         return String.format("Query(%s)", inner);
     }
 
+    /**
+     * Serialises the query in the reference wire format.
+     *
+     * @return Bytes of the query, none for a match-nothing query
+     */
+    public byte[] serialise() {
+        return Encoder.encode(this);
+    }
+
+    /**
+     * Unserialises a query written in the reference wire format.
+     *
+     * @param data Bytes of exactly one query; none give a match-nothing query
+     * @return The query; truncated data, an unknown type byte, trailing bytes
+     *  or a value the Java types cannot hold raise a serialisation error
+     */
+    public static Query deserialise(final byte[] data) {
+        return Decoder.decode(data);
+    }
+
     @Override
     public boolean equals(final Object other) {
         return other instanceof Query query
