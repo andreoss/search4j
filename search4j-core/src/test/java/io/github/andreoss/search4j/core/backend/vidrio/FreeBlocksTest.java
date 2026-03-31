@@ -197,6 +197,38 @@ final class FreeBlocksTest {
         );
     }
 
+    @Test
+    void freesChainBlockConsumedWhileAppending() {
+        final FreeBlocks free = FreeBlocksTest.fresh();
+        for (int idx = 0; idx < 1000; ++idx) {
+            free.take();
+        }
+        for (long blk = 0L; blk < 510L; ++blk) {
+            free.mark(blk);
+        }
+        free.commit(1L);
+        for (int idx = 0; idx < 509; ++idx) {
+            free.take();
+        }
+        for (long blk = 2000L; blk < 2509L; ++blk) {
+            free.mark(blk);
+        }
+        free.commit(2L);
+        final List<Long> taken = new ArrayList<>(512);
+        for (int idx = 0; idx < 512; ++idx) {
+            taken.add(free.take());
+        }
+        free.commit(3L);
+        final List<Long> expected = new ArrayList<>(512);
+        expected.addAll(LongStream.range(2000L, 2509L).boxed().toList());
+        expected.addAll(List.of(1000L, 1002L, 1003L));
+        Assertions.assertEquals(
+            List.of(expected, 1001L),
+            List.of(taken, free.take()),
+            "Head block consumed during an append freed after the entry"
+        );
+    }
+
     private static FreeBlocks listed(
         final MemoryBlocks blocks, final long head, final int end
     ) {

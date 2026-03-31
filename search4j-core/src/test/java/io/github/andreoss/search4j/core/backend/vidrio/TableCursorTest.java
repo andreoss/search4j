@@ -250,8 +250,89 @@ final class TableCursorTest {
     @Test
     void doesNotMoveFreshCursor() {
         try (VidrioTable table = TableCursorTest.table(false, 3)) {
-            Assertions.assertFalse(table.cursor().next(), "Fresh cursor");
+            final TableCursor cursor = table.cursor();
+            Assertions.assertEquals(
+                List.of(false, false),
+                List.of(cursor.next(), cursor.afterEnd()),
+                "Fresh cursor neither moves nor is after the end"
+            );
         }
+    }
+
+    @Test
+    void refusesTagBeforeFirstEntry() {
+        try (VidrioTable table = TableCursorTest.table(false, 3)) {
+            final TableCursor cursor = table.cursor();
+            cursor.seekBefore(new byte[0]);
+            Assertions.assertThrows(
+                InvalidOperationError.class, cursor::tag, "No entry before"
+            );
+        }
+    }
+
+    @Test
+    void seeksBeforeFirstItemOfTree() {
+        final List<Object> seen = new ArrayList<>(5);
+        final List<LeafItem> items = new ArrayList<>(2);
+        items.addAll(
+            Trees.split(ItemKey.of(Trees.key("b")), Trees.key("B"), false)
+        );
+        items.addAll(
+            Trees.split(ItemKey.of(Trees.key("c")), Trees.key("C"), false)
+        );
+        try (
+            VidrioTable table = TableCursorTest.over(
+                Trees.tree(items, 8, BlockSize.MIN)
+            )
+        ) {
+            final TableCursor cursor = table.cursor();
+            seen.add(cursor.seek(Trees.key("a")));
+            seen.add(TableCursorTest.keyText(cursor.key()));
+            seen.add(TableCursorTest.text(cursor.tag()));
+            seen.add(cursor.next());
+            seen.add(TableCursorTest.keyText(cursor.key()));
+        }
+        Assertions.assertEquals(
+            List.of(false, "b", "B", true, "c"), seen,
+            "A key before every item lands on the first item"
+        );
+    }
+
+    @Test
+    void seeksBetweenFirstItemsOfLeaf() {
+        final List<Object> seen = new ArrayList<>(3);
+        try (
+            VidrioTable table = TableCursorTest.over(
+                Trees.tree(
+                    Trees.items(
+                        List.of("b", "c", "d", "e"),
+                        List.of(
+                            Trees.key("B"), Trees.key("C"), Trees.key("D"),
+                            Trees.key("E")
+                        ),
+                        false
+                    ),
+                    3, BlockSize.MIN
+                )
+            )
+        ) {
+            final TableCursor cursor = table.cursor();
+            seen.add(table.root().level());
+            seen.add(cursor.seek(Trees.key("d1")));
+            seen.add(TableCursorTest.keyText(cursor.key()));
+            seen.add(TableCursorTest.text(cursor.tag()));
+        }
+        Assertions.assertEquals(
+            List.of(1, false, "d", "D"), seen,
+            "A key after the first item of a leaf stays in that leaf"
+        );
+    }
+
+    @Test
+    void closesSourceOnClose() {
+        final MemoryBlocks blocks = TableCursorTest.blocks(false, 3);
+        TableCursorTest.over(blocks).close();
+        Assertions.assertEquals(1, blocks.closes(), "Source closed once");
     }
 
     @Test

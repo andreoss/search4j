@@ -10,7 +10,6 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Free list of a table being written: a chain of free-list blocks holding
@@ -110,6 +109,12 @@ final class FreeBlocks {
     private boolean tailread;
 
     /**
+     * Chain block consumed while an entry was being appended, freed once
+     * the entry is in place; {@link #NONE} when none.
+     */
+    private long held;
+
+    /**
      * Creates a free list over its buffers.
      *
      * @param store Store of the blocks
@@ -142,6 +147,7 @@ final class FreeBlocks {
         this.head = head;
         this.tailbytes = tailbytes;
         this.tail = tail;
+        this.held = FreeBlocks.NONE;
     }
 
     /**
@@ -206,7 +212,7 @@ final class FreeBlocks {
      * @return Block number
      */
     long take() {
-        return this.next(null);
+        return this.next(false);
     }
 
     /**
@@ -215,36 +221,22 @@ final class FreeBlocks {
      * @param block Block number
      */
     void mark(final long block) {
-        final AtomicLong hold = new AtomicLong(FreeBlocks.NONE);
         if (!this.tailread) {
             this.tailread = true;
             if (this.tailpos != 0) {
                 this.tail.put(0, this.read(this.tailblk));
             }
         }
-        if (this.tailpos == 0) {
-            final long fresh = this.next(hold);
-            this.tailblk = fresh;
-            this.tailpos = FreeBlocks.BASE;
-            if (this.headpos == 0) {
-                this.headblk = fresh;
-                this.headpos = FreeBlocks.BASE;
-                this.endblk = fresh;
-                this.endpos = FreeBlocks.BASE;
-            }
-            this.tail.putInt(this.size - Integer.BYTES, (int) FreeBlocks.NONE);
-        } else if (this.tailpos == this.size - Integer.BYTES) {
-            final long fresh = this.next(hold);
-            this.tail.putInt(this.tailpos, (int) fresh);
-            this.write(this.tailblk, this.revision + 1L);
-            this.tailblk = fresh;
-            this.tailpos = FreeBlocks.BASE;
-            this.tail.putInt(this.size - Integer.BYTES, (int) FreeBlocks.NONE);
+        long consumed = FreeBlocks.NONE;
+        if (this.tailpos == 0 || this.tailpos == this.size - Integer.BYTES) {
+            this.chain(this.next(true));
+            consumed = this.held;
+            this.held = FreeBlocks.NONE;
         }
         this.tail.putInt(this.tailpos, (int) block);
         this.tailpos += Integer.BYTES;
-        if (hold.get() != FreeBlocks.NONE) {
-            this.mark(hold.get());
+        if (consumed != FreeBlocks.NONE) {
+            this.mark(consumed);
         }
     }
 
@@ -267,14 +259,31 @@ final class FreeBlocks {
         }
     }
 
-    private long next(final AtomicLong hold) {
+    private void chain(final long fresh) {
+        if (this.tailpos == 0) {
+            if (this.headpos == 0) {
+                this.headblk = fresh;
+                this.headpos = FreeBlocks.BASE;
+                this.endblk = fresh;
+                this.endpos = FreeBlocks.BASE;
+            }
+        } else {
+            this.tail.putInt(this.tailpos, (int) fresh);
+            this.write(this.tailblk, this.revision + 1L);
+        }
+        this.tailblk = fresh;
+        this.tailpos = FreeBlocks.BASE;
+        this.tail.putInt(this.size - Integer.BYTES, (int) FreeBlocks.NONE);
+    }
+
+    private long next(final boolean defer) {
         final long block;
         if (this.headblk == this.endblk && this.headpos == this.endpos) {
             block = this.unused;
             this.unused += 1L;
         } else {
             this.load();
-            block = this.entry(hold);
+            block = this.entry(defer);
         }
         return block;
     }
@@ -289,10 +298,10 @@ final class FreeBlocks {
         }
     }
 
-    private long entry(final AtomicLong hold) {
+    private long entry(final boolean defer) {
         final long block;
         if (this.headpos == this.size - Integer.BYTES) {
-            block = this.hop(hold);
+            block = this.hop(defer);
         } else {
             block = Integer.toUnsignedLong(this.head.getInt(this.headpos));
             if (block == FreeBlocks.NONE) {
@@ -308,7 +317,7 @@ final class FreeBlocks {
         return block;
     }
 
-    private long hop(final AtomicLong hold) {
+    private long hop(final boolean defer) {
         final long old = this.headblk;
         this.headblk = Integer.toUnsignedLong(this.head.getInt(this.headpos));
         if (this.headblk == FreeBlocks.NONE) {
@@ -316,12 +325,12 @@ final class FreeBlocks {
         }
         this.headpos = FreeBlocks.BASE;
         this.head.put(0, this.read(this.headblk));
-        if (hold == null) {
-            this.mark(old);
+        if (defer) {
+            this.held = old;
         } else {
-            hold.set(old);
+            this.mark(old);
         }
-        return this.next(null);
+        return this.next(false);
     }
 
     private byte[] read(final long block) {

@@ -164,8 +164,7 @@ public final class TableCursor {
         this.positioned = false;
         this.sought = true;
         this.status = TagStatus.UNREAD;
-        final boolean found = key.length <= ItemKey.MAX_LENGTH
-            && this.tree.find(key);
+        final boolean found = this.tree.find(key);
         if (found) {
             this.current = this.tree.key();
             this.load();

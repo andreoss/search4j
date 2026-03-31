@@ -236,12 +236,13 @@ public final class LeafItem implements TableItem {
     @Override
     public boolean equals(final Object other) {
         return this == other || other instanceof LeafItem item
-            && Arrays.equals(this.bytes(), item.bytes());
+            && this.name.equals(item.name) && this.place.equals(item.place)
+            && Arrays.equals(this.tag, item.tag);
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(this.bytes());
+        return Objects.hash(this.name, this.place, Arrays.hashCode(this.tag));
     }
 
     @Override

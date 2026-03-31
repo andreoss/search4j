@@ -12,6 +12,7 @@ import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.error.UnimplementedError;
 import io.github.andreoss.search4j.core.ser.Zlib;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -583,6 +584,85 @@ final class TableWriterTest {
                 failure, blocks.closes(), TableWriterTest.addition(table)
             ),
             "Closed after a failed commit"
+        );
+    }
+
+    @Test
+    void keepsOrderFlagAcrossReopen() {
+        final List<byte[]> keys = TableWriterTest.keys(50);
+        Collections.shuffle(keys, new Random(2L));
+        final MemoryBlocks blocks = new MemoryBlocks(new HashMap<>(), BlockSize.MIN);
+        final TableWriter first = TableWriter.create(blocks, 0);
+        for (final byte[] key : keys) {
+            first.add(key, new byte[4]);
+        }
+        final TableState state = first.commit(new RevisionNumber(1L));
+        final TableWriter second = TableWriter.open(blocks, state);
+        second.add(TableWriterTest.numbered(99), new byte[4]);
+        Assertions.assertEquals(
+            List.of(false, false),
+            List.of(
+                state.sequential(),
+                second.commit(new RevisionNumber(2L)).sequential()
+            ),
+            "Additions out of order stay recorded after a reopen"
+        );
+    }
+
+    @Test
+    void restoresOrderFlagOnCancel() {
+        final TableWriter table = TableWriter.create(
+            new MemoryBlocks(new HashMap<>(), BlockSize.MIN), 0
+        );
+        table.add(TableWriterTest.numbered(2), new byte[4]);
+        table.add(TableWriterTest.numbered(1), new byte[4]);
+        table.cancel(TableState.initial(BlockSize.MIN, 0));
+        table.add(TableWriterTest.numbered(1), new byte[4]);
+        table.add(TableWriterTest.numbered(2), new byte[4]);
+        Assertions.assertTrue(
+            table.commit(new RevisionNumber(1L)).sequential(),
+            "Additions in order after a cancel"
+        );
+    }
+
+    @Test
+    void stampsChangedBlocksWithNewRevision() {
+        final MemoryBlocks blocks = new MemoryBlocks(new HashMap<>(), BlockSize.MIN);
+        final TableWriter table = TableWriter.create(blocks, 0);
+        table.add(TableWriterTest.numbered(1), new byte[4]);
+        table.commit(new RevisionNumber(1L));
+        table.add(TableWriterTest.numbered(2), new byte[4]);
+        Assertions.assertEquals(
+            2,
+            ByteBuffer.wrap(
+                blocks.bytes(
+                    table.commit(new RevisionNumber(2L)).root().block().value()
+                )
+            ).getInt(0),
+            "Root block carries the revision that wrote it"
+        );
+    }
+
+    @Test
+    void compressesOnlyAboveThreshold() {
+        final MemoryBlocks blocks = new MemoryBlocks(new HashMap<>(), BlockSize.MIN);
+        final TableWriter table =
+            TableWriter.create(blocks, TableWriterTest.COMPRESS);
+        final byte[] exact = new byte[TableWriterTest.COMPRESS];
+        Arrays.fill(exact, (byte) 'a');
+        final byte[] above = new byte[TableWriterTest.COMPRESS + 1];
+        Arrays.fill(above, (byte) 'a');
+        table.add(Trees.key("a"), exact);
+        table.add(Trees.key("b"), above);
+        final TableState state = table.commit(new RevisionNumber(1L));
+        final Block root = Block.parse(
+            state.root().block(),
+            blocks.bytes(state.root().block().value())
+        );
+        Assertions.assertEquals(
+            List.of(false, true),
+            List.of(root.compressed(1), root.compressed(2)),
+            "Only the tag longer than the threshold is compressed"
         );
     }
 

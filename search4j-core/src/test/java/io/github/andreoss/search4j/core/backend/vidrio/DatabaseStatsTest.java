@@ -205,6 +205,25 @@ final class DatabaseStatsTest {
     }
 
     @Test
+    void rejectsEveryFieldOutOfRange() {
+        for (int pos = 0; pos < 8; ++pos) {
+            final long[] values = new long[8];
+            values[pos] = DatabaseStatsTest.NARROW + 1L;
+            if (pos == 2) {
+                values[pos] = -1L;
+            }
+            Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> new DatabaseStats(
+                    values[0], values[1], values[2], values[3], values[4],
+                    values[5], values[6], values[7]
+                ),
+                String.format("Field %d out of range", pos)
+            );
+        }
+    }
+
+    @Test
     void addsDocuments() {
         Assertions.assertEquals(
             new DatabaseStats(4L, 0L, 26L, 4L, 12L, 0L, 0L, 0L),

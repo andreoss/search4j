@@ -69,11 +69,6 @@ final class Spine {
     private long revision;
 
     /**
-     * Whether the root is an empty leaf not written yet.
-     */
-    private boolean fake;
-
-    /**
      * Creates an empty path.
      *
      * @param store Store of the blocks
@@ -100,8 +95,7 @@ final class Spine {
         Arrays.fill(this.dirty, false);
         this.top = root.level();
         this.revision = root.revision().value();
-        this.fake = root.fake();
-        if (this.fake) {
+        if (root.fake()) {
             this.pages[0] = Page.fakeRoot(
                 this.store.size().bytes(), this.revision + 1L
             );
@@ -131,15 +125,6 @@ final class Spine {
      */
     long revision() {
         return this.revision;
-    }
-
-    /**
-     * Whether the root is an empty leaf never written.
-     *
-     * @return True until the first flush
-     */
-    boolean fake() {
-        return this.fake;
     }
 
     /**
@@ -308,7 +293,6 @@ final class Spine {
                 this.write(this.numbers[level], this.pages[level]);
             }
         }
-        this.fake = false;
     }
 
     private void place(final int level, final long block) {
