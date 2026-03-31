@@ -327,6 +327,11 @@ final class ConstantsTest {
     }
 
     @Test
+    void editDistanceCode() {
+        Assertions.assertEquals(16, QueryOp.EDIT_DISTANCE.code(), "EDIT_DISTANCE value");
+    }
+
+    @Test
     void invalidCode() {
         Assertions.assertEquals(99, QueryOp.INVALID.code(), "INVALID value");
     }
@@ -383,7 +388,7 @@ final class ConstantsTest {
     void rejectsUnknownCode() {
         Assertions.assertThrows(
             IllegalArgumentException.class,
-            () -> QueryOp.of(16),
+            () -> QueryOp.of(17),
             "Unknown code rejected"
         );
     }

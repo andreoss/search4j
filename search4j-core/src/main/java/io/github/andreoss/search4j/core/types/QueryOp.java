@@ -99,6 +99,11 @@ public enum QueryOp {
     WILDCARD(15),
 
     /**
+     * Term expansion within an edit distance of a target.
+     */
+    EDIT_DISTANCE(16),
+
+    /**
      * Invalid query, used as a placeholder.
      */
     INVALID(99),
