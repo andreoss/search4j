@@ -9,6 +9,7 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.ser.Varints;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -255,6 +256,29 @@ final class ByteReaderTest {
         Assertions.assertEquals(
             0x1_FFFF_FFFFL, reader.wide("Count"),
             "Same value read as wide"
+        );
+    }
+
+    @Test
+    void readsSingleBytesAndRuns() {
+        final ByteReader reader = ByteReader.over(ByteReaderTest.bytes("ff020304"));
+        final List<Object> seen = new ArrayList<>(5);
+        seen.add(reader.octet("a"));
+        seen.add(HexFormat.of().formatHex(reader.bytes(2, "b")));
+        seen.add(
+            Assertions.assertThrows(
+                DatabaseCorruptError.class, () -> reader.bytes(2, "c"), "Short"
+            ).getMessage()
+        );
+        seen.add(reader.octet("d"));
+        seen.add(
+            Assertions.assertThrows(
+                DatabaseCorruptError.class, () -> reader.octet("e"), "At end"
+            ).getMessage()
+        );
+        Assertions.assertEquals(
+            List.of(255, "0203", "c out of data", 4, "e out of data"), seen,
+            "Unsigned byte, run of bytes, both bounded"
         );
     }
 

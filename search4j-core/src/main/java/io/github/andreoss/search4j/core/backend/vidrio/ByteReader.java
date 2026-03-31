@@ -135,6 +135,38 @@ final class ByteReader {
     }
 
     /**
+     * Reads one byte.
+     *
+     * @param what Field name for the error
+     * @return Byte value from 0 to 255
+     */
+    int octet(final String what) {
+        if (this.pos == this.end) {
+            throw ByteReader.corrupt(what, "out of data");
+        }
+        final int result = Byte.toUnsignedInt(this.data[this.pos]);
+        this.pos += 1;
+        return result;
+    }
+
+    /**
+     * Reads a run of bytes.
+     *
+     * @param count Number of bytes
+     * @param what Field name for the error
+     * @return Copy of the bytes
+     */
+    byte[] bytes(final int count, final String what) {
+        if (count > this.end - this.pos) {
+            throw ByteReader.corrupt(what, "out of data");
+        }
+        final byte[] result =
+            Arrays.copyOfRange(this.data, this.pos, this.pos + count);
+        this.pos += count;
+        return result;
+    }
+
+    /**
      * Tests whether every byte was read.
      *
      * @return True at the end
