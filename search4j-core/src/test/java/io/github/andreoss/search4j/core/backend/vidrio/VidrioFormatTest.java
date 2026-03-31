@@ -8,6 +8,7 @@
 package io.github.andreoss.search4j.core.backend.vidrio;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -119,6 +120,44 @@ final class VidrioFormatTest {
             0xFFFF & ~(LeafItem.FLAG_MASK << 8),
             LeafItem.SIZE_MASK,
             "Size mask excludes flags"
+        );
+    }
+
+    @Test
+    void definesVersionFileBytes() {
+        Assertions.assertEquals(
+            List.of(
+                14, "0f0d58617069616e20476c617373", 0x046E,
+                "iam".concat(VidrioFormat.extensionText()), 20_160_314,
+                20_151_224
+            ),
+            List.of(
+                VidrioFormat.MAGIC_BYTES,
+                HexFormat.of().formatHex(VidrioFormat.versionMagic()),
+                VidrioFormat.FORMAT_VERSION, VidrioFormat.versionFileName(),
+                VidrioFormat.versionDate(VidrioFormat.FORMAT_VERSION),
+                VidrioFormat.versionDate(VidrioFormat.dateVersion(2015, 12, 24))
+            ),
+            "Magic, format version, version file name and date mapping"
+        );
+    }
+
+    @Test
+    void copiesVersionMagic() {
+        final byte[] magic = VidrioFormat.versionMagic();
+        magic[0] = 0;
+        Assertions.assertEquals(
+            0x0F, VidrioFormat.versionMagic()[0], "Fresh copy each time"
+        );
+    }
+
+    @Test
+    void definesCompressionPerTable() {
+        Assertions.assertEquals(
+            List.of(0, 18, 18, 0, 18, 18),
+            Stream.of(TableType.values()).map(TableType::compression)
+                .collect(Collectors.toList()),
+            "Posting and position tables never compressed"
         );
     }
 

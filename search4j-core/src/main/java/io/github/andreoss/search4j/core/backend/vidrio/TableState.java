@@ -7,6 +7,7 @@
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
+import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.ser.Varints;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
@@ -26,6 +27,11 @@ public record TableState(
     TableRoot root, EntryCount entries, boolean sequential, int compress,
     FreeListInfo free
 ) {
+
+    /**
+     * Shift between a block size and its stored form.
+     */
+    private static final int SIZE_SHIFT = 11;
 
     /**
      * Creates a state.
@@ -79,11 +85,62 @@ public record TableState(
         }
         out.writeBytes(Varints.pack(flags));
         out.writeBytes(Varints.pack(this.entries.value()));
-        out.writeBytes(Varints.pack(this.root.size().bytes() >> 11));
+        out.writeBytes(
+            Varints.pack(this.root.size().bytes() >> TableState.SIZE_SHIFT)
+        );
         out.writeBytes(Varints.pack(this.compress));
         final byte[] list = this.free.bytes();
         out.writeBytes(Varints.pack(list.length));
         out.writeBytes(list);
         return out.toByteArray();
+    }
+
+    /**
+     * Decodes the root information of a table from the version record.
+     *
+     * @param reader Bytes at the root information
+     * @param revision Revision of the version record
+     * @return State at the revision
+     */
+    static TableState parse(
+        final ByteReader reader, final RevisionNumber revision
+    ) {
+        final long block = reader.narrow("Root block");
+        final long flags = reader.narrow("Root flags");
+        final long entries = reader.wide("Entry count");
+        final long shift = reader.narrow("Block size");
+        final long compress = reader.narrow("Compression threshold");
+        final byte[] list = reader.string("Free list");
+        final int level = (int) (flags >> 2);
+        if (level >= VidrioFormat.CURSOR_LEVELS) {
+            throw new DatabaseCorruptError("Impossibly deep tree");
+        }
+        final boolean fake = (flags & 1L) != 0L;
+        if (fake && level > 0) {
+            throw new DatabaseCorruptError("Fake root but level > 0");
+        }
+        if (shift > BlockSize.MAX_BYTES >> TableState.SIZE_SHIFT
+            || Long.bitCount(shift) != 1) {
+            throw new DatabaseCorruptError("Invalid block size");
+        }
+        if (entries < 0L) {
+            throw new DatabaseCorruptError("Entry count overflowed");
+        }
+        if (compress > Integer.MAX_VALUE) {
+            throw new DatabaseCorruptError("Compression threshold overflowed");
+        }
+        int threshold = (int) compress;
+        if (threshold == 4) {
+            threshold = TableType.COMPRESS_MIN;
+        }
+        return new TableState(
+            new TableRoot(
+                new BlockNumber(block), level,
+                new BlockSize((int) shift << TableState.SIZE_SHIFT), revision,
+                fake
+            ),
+            new EntryCount(entries), (flags & 2L) != 0L, threshold,
+            FreeListInfo.parse(list)
+        );
     }
 }

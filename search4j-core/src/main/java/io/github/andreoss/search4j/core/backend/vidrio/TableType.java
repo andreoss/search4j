@@ -17,32 +17,38 @@ public enum TableType {
     /**
      * Posting lists, keyed by term.
      */
-    POSTLIST("postlist", TableLaziness.EAGER),
+    POSTLIST("postlist", TableLaziness.EAGER, 0),
 
     /**
      * Document data, keyed by document number.
      */
-    DOCDATA("docdata", TableLaziness.LAZY),
+    DOCDATA("docdata", TableLaziness.LAZY, TableType.COMPRESS_MIN),
 
     /**
      * Term lists, keyed by document number.
      */
-    TERMLIST("termlist", TableLaziness.CHOSEN),
+    TERMLIST("termlist", TableLaziness.CHOSEN, TableType.COMPRESS_MIN),
 
     /**
      * Positional data, keyed by document number and term.
      */
-    POSITION("position", TableLaziness.LAZY),
+    POSITION("position", TableLaziness.LAZY, 0),
 
     /**
      * Spelling data.
      */
-    SPELLING("spelling", TableLaziness.LAZY),
+    SPELLING("spelling", TableLaziness.LAZY, TableType.COMPRESS_MIN),
 
     /**
      * Synonym data.
      */
-    SYNONYM("synonym", TableLaziness.LAZY);
+    SYNONYM("synonym", TableLaziness.LAZY, TableType.COMPRESS_MIN);
+
+    /**
+     * Compression threshold of the tables whose tags are compressed:
+     * only tags longer than this many bytes are compressed.
+     */
+    public static final int COMPRESS_MIN = 18;
 
     /**
      * Base name of the table.
@@ -55,14 +61,23 @@ public enum TableType {
     private final TableLaziness creation;
 
     /**
+     * Smallest tag length compressed, 0 for no compression.
+     */
+    private final int compress;
+
+    /**
      * Creates a table type.
      *
      * @param base Base name of the table
      * @param creation When the table file is created
+     * @param compress Smallest tag length compressed, 0 for none
      */
-    TableType(final String base, final TableLaziness creation) {
+    TableType(
+        final String base, final TableLaziness creation, final int compress
+    ) {
         this.base = base;
         this.creation = creation;
+        this.compress = compress;
     }
 
     /**
@@ -81,6 +96,15 @@ public enum TableType {
      */
     public TableLaziness laziness() {
         return this.creation;
+    }
+
+    /**
+     * Compression threshold of a new table of this type.
+     *
+     * @return Smallest tag length compressed, 0 for no compression
+     */
+    public int compression() {
+        return this.compress;
     }
 
     /**

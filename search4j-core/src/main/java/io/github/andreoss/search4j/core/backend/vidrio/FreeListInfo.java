@@ -7,6 +7,7 @@
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
+import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.ser.Varints;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
@@ -52,6 +53,31 @@ public record FreeListInfo(
     }
 
     /**
+     * Decodes the state stored with the table's root information.
+     *
+     * @param bytes Bytes from {@link #bytes()}
+     * @return State, {@link #EMPTY} for no bytes
+     */
+    @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
+    public static FreeListInfo parse(final byte[] bytes) {
+        final FreeListInfo info;
+        if (bytes.length == 0) {
+            info = FreeListInfo.EMPTY;
+        } else {
+            final ByteReader reader = ByteReader.over(bytes);
+            info = new FreeListInfo(
+                new RevisionNumber(reader.narrow("Free list revision")),
+                new BlockNumber(reader.narrow("Free list unused block")),
+                FreeListInfo.unpacked(reader), FreeListInfo.unpacked(reader)
+            );
+            if (!reader.done()) {
+                throw new DatabaseCorruptError("Bad free list metadata");
+            }
+        }
+        return info;
+    }
+
+    /**
      * Encodes the state as stored with the table's root information.
      *
      * <p>A free list never committed encodes as no bytes.</p>
@@ -67,6 +93,17 @@ public record FreeListInfo(
             FreeListInfo.packed(out, this.tail);
         }
         return out.toByteArray();
+    }
+
+    private static FreeListMark unpacked(final ByteReader reader) {
+        final long block = reader.narrow("Free list block");
+        final long offset = reader.narrow("Free list offset");
+        if (offset > Integer.MAX_VALUE / Integer.BYTES) {
+            throw new DatabaseCorruptError("Free list offset overflowed");
+        }
+        return new FreeListMark(
+            new BlockNumber(block), (int) offset * Integer.BYTES
+        );
     }
 
     private static void packed(
