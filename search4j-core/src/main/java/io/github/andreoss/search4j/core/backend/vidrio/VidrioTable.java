@@ -21,7 +21,7 @@ import java.util.Optional;
  *
  * @since 0.1.0
  */
-public final class VidrioTable implements AutoCloseable {
+public final class VidrioTable implements AutoCloseable, TableLookup {
 
     /**
      * Source of the blocks.
@@ -107,22 +107,12 @@ public final class VidrioTable implements AutoCloseable {
         return this.base;
     }
 
-    /**
-     * Creates an unpositioned cursor.
-     *
-     * @return Cursor
-     */
+    @Override
     public TableCursor cursor() {
         return new TableCursor(this.blocks, this.top);
     }
 
-    /**
-     * Reads the tag of a key.
-     *
-     * @param key Key bytes; a key over {@link ItemKey#MAX_LENGTH} bytes is
-     *  never present
-     * @return Tag, reassembled and inflated, or empty when absent
-     */
+    @Override
     public Optional<byte[]> get(final byte[] key) {
         final Optional<byte[]> tag;
         if (this.lookup.exact(key)) {
@@ -133,12 +123,7 @@ public final class VidrioTable implements AutoCloseable {
         return tag;
     }
 
-    /**
-     * Tests whether a key is present.
-     *
-     * @param key Key bytes
-     * @return True if present
-     */
+    @Override
     public boolean contains(final byte[] key) {
         return this.lookup.seek(key);
     }

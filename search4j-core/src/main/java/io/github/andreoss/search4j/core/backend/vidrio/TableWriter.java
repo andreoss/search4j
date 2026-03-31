@@ -24,8 +24,7 @@ import java.util.Optional;
  *
  * @since 0.1.0
  */
-@SuppressWarnings("PMD.TooManyMethods")
-public final class TableWriter implements AutoCloseable {
+public final class TableWriter implements AutoCloseable, TableLookup {
 
     /**
      * Store of the blocks.
@@ -216,25 +215,13 @@ public final class TableWriter implements AutoCloseable {
         this.entries.compaction(flag);
     }
 
-    /**
-     * Creates an unpositioned cursor over the entries as changed so far.
-     *
-     * <p>The changed blocks are written first; the cursor does not see
-     * later changes.</p>
-     *
-     * @return Cursor
-     */
+    @Override
     public TableCursor cursor() {
         this.check();
         return new TableCursor(this.store, this.spine.root());
     }
 
-    /**
-     * Reads the tag of a key as changed so far.
-     *
-     * @param key Key bytes
-     * @return Tag, reassembled and inflated, or empty when absent
-     */
+    @Override
     public Optional<byte[]> get(final byte[] key) {
         final TableCursor cursor = this.cursor();
         Optional<byte[]> tag = Optional.empty();
@@ -244,12 +231,7 @@ public final class TableWriter implements AutoCloseable {
         return tag;
     }
 
-    /**
-     * Tests whether a key is present as changed so far.
-     *
-     * @param key Key bytes
-     * @return True if present
-     */
+    @Override
     public boolean contains(final byte[] key) {
         return this.cursor().seek(key);
     }
