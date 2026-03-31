@@ -58,7 +58,7 @@ public final class VidrioAllDocsPostList extends LeafPostList {
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioAllDocsPostList open(
-        final VidrioTable table, final TermCount count
+        final TableLookup table, final TermCount count
     ) {
         return new VidrioAllDocsPostList(
             ChunkWalker.open(table.cursor(), new byte[0]), count

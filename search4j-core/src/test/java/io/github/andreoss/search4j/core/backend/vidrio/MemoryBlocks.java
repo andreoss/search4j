@@ -86,6 +86,11 @@ final class MemoryBlocks implements BlockStore {
     }
 
     @Override
+    public void sync() {
+        this.reads.get();
+    }
+
+    @Override
     public void close() {
         this.closes.incrementAndGet();
     }

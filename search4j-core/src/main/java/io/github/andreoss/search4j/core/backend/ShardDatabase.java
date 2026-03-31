@@ -250,6 +250,21 @@ public final class ShardDatabase implements WritableDatabase {
     }
 
     @Override
+    public void beginTransaction(final boolean flushed) {
+        this.shard.beginTransaction(flushed);
+    }
+
+    @Override
+    public void commitTransaction() {
+        this.shard.endTransaction(true);
+    }
+
+    @Override
+    public void cancelTransaction() {
+        this.shard.endTransaction(false);
+    }
+
+    @Override
     public void commit() {
         this.shard.commit();
     }

@@ -21,4 +21,9 @@ public interface BlockStore extends Blocks {
      * @param data Block bytes, {@link #size()} long, not kept
      */
     void write(BlockNumber number, byte[] data);
+
+    /**
+     * Forces the blocks written so far to durable storage.
+     */
+    void sync();
 }

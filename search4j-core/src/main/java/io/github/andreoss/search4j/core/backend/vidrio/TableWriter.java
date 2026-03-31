@@ -237,8 +237,8 @@ public final class TableWriter implements AutoCloseable, TableLookup {
     }
 
     /**
-     * Writes the changed blocks and the free list as a new revision, then
-     * continues from it.
+     * Writes the changed blocks and the free list as a new revision, forces
+     * them to durable storage, then continues from it.
      *
      * <p>On a failure the table is closed.</p>
      *
@@ -258,6 +258,7 @@ public final class TableWriter implements AutoCloseable, TableLookup {
                 this.store.size(), revision, false
             );
             this.free.commit(revision.value());
+            this.store.sync();
             final TableState state = new TableState(
                 root, new EntryCount(this.count), this.edit.sequential(),
                 this.compress, this.free.info()

@@ -12,7 +12,7 @@ import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
- * Lookups in a committed position table.
+ * Lookups in a position table.
  *
  * @since 0.1.0
  */
@@ -21,14 +21,14 @@ public final class PositionTable {
     /**
      * The table.
      */
-    private final VidrioTable table;
+    private final TableLookup table;
 
     /**
      * Creates the lookups over a table.
      *
      * @param table The table
      */
-    private PositionTable(final VidrioTable table) {
+    private PositionTable(final TableLookup table) {
         this.table = table;
     }
 
@@ -39,7 +39,7 @@ public final class PositionTable {
      * @return Lookups
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
-    public static PositionTable of(final VidrioTable table) {
+    public static PositionTable of(final TableLookup table) {
         return new PositionTable(table);
     }
 

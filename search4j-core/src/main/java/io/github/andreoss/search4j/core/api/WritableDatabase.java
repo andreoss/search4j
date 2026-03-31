@@ -18,7 +18,7 @@ import io.github.andreoss.search4j.core.types.DocId;
  *
  * @since 0.1.0
  */
-public interface WritableDatabase extends Database {
+public interface WritableDatabase extends Database, Transactional {
 
     /**
      * Adds a copy of a document under the next identifier.

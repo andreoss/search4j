@@ -7,6 +7,7 @@
  */
 package io.github.andreoss.search4j.core.api;
 
+import io.github.andreoss.search4j.core.error.DatabaseNotFoundError;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Assertions;
@@ -42,20 +43,11 @@ final class DatabaseTest {
     }
 
     @Test
-    void factoryRejectsPathOpening() {
+    void factoryRejectsMissingPath() {
         Assertions.assertThrows(
-            UnsupportedOperationException.class,
-            () -> DatabaseFactory.open(Path.of("scratch")),
-            "No on-disk backend yet"
-        );
-    }
-
-    @Test
-    void factoryRejectsWritablePathOpening() {
-        Assertions.assertThrows(
-            UnsupportedOperationException.class,
-            () -> DatabaseFactory.openWritable(Path.of("scratch"), 0),
-            "No on-disk backend yet"
+            DatabaseNotFoundError.class,
+            () -> DatabaseFactory.open(Path.of("scratch", "no-such-database")),
+            "Nothing at the path"
         );
     }
 }

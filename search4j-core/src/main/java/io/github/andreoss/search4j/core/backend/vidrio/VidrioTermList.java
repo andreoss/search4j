@@ -119,8 +119,7 @@ public final class VidrioTermList implements TermList {
     public TermCount termFrequency() {
         this.require();
         if (this.freq.value() == 0) {
-            this.freq = this.tables.postings().stats(this.term()).freqs()
-                .termFrequency();
+            this.freq = this.tables.frequencies(this.term()).termFrequency();
         }
         return this.freq;
     }

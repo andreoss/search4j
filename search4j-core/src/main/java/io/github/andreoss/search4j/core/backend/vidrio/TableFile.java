@@ -167,6 +167,19 @@ public final class TableFile implements BlockStore {
     }
 
     @Override
+    public void sync() {
+        try {
+            this.channel.force(false);
+        } catch (final IOException ex) {
+            final DatabaseCorruptError error = new DatabaseCorruptError(
+                "Error syncing table", ex.getMessage()
+            );
+            error.initCause(ex);
+            throw error;
+        }
+    }
+
+    @Override
     public void close() {
         try {
             this.channel.close();

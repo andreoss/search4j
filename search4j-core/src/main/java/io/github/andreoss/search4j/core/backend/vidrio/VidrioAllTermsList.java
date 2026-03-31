@@ -100,7 +100,7 @@ public final class VidrioAllTermsList implements AllTermsList {
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioAllTermsList open(
-        final VidrioTable table, final EntryCount entries, final String prefix
+        final TableLookup table, final EntryCount entries, final String prefix
     ) {
         return new VidrioAllTermsList(
             table.cursor(), entries, PostListKeys.bytes(prefix)

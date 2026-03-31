@@ -8,12 +8,13 @@
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
+import io.github.andreoss.search4j.core.backend.TermFrequencies;
 import io.github.andreoss.search4j.core.error.DocNotFoundError;
 import io.github.andreoss.search4j.core.types.DocId;
 import java.util.Optional;
 
 /**
- * Lookups in a committed term list table.
+ * Lookups in a term list table.
  *
  * @since 0.1.0
  */
@@ -22,12 +23,12 @@ public final class TermListTable {
     /**
      * The table.
      */
-    private final VidrioTable table;
+    private final TableLookup table;
 
     /**
-     * Posting list table the term frequencies come from.
+     * Source of the term frequencies.
      */
-    private final PostingTable postings;
+    private final TermFrequencySource postings;
 
     /**
      * Position table the positions come from.
@@ -38,11 +39,11 @@ public final class TermListTable {
      * Creates the lookups from their parts.
      *
      * @param table The table
-     * @param postings Posting list table the term frequencies come from
+     * @param postings Source of the term frequencies
      * @param positions Position table the positions come from
      */
     private TermListTable(
-        final VidrioTable table, final PostingTable postings,
+        final TableLookup table, final TermFrequencySource postings,
         final PositionTable positions
     ) {
         this.table = table;
@@ -54,13 +55,13 @@ public final class TermListTable {
      * Opens the lookups over a table.
      *
      * @param table Term list table
-     * @param postings Posting list table the term frequencies come from
+     * @param postings Source of the term frequencies
      * @param positions Position table the positions come from
      * @return Lookups
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static TermListTable of(
-        final VidrioTable table, final PostingTable postings,
+        final TableLookup table, final TermFrequencySource postings,
         final PositionTable positions
     ) {
         return new TermListTable(table, postings, positions);
@@ -103,12 +104,13 @@ public final class TermListTable {
     }
 
     /**
-     * Posting list table the term frequencies come from.
+     * Frequencies of a term.
      *
-     * @return Lookups
+     * @param term Term text
+     * @return Frequencies, none for an unknown term
      */
-    PostingTable postings() {
-        return this.postings;
+    TermFrequencies frequencies(final String term) {
+        return this.postings.frequencies(term);
     }
 
     /**

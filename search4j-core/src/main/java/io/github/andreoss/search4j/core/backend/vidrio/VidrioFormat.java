@@ -33,6 +33,12 @@ public final class VidrioFormat {
     public static final int MAGIC_BYTES = 14;
 
     /**
+     * Longest term stored, in bytes: a posting chunk key holds the term,
+     * a zero byte and up to nine bytes of document number.
+     */
+    public static final int MAX_TERM_LENGTH = 245;
+
+    /**
      * Format version stored after the magic bytes: the date of the last
      * format change as two big-endian bytes, 2016-03-14.
      */
@@ -49,6 +55,14 @@ public final class VidrioFormat {
      */
     private static final byte[] VERSION_FILE = {
         0x69, 0x61, 0x6D, 0x67, 0x6C, 0x61, 0x73, 0x73,
+    };
+
+    /**
+     * Name of the write lock file inside the database directory, ASCII
+     * bytes.
+     */
+    private static final byte[] LOCK_FILE = {
+        0x66, 0x6C, 0x69, 0x6E, 0x74, 0x6C, 0x6F, 0x63, 0x6B,
     };
 
     /**
@@ -105,6 +119,15 @@ public final class VidrioFormat {
      */
     public static String versionFileName() {
         return new String(VidrioFormat.VERSION_FILE, StandardCharsets.US_ASCII);
+    }
+
+    /**
+     * Name of the write lock file as text.
+     *
+     * @return ASCII file name
+     */
+    public static String lockFileName() {
+        return new String(VidrioFormat.LOCK_FILE, StandardCharsets.US_ASCII);
     }
 
     /**

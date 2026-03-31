@@ -59,7 +59,7 @@ public final class VidrioPostList extends LeafPostList {
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioPostList open(
-        final VidrioTable table, final PositionTable positions,
+        final TableLookup table, final PositionTable positions,
         final String term
     ) {
         return new VidrioPostList(
@@ -162,6 +162,6 @@ public final class VidrioPostList extends LeafPostList {
      * @param positions Position table
      * @since 0.1.0
      */
-    private record Tables(VidrioTable table, PositionTable positions) {
+    private record Tables(TableLookup table, PositionTable positions) {
     }
 }

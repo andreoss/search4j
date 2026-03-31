@@ -8,6 +8,7 @@
  */
 package io.github.andreoss.search4j.core.backend.vidrio;
 
+import io.github.andreoss.search4j.core.backend.TermFrequencies;
 import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.error.DocNotFoundError;
@@ -16,20 +17,20 @@ import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.Optional;
 
 /**
- * Lookups in a committed posting list table: term statistics, document
- * lengths and the range of documents in use.
+ * Lookups in a posting list table: term statistics, document lengths and
+ * the range of documents in use.
  *
  * <p>Lookups share one walk over the document lengths and are not
  * thread-safe.</p>
  *
  * @since 0.1.0
  */
-public final class PostingTable {
+public final class PostingTable implements TermFrequencySource {
 
     /**
      * The table.
      */
-    private final VidrioTable table;
+    private final TableLookup table;
 
     /**
      * Walk over the document lengths.
@@ -42,7 +43,7 @@ public final class PostingTable {
      * @param table The table
      * @param lengths Walk over the document lengths
      */
-    private PostingTable(final VidrioTable table, final ChunkWalker lengths) {
+    private PostingTable(final TableLookup table, final ChunkWalker lengths) {
         this.table = table;
         this.lengths = lengths;
     }
@@ -54,7 +55,7 @@ public final class PostingTable {
      * @return Lookups
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
-    public static PostingTable of(final VidrioTable table) {
+    public static PostingTable of(final TableLookup table) {
         return new PostingTable(
             table, ChunkWalker.open(table.cursor(), new byte[0])
         );
@@ -89,6 +90,11 @@ public final class PostingTable {
             result = new TermStats(head.freqs(), bound);
         }
         return result;
+    }
+
+    @Override
+    public TermFrequencies frequencies(final String term) {
+        return this.stats(term).freqs();
     }
 
     /**
