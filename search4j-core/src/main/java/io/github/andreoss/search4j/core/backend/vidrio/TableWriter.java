@@ -10,6 +10,7 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 import io.github.andreoss.search4j.core.error.DatabaseClosedError;
 import io.github.andreoss.search4j.core.error.DatabaseError;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
+import java.util.Optional;
 
 /**
  * A B-tree table opened to write revisions.
@@ -23,6 +24,7 @@ import io.github.andreoss.search4j.core.error.InvalidArgumentError;
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.TooManyMethods")
 public final class TableWriter implements AutoCloseable {
 
     /**
@@ -212,6 +214,44 @@ public final class TableWriter implements AutoCloseable {
     public void compaction(final boolean flag) {
         this.check();
         this.entries.compaction(flag);
+    }
+
+    /**
+     * Creates an unpositioned cursor over the entries as changed so far.
+     *
+     * <p>The changed blocks are written first; the cursor does not see
+     * later changes.</p>
+     *
+     * @return Cursor
+     */
+    public TableCursor cursor() {
+        this.check();
+        return new TableCursor(this.store, this.spine.root());
+    }
+
+    /**
+     * Reads the tag of a key as changed so far.
+     *
+     * @param key Key bytes
+     * @return Tag, reassembled and inflated, or empty when absent
+     */
+    public Optional<byte[]> get(final byte[] key) {
+        final TableCursor cursor = this.cursor();
+        Optional<byte[]> tag = Optional.empty();
+        if (cursor.exact(key)) {
+            tag = Optional.of(cursor.tag());
+        }
+        return tag;
+    }
+
+    /**
+     * Tests whether a key is present as changed so far.
+     *
+     * @param key Key bytes
+     * @return True if present
+     */
+    public boolean contains(final byte[] key) {
+        return this.cursor().seek(key);
     }
 
     /**

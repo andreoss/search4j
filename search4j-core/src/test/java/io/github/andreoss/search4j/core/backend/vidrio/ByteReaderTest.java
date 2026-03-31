@@ -94,6 +94,47 @@ final class ByteReaderTest {
     }
 
     @Test
+    void readsFlags() {
+        final ByteReader reader = ByteReader.over(
+            ByteReaderTest.bytes("3031")
+        );
+        Assertions.assertEquals(
+            List.of(0, false, true, 2),
+            List.of(
+                reader.offset(), reader.flag("a"), reader.flag("b"),
+                reader.offset()
+            ),
+            "Digits 0 and 1 as flags, the offset advancing"
+        );
+    }
+
+    @Test
+    void rejectsFlagOtherThanDigit() {
+        final ByteReader reader = ByteReader.over(ByteReaderTest.bytes("32"));
+        Assertions.assertEquals(
+            "Flag is not a flag",
+            Assertions.assertThrows(
+                DatabaseCorruptError.class, () -> reader.flag("Flag"),
+                "Digit 2"
+            ).getMessage(),
+            "Message"
+        );
+    }
+
+    @Test
+    void rejectsFlagOutOfData() {
+        final ByteReader reader = ByteReader.over(new byte[0]);
+        Assertions.assertEquals(
+            "Flag out of data",
+            Assertions.assertThrows(
+                DatabaseCorruptError.class, () -> reader.flag("Flag"),
+                "Nothing to read"
+            ).getMessage(),
+            "Message"
+        );
+    }
+
+    @Test
     void rejectsIntegerOutOfData() {
         final ByteReader reader = ByteReader.over(ByteReaderTest.bytes("80"));
         Assertions.assertEquals(

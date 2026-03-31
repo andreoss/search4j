@@ -99,6 +99,24 @@ final class ByteReader {
     }
 
     /**
+     * Decodes a flag stored as the digit 0 or 1.
+     *
+     * @param what Field name for the error
+     * @return Flag
+     */
+    boolean flag(final String what) {
+        if (this.pos == this.end) {
+            throw ByteReader.corrupt(what, "out of data");
+        }
+        final int digit = this.data[this.pos] - '0';
+        if ((digit & ~1) != 0) {
+            throw ByteReader.corrupt(what, "is not a flag");
+        }
+        this.pos += 1;
+        return digit == 1;
+    }
+
+    /**
      * Decodes a length-prefixed string.
      *
      * @param what Field name for the error
@@ -123,6 +141,15 @@ final class ByteReader {
      */
     boolean done() {
         return this.pos == this.end;
+    }
+
+    /**
+     * Offset of the next byte.
+     *
+     * @return Offset into the bytes read
+     */
+    int offset() {
+        return this.pos;
     }
 
     /**

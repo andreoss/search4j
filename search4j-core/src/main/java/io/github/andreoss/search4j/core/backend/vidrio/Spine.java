@@ -295,6 +295,20 @@ final class Spine {
         }
     }
 
+    /**
+     * Root block of the tree as changed so far, every changed block
+     * written first.
+     *
+     * @return Root block
+     */
+    Block root() {
+        this.flush();
+        return Block.parse(
+            new BlockNumber(this.numbers[this.top]),
+            this.pages[this.top].bytes()
+        );
+    }
+
     private void place(final int level, final long block) {
         if (block != this.numbers[level]) {
             if (this.dirty[level]) {

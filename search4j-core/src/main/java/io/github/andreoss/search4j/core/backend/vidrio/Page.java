@@ -123,6 +123,15 @@ final class Page {
     }
 
     /**
+     * Block bytes.
+     *
+     * @return Fresh copy of the bytes
+     */
+    byte[] bytes() {
+        return this.data.clone();
+    }
+
+    /**
      * Writes the page as a block.
      *
      * @param store Store of the blocks
