@@ -78,6 +78,11 @@ final class BooleanPostListFixtureFake implements PostList {
     private List<TermPos> positions;
 
     /**
+     * Least weight hint received by the last move.
+     */
+    private double least;
+
+    /**
      * Creates the list.
      *
      * @param name Description text
@@ -122,13 +127,15 @@ final class BooleanPostListFixtureFake implements PostList {
     }
 
     @Override
-    public PostList next(final double least) {
+    public PostList next(final double hint) {
+        this.least = hint;
         this.index += 1;
         return this;
     }
 
     @Override
-    public PostList skipTo(final DocId target, final double least) {
+    public PostList skipTo(final DocId target, final double hint) {
+        this.least = hint;
         while (this.index < 0
             || this.index < this.docs.size()
             && this.docId().compareTo(target) < 0) {
@@ -138,12 +145,12 @@ final class BooleanPostListFixtureFake implements PostList {
     }
 
     @Override
-    public Probe check(final DocId target, final double least) {
+    public Probe check(final DocId target, final double hint) {
         final Probe result;
         if (!this.atEnd() && target.compareTo(this.docId()) <= 0) {
             result = new Probe(this, this.docId().equals(target));
         } else {
-            final PostList moved = this.skipTo(target, least);
+            final PostList moved = this.skipTo(target, hint);
             result = new Probe(
                 moved,
                 !moved.atEnd() && moved.docId().equals(target)
@@ -188,8 +195,22 @@ final class BooleanPostListFixtureFake implements PostList {
     }
 
     @Override
+    public PositionList readPositionList() {
+        return new VectorPositionList(this.positions);
+    }
+
+    @Override
     public String description() {
         return this.name;
+    }
+
+    /**
+     * Least weight received by the last move.
+     *
+     * @return Least weight hint
+     */
+    double lastLeast() {
+        return this.least;
     }
 
     BooleanPostListFixtureFake scoring(final double value) {
@@ -205,6 +226,10 @@ final class BooleanPostListFixtureFake implements PostList {
     BooleanPostListFixtureFake freq(final int value) {
         this.wdf = new TermCount(value);
         return this;
+    }
+
+    BooleanPostListFixtureFake wdf(final int value) {
+        return this.freq(value);
     }
 
     BooleanPostListFixtureFake subs(final int value) {
