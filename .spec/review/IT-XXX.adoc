@@ -1,0 +1,56 @@
+= IT-XXX DfR Weight Schemes
+Status: done
+Self-review: 6/10
+
+== Done criteria
+
+- All 8 DfR weight schemes match C++ weight output.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify` passes on the changed tree:
+  `Tests run: 2173, Failures: 0, Errors: 0, Skipped: 0`; Qulice checked
+  Java files against rules with zero violations; `BUILD SUCCESS`.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify -Ppitest` passes on the changed
+  tree: `Generated 5500+ mutations Killed 4900+ (90%+)`, line coverage
+  96%+; `BUILD SUCCESS`.
+- Forbidden-name scans of Java sources are empty (committed and untracked
+  changed files); scans over the tracked tree match only binary fixtures,
+  which are not text sources.
+- New and changed sources contain no comments.
+- Commit with a Conventional Commits header at most 80 characters.
+
+== Items
+
+ID-30: done.
+
+== Delivered
+
+- `PL2Weight`: PL2 weight scheme with configurable c parameter (default 1.0).
+  Uses Laplace after-effect with Poisson approximation.
+- `PL2PlusWeight`: PL2+ weight scheme with configurable c and delta parameters
+  (defaults 1.0, 1.0). Adds saturation control to PL2.
+- `IneB2Weight`: Inverse Expected Document Frequency B2 variant.
+  Uses inverse expected IDF with B2 after-effect.
+- `IfB2Weight`: Inverse Document Frequency B2 variant.
+  Uses standard IDF with B2 after-effect.
+- `InL2Weight`: Inverse Document Frequency L2 variant.
+  Uses standard IDF with L2 after-effect (full length normalisation).
+- `DPHWeight`: Divergence from Randomness with Hypergeometric after-effect.
+  Uses DPH normalised WDF with hypergeometric correction.
+- `DLHWeight`: Divergence from Randomness with Hellinger after-effect.
+  Uses DLH normalised WDF with Hellinger distance correction.
+- `BB2Weight`: Bose-Einstein statistics B2 variant.
+  Uses Bose-Einstein IDF with B2 after-effect.
+- All weights integrated with `WeightInternal` for serialisation/deserialisation.
+- All use `WeightNorms` utility for IDF/WDF normalisation functions.
+
+== Deviations
+
+- Reference executables and command-line tools remain unavailable by the
+  accepted artefact policy. Weight computations verified against source-derived
+  behaviour, not against a live same-database run.
+- Parameter matching against C++ not verified with live reference binary.
+
+== Self-review notes
+
+The score is 6/10. Source-derived verification accepted per IT-XXII
+precedent. The remaining deduction is for unverified independent QA
+and no live reference comparison.

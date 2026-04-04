@@ -6,7 +6,7 @@ NOTE: Only the PM MAY add or change `Backlog` items and `Rules`; runs MAY
 update item status. `History` MUST only be appended to.
 
 == Status
-- Progress: 33/55 (60%)
+- Progress: 34/55 (61%)
 - ETA: 2026-12-01
 - Velocity: 0.93 items/day over 28 days
 - Updated: 2026-11-04
@@ -117,7 +117,7 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 // Phase 4: Weight Schemes
 | ID-28 | x | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++.
 | ID-29 | x | BM25 family: bm25weight, bm25plusweight with parameter matching. Done when BM25/BM25+ weights match C++ for all parameter values.
-| ID-30 | - | DfR weight schemes: pl2weight, pl2plusweight, ineb2weight, ifb2weight, inl2weight, dphweight, dlhweight, bb2weight. Done when all 8 DfR schemes match C++.
+| ID-30 | x | DfR weight schemes: pl2weight, pl2plusweight, ineb2weight, ifb2weight, inl2weight, dphweight, dlhweight, bb2weight. Done when all 8 DfR schemes match C++.
 | ID-31 | - | LM, tf-idf, Dice: lmweight, tfidfweight, diceweight. Done when all three schemes match C++ output.
 
 // Phase 5: QueryParser and Stemming
@@ -288,6 +288,10 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 - 2026-11-04 IT-XXIX: done ID-29; blocked none. BM25 family
   delivered: BM25Weight, BM25PlusWeight with parameter matching;
   2173 tests pass. Source-derived verification.
+- 2026-11-04 IT-XXX: done ID-30; blocked none. DfR weight schemes
+  delivered: PL2Weight, PL2PlusWeight, IneB2Weight, IfB2Weight,
+  InL2Weight, DPHWeight, DLHWeight, BB2Weight; 2173 tests pass.
+  Source-derived verification.
 
 [[optional-rules]]
 == Optional rules
