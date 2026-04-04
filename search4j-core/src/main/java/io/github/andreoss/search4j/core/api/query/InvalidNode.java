@@ -14,7 +14,7 @@ import io.github.andreoss.search4j.core.types.QueryOp;
  *
  * @since 0.1.0
  */
-enum InvalidNode implements Node {
+public enum InvalidNode implements Node {
 
     /**
      * The single invalid node.

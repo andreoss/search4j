@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  *  zero for the other operators
  * @since 0.1.0
  */
-record BranchNode(QueryOp type, List<Query> subqueries, int parameter)
+public record BranchNode(QueryOp type, List<Query> subqueries, int parameter)
     implements Node {
 
     /**
@@ -34,7 +34,7 @@ record BranchNode(QueryOp type, List<Query> subqueries, int parameter)
      * @param parameter Window of a positional operator or size of an elite
      *  set, zero for the other operators
      */
-    BranchNode {
+    public BranchNode {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(subqueries, "subqueries");
     }

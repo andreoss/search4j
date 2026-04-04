@@ -21,7 +21,7 @@ import java.util.Objects;
  *
  * @since 0.1.0
  */
-final class MatchEstimate {
+public final class MatchEstimate {
 
     /**
      * Lowest valid document identifier.
@@ -80,7 +80,7 @@ final class MatchEstimate {
         );
     }
 
-    static MatchEstimate from(final PostList list) {
+    public static MatchEstimate from(final PostList list) {
         final MatchEstimate result;
         if (list instanceof AndPostList conjunction) {
             result = conjunction.matchEstimate();
@@ -124,7 +124,7 @@ final class MatchEstimate {
         return MatchEstimate.combine(EstimateKind.XOR, lists);
     }
 
-    MatchEstimates resolve(
+    public MatchEstimates resolve(
         final TermCount dbsize, final DocId dbfirst, final DocId dblast
     ) {
         if (dbsize.value() <= 0) {

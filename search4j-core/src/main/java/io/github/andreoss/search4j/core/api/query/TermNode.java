@@ -22,7 +22,7 @@ import java.util.stream.Stream;
  * @param pos Query position, zero when none
  * @since 0.1.0
  */
-record TermNode(String term, TermCount wqf, TermPos pos) implements Node {
+public record TermNode(String term, TermCount wqf, TermPos pos) implements Node {
 
     /**
      * Creates the leaf.
@@ -31,7 +31,7 @@ record TermNode(String term, TermCount wqf, TermPos pos) implements Node {
      * @param wqf Within-query frequency
      * @param pos Query position, zero when none
      */
-    TermNode {
+    public TermNode {
         Objects.requireNonNull(term, "term");
         Objects.requireNonNull(wqf, "wqf");
         Objects.requireNonNull(pos, "pos");

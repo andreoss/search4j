@@ -20,7 +20,7 @@ import io.github.andreoss.search4j.core.types.TermCount;
  * @param last Highest possible matching document
  * @since 0.1.0
  */
-record MatchEstimates(
+public record MatchEstimates(
     TermCount min, TermCount est, TermCount max, DocId first, DocId last
 ) {
 }

@@ -9,6 +9,8 @@ package io.github.andreoss.search4j.core.backend;
 
 import io.github.andreoss.search4j.core.api.Database;
 import io.github.andreoss.search4j.core.api.Document;
+import io.github.andreoss.search4j.core.api.Enquire;
+import io.github.andreoss.search4j.core.api.EnquireImpl;
 import io.github.andreoss.search4j.core.api.PositionIterator;
 import io.github.andreoss.search4j.core.api.PostingIterator;
 import io.github.andreoss.search4j.core.api.TermIterator;
@@ -277,6 +279,11 @@ public final class ShardDatabase implements WritableDatabase {
     @Override
     public void close() {
         this.shard.close();
+    }
+
+    @Override
+    public Enquire enquire() {
+        return new EnquireImpl(this.shard);
     }
 
     private static DocId valid(final DocId docid) {

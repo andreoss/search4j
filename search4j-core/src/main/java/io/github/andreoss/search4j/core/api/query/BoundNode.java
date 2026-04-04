@@ -20,7 +20,7 @@ import java.util.Objects;
  * @param limit Bound of the slot
  * @since 0.1.0
  */
-record BoundNode(QueryOp type, ValueNo slot, String limit) implements Node {
+public record BoundNode(QueryOp type, ValueNo slot, String limit) implements Node {
 
     /**
      * Creates the node.
@@ -29,7 +29,7 @@ record BoundNode(QueryOp type, ValueNo slot, String limit) implements Node {
      * @param slot Value slot compared
      * @param limit Bound of the slot
      */
-    BoundNode {
+    public BoundNode {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(slot, "slot");
         Objects.requireNonNull(limit, "limit");

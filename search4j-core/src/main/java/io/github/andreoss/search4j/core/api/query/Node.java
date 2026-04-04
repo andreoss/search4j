@@ -18,7 +18,7 @@ import java.util.stream.Stream;
  *
  * @since 0.1.0
  */
-sealed interface Node permits TermNode, ScaleNode, BoundNode, RangeNode,
+public sealed interface Node permits TermNode, ScaleNode, BoundNode, RangeNode,
     WildcardNode, EditNode, InvalidNode, BranchNode {
 
     /**
@@ -72,6 +72,15 @@ sealed interface Node permits TermNode, ScaleNode, BoundNode, RangeNode,
      */
     default TermPos pos() {
         throw new InvalidArgumentError("pos() not meaningful for this query");
+    }
+
+    /**
+     * Term text of a leaf.
+     *
+     * @return Term text
+     */
+    default String term() {
+        throw new InvalidArgumentError("term() not meaningful for this query");
     }
 
     /**

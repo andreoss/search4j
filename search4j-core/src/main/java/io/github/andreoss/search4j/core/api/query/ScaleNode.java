@@ -21,7 +21,7 @@ import java.util.stream.Stream;
  * @param scaled Subquery scaled, never a match-nothing query
  * @since 0.1.0
  */
-record ScaleNode(double factor, Query scaled) implements Node {
+public record ScaleNode(double factor, Query scaled) implements Node {
 
     /**
      * Creates the node.
@@ -29,7 +29,7 @@ record ScaleNode(double factor, Query scaled) implements Node {
      * @param factor Non-negative scale factor
      * @param scaled Subquery scaled, never a match-nothing query
      */
-    ScaleNode {
+    public ScaleNode {
         Objects.requireNonNull(scaled, "scaled");
         if (factor < 0.0) {
             throw new InvalidArgumentError("SCALE_WEIGHT requires factor >= 0");

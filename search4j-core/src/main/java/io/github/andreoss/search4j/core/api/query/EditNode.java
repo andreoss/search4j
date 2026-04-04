@@ -18,14 +18,14 @@ import java.util.Objects;
  * @param spec The target and how it expands
  * @since 0.1.0
  */
-record EditNode(EditDistance spec) implements Node {
+public record EditNode(EditDistance spec) implements Node {
 
     /**
      * Creates the node.
      *
      * @param spec The target and how it expands
      */
-    EditNode {
+    public EditNode {
         Objects.requireNonNull(spec, "spec");
     }
 

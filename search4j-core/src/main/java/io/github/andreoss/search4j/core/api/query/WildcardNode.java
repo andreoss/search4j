@@ -18,14 +18,14 @@ import java.util.Objects;
  * @param spec The pattern and how it expands
  * @since 0.1.0
  */
-record WildcardNode(Wildcard spec) implements Node {
+public record WildcardNode(Wildcard spec) implements Node {
 
     /**
      * Creates the node.
      *
      * @param spec The pattern and how it expands
      */
-    WildcardNode {
+    public WildcardNode {
         Objects.requireNonNull(spec, "spec");
     }
 

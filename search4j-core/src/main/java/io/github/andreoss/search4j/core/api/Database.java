@@ -46,6 +46,13 @@ public interface Database
      */
     Document document(DocId docid);
 
+    /**
+     * Creates an enquire for this database.
+     *
+     * @return New enquire instance
+     */
+    Enquire enquire();
+
     @Override
     void close();
 }

@@ -557,7 +557,7 @@ public final class Query {
      * @return Root node; a match-nothing query raises an invalid-argument
      *  error
      */
-    Node node() {
+    public Node node() {
         if (this.root == null) {
             throw new InvalidArgumentError(
                 "Not meaningful for a match-nothing query"

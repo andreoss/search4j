@@ -20,7 +20,7 @@ import java.util.Objects;
  * @param upper Upper bound, not below the lower one
  * @since 0.1.0
  */
-record RangeNode(ValueNo slot, String lower, String upper) implements Node {
+public record RangeNode(ValueNo slot, String lower, String upper) implements Node {
 
     /**
      * Creates the node.
@@ -29,7 +29,7 @@ record RangeNode(ValueNo slot, String lower, String upper) implements Node {
      * @param lower Lower bound, non-empty
      * @param upper Upper bound, not below the lower one
      */
-    RangeNode {
+    public RangeNode {
         Objects.requireNonNull(slot, "slot");
         Objects.requireNonNull(lower, "lower");
         Objects.requireNonNull(upper, "upper");
