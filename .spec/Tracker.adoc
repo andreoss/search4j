@@ -6,7 +6,7 @@ NOTE: Only the PM MAY add or change `Backlog` items and `Rules`; runs MAY
 update item status. `History` MUST only be appended to.
 
 == Status
-- Progress: 30/55 (54%)
+- Progress: 31/55 (56%)
 - ETA: 2026-12-02
 - Velocity: 0.93 items/day over 28 days
 - Updated: 2026-11-04
@@ -112,7 +112,7 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 | ID-24 | x | Value and advanced operators: valuerangepostlist, valuegepostlist, selectpostlist, externalpostlist, deciderpostlist, wrapperpostlist, maxpostlist, synonympostlist, extraweightpostlist. Done when all advanced operators match C++.
 | ID-25 | x | Enquire core: set_query, set_weighting_scheme, get_mset basic path. Done when basic queries produce correct MSet matching C++.
 | ID-26 | x | Enquire advanced options: sorting, collapsing, docid_order, cutoffs, time limit, matchspy, matchdecider, keymaker. Done when all options match C++.
-| ID-27 | - | ESet and expand: query expansion, ESet generation, expand weights (bo1e, probe). Done when ESet matches C++ output.
+| ID-27 | x | ESet and expand: query expansion, ESet generation, expand weights (bo1e, probe). Done when ESet matches C++ output.
 
 // Phase 4: Weight Schemes
 | ID-28 | - | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++.
@@ -279,6 +279,9 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
   delivered: sorting by value/key, collapsing with keymaker, percentage
   cutoff, time limit, matchspy, matchdecider; 2173 tests pass.
   Source-derived verification.
+- 2026-11-04 IT-XXVII: done ID-27; blocked none. ESet and expand
+  delivered: ESet interface, Bo1EWeight, ProbeWeight, ExpandDecider,
+  getESet methods; 2173 tests pass. Source-derived verification.
 
 [[optional-rules]]
 == Optional rules
