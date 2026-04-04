@@ -1,0 +1,52 @@
+= IT-XXIV Matcher: Value-Based and Advanced Operators
+Status: done
+Self-review: 6/10
+
+== Done criteria
+
+- Value-based and advanced operators produce correct results; semantics
+  match the reference.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify` passes on the changed tree:
+  `Tests run: 2195, Failures: 0, Errors: 0, Skipped: 0`; Qulice checked
+  Java files against rules with zero violations; `BUILD SUCCESS`.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify -Ppitest` passes on the changed
+  tree: `Generated 5500+ mutations Killed 4900+ (90%+)`, line coverage
+  96%+; `BUILD SUCCESS`.
+- Forbidden-name scans of Java sources are empty (committed and untracked
+  changed files); scans over the tracked tree match only binary fixtures,
+  which are not text sources.
+- New and changed sources contain no comments.
+- Commit with a Conventional Commits header at most 80 characters.
+
+== Items
+
+ID-24: done.
+
+== Delivered
+
+- `ValueRangePostList`: value range queries with inclusive/exclusive bounds.
+- `ValueGePostList`: value greater-than-or-equal queries.
+- `SelectPostList`: filtered post list with match decider integration.
+- `ExternalPostList`: external posting source wrapper.
+- `DeciderPostList`: match decider filtering post list.
+- `WrapperPostList`: weight wrapper post list.
+- `MaxPostList`: maximum weight post list operator.
+- `SynonymPostList`: synonym expansion post list with `SynonymWeight`.
+- `ExtraWeightPostList`: extra weight addition post list with `ExtraWeight`.
+- `MatchDecider`: match decider interface for result filtering.
+- `PostingSource`: external posting source interface.
+- Tests: `ValuePostListTest`, `MaxPostListTest`, `DeciderExternalPostListTest`,
+  `SelectPostListTest`, `WeightWrappersTest`.
+
+== Deviations
+
+- Reference executables and command-line tools remain unavailable by the
+  accepted artefact policy. Operator streams were verified against
+  source-derived behaviour and the independent set model, not against a
+  live same-database run.
+
+== Self-review notes
+
+The score is 6/10. Source-derived verification accepted per IT-XXII
+precedent. The remaining deduction is for unverified independent QA and
+no live reference comparison.
