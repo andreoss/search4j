@@ -49,6 +49,9 @@ public final class WeightInternal {
                 case 10 -> DPHWeight.deserialise(in);
                 case 11 -> DLHWeight.deserialise(in);
                 case 12 -> BB2Weight.deserialise(in);
+                case 13 -> LMWeight.deserialise(in);
+                case 14 -> TFIDFWeight.deserialise(in);
+                case 15 -> DiceWeight.deserialise(in);
                 default -> throw new SerialisationError(
                     "Unknown weight type: " + type
                 );
