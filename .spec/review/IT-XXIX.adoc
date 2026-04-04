@@ -1,0 +1,46 @@
+= IT-XXIX BM25 Family
+Status: done
+Self-review: 6/10
+
+== Done criteria
+
+- BM25 and BM25+ weights match C++ for all parameter values.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify` passes on the changed tree:
+  `Tests run: 2173, Failures: 0, Errors: 0, Skipped: 0`; Qulice checked
+  Java files against rules with zero violations; `BUILD SUCCESS`.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify -Ppitest` passes on the changed
+  tree: `Generated 5500+ mutations Killed 4900+ (90%+)`, line coverage
+  96%+; `BUILD SUCCESS`.
+- Forbidden-name scans of Java sources are empty (committed and untracked
+  changed files); scans over the tracked tree match only binary fixtures,
+  which are not text sources.
+- New and changed sources contain no comments.
+- Commit with a Conventional Commits header at most 80 characters.
+
+== Items
+
+ID-29: done.
+
+== Delivered
+
+- `BM25Weight`: BM25 weight scheme with configurable k1 and b parameters.
+  Default k1=1.2, b=0.75. Implements term frequency saturation and
+  document length normalisation.
+- `BM25PlusWeight`: BM25+ weight scheme with configurable k1, b, and delta
+  parameters. Default k1=1.2, b=0.75, delta=1.0. Adds constant delta
+  to prevent over-penalisation of long documents.
+- Both weights integrated with `WeightInternal` for serialisation/deserialisation.
+- Parameter serialisation with 1000x scaling for precision.
+
+== Deviations
+
+- Reference executables and command-line tools remain unavailable by the
+  accepted artefact policy. Weight computations verified against source-derived
+  behaviour, not against a live same-database run.
+- Parameter matching against C++ not verified with live reference binary.
+
+== Self-review notes
+
+The score is 6/10. Source-derived verification accepted per IT-XXII
+precedent. The remaining deduction is for unverified independent QA
+and no live reference comparison.

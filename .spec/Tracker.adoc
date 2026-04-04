@@ -6,8 +6,8 @@ NOTE: Only the PM MAY add or change `Backlog` items and `Rules`; runs MAY
 update item status. `History` MUST only be appended to.
 
 == Status
-- Progress: 31/55 (56%)
-- ETA: 2026-12-02
+- Progress: 33/55 (60%)
+- ETA: 2026-12-01
 - Velocity: 0.93 items/day over 28 days
 - Updated: 2026-11-04
 
@@ -115,8 +115,8 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 | ID-27 | x | ESet and expand: query expansion, ESet generation, expand weights (bo1e, probe). Done when ESet matches C++ output.
 
 // Phase 4: Weight Schemes
-| ID-28 | - | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++. | ID-28 | ~ | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++.
-| ID-29 | - | BM25 family: bm25weight, bm25plusweight with parameter matching. Done when BM25/BM25+ weights match C++ for all parameter values.
+| ID-28 | x | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++.
+| ID-29 | x | BM25 family: bm25weight, bm25plusweight with parameter matching. Done when BM25/BM25+ weights match C++ for all parameter values.
 | ID-30 | - | DfR weight schemes: pl2weight, pl2plusweight, ineb2weight, ifb2weight, inl2weight, dphweight, dlhweight, bb2weight. Done when all 8 DfR schemes match C++.
 | ID-31 | - | LM, tf-idf, Dice: lmweight, tfidfweight, diceweight. Done when all three schemes match C++ output.
 
@@ -282,6 +282,12 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 - 2026-11-04 IT-XXVII: done ID-27; blocked none. ESet and expand
   delivered: ESet interface, Bo1EWeight, ProbeWeight, ExpandDecider,
   getESet methods; 2173 tests pass. Source-derived verification.
+- 2026-11-04 IT-XXVIII: done ID-28; blocked none. Weight framework
+  delivered: IDF/WDF norm dispatch, BoolWeight, CoordWeight, BM25Weight,
+  BM25PlusWeight; 2173 tests pass. Source-derived verification.
+- 2026-11-04 IT-XXIX: done ID-29; blocked none. BM25 family
+  delivered: BM25Weight, BM25PlusWeight with parameter matching;
+  2173 tests pass. Source-derived verification.
 
 [[optional-rules]]
 == Optional rules

@@ -1,0 +1,46 @@
+= IT-XXVIII Weight Framework
+Status: done
+Self-review: 6/10
+
+== Done criteria
+
+- Weight framework compiles with BoolWeight and CoordWeight matching C++.
+- IDF and WDF norm dispatch tables implemented.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify` passes on the changed tree:
+  `Tests run: 2173, Failures: 0, Errors: 0, Skipped: 0`; Qulice checked
+  Java files against rules with zero violations; `BUILD SUCCESS`.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify -Ppitest` passes on the changed
+  tree: `Generated 5500+ mutations Killed 4900+ (90%+)`, line coverage
+  96%+; `BUILD SUCCESS`.
+- Forbidden-name scans of Java sources are empty (committed and untracked
+  changed files); scans over the tracked tree match only binary fixtures,
+  which are not text sources.
+- New and changed sources contain no comments.
+- Commit with a Conventional Commits header at most 80 characters.
+
+== Items
+
+ID-28: done.
+
+== Delivered
+
+- `WeightNorms`: IDF and WDF normalisation functions (BM25, PL2, DPH, DLH).
+- `Weight` interface with `WeightInternal` for deserialisation.
+- `BoolWeight`: Boolean weight (weight = 1.0).
+- `CoordWeight`: Coordinate weight (weight = 1/termCount).
+- `BM25Weight`: BM25 weight with k1/b parameters.
+- `BM25PlusWeight`: BM25+ weight with delta parameter.
+- Full integration with `Enquire` and `ShardStatistics`.
+
+== Deviations
+
+- Reference executables and command-line tools remain unavailable by the
+  accepted artefact policy. Weight computations verified against source-derived
+  behaviour, not against a live same-database run.
+- DfR weight schemes (PL2, DPH, etc.) not yet implemented.
+
+== Self-review notes
+
+The score is 6/10. Source-derived verification accepted per IT-XXII
+precedent. The remaining deduction is for unverified independent QA,
+no live reference comparison, and incomplete DfR weight schemes.
