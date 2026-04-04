@@ -39,6 +39,8 @@ public final class WeightInternal {
             return switch (type) {
                 case 1 -> BoolWeight.deserialise(in);
                 case 2 -> CoordWeight.deserialise(in);
+                case 3 -> BM25Weight.deserialise(in);
+                case 4 -> BM25PlusWeight.deserialise(in);
                 default -> throw new SerialisationError(
                     "Unknown weight type: " + type
                 );
