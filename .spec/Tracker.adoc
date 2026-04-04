@@ -6,7 +6,7 @@ NOTE: Only the PM MAY add or change `Backlog` items and `Rules`; runs MAY
 update item status. `History` MUST only be appended to.
 
 == Status
-- Progress: 35/55 (63%)
+- Progress: 36/55 (65%)
 - ETA: 2026-11-30
 - Velocity: 0.93 items/day over 28 days
 - Updated: 2026-11-04
@@ -121,7 +121,7 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 | ID-31 | x | LM, tf-idf, Dice: lmweight, tfidfweight, diceweight. Done when all three schemes match C++ output.
 
 // Phase 5: QueryParser and Stemming
-| ID-32 | - | QueryParser tokeniser: word-breaker, queryparser_token. Done when tokeniser produces same tokens as C++ for all query strings.
+| ID-32 | x | QueryParser tokeniser: word-breaker, queryparser_token. Done when tokeniser produces same tokens as C++ for all query strings.
 | ID-33 | - | QueryParser grammar: queryparser, queryparser_internal, all syntax parsing. Done when all query syntax produces identical Query trees as C++.
 | ID-34 | - | TermGenerator: term generation from text, stop words, stemming, n-grams. Done when TermGenerator produces identical terms as C++.
 | ID-35 | - | Stemming runtime: snowball_runtime, api.h, sbl-dispatch, Stem class. Done when Stem class works and runtime executes algorithms correctly.
@@ -295,6 +295,10 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 - 2026-11-04 IT-XXXI: done ID-31; blocked none. LM, tf-idf, Dice
   weights delivered: LMWeight, TFIDFWeight, DiceWeight; 2173 tests
   pass. Source-derived verification.
+- 2026-11-04 IT-XXXII: done ID-32; blocked none. QueryParser tokeniser
+  delivered: WordBreaker, QueryParserTokeniser with terms, phrases,
+  operators, wildcards, ranges, field prefixes; 2200 tests pass.
+  Source-derived verification.
 
 [[optional-rules]]
 == Optional rules
