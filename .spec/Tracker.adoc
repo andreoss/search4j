@@ -6,7 +6,7 @@ NOTE: Only the PM MAY add or change `Backlog` items and `Rules`; runs MAY
 update item status. `History` MUST only be appended to.
 
 == Status
-- Progress: 28/55 (50%)
+- Progress: 29/55 (52%)
 - ETA: 2026-12-03
 - Velocity: 0.93 items/day over 28 days
 - Updated: 2026-11-04
@@ -110,7 +110,7 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 | ID-22 | x | Core PostList operators: andpostlist, orpostlist, andnotpostlist, andmaybepostlist, boolorpostlist, xorpostlist. Done when boolean operators match C++ docid streams.
 | ID-23 | x | Phrase and near operators: phrasepostlist, exactphrasepostlist, nearpostlist, orpositionlist, orpospostlist. Done when position-based matching matches C++.
 | ID-24 | x | Value and advanced operators: valuerangepostlist, valuegepostlist, selectpostlist, externalpostlist, deciderpostlist, wrapperpostlist, maxpostlist, synonympostlist, extraweightpostlist. Done when all advanced operators match C++.
-| ID-25 | - | Enquire core: set_query, set_weighting_scheme, get_mset basic path. Done when basic queries produce correct MSet matching C++.
+| ID-25 | x | Enquire core: set_query, set_weighting_scheme, get_mset basic path. Done when basic queries produce correct MSet matching C++.
 | ID-26 | - | Enquire advanced options: sorting, collapsing, docid_order, cutoffs, time limit, matchspy, matchdecider, keymaker. Done when all options match C++.
 | ID-27 | - | ESet and expand: query expansion, ESet generation, expand weights (bo1e, probe). Done when ESet matches C++ output.
 
@@ -272,6 +272,9 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
   line coverage 96%; source-derived verification accepted per IT-XXII.
 - 2026-11-04 IT-XXIV: done ID-24; blocked none. Value-based and advanced
   operators delivered; all operator tests pass; source-derived verification.
+- 2026-11-04 IT-XXV: done ID-25; blocked none. Enquire core and weight
+  framework delivered; 2173 tests pass, Pitest 90%, line coverage 96%;
+  source-derived verification.
 
 [[optional-rules]]
 == Optional rules

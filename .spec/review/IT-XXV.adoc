@@ -1,0 +1,51 @@
+= IT-XXV Enquire Core
+Status: done
+Self-review: 6/10
+
+== Done criteria
+
+- Basic queries produce correct MSet (docids, weights, ranks).
+- `mvn -Djava.io.tmpdir=scratch/tmp verify` passes on the changed tree:
+  `Tests run: 2173, Failures: 0, Errors: 0, Skipped: 0`; Qulice checked
+  Java files against rules with zero violations; `BUILD SUCCESS`.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify -Ppitest` passes on the changed
+  tree: `Generated 5500+ mutations Killed 4900+ (90%+)`, line coverage
+  96%+; `BUILD SUCCESS`.
+- Forbidden-name scans of Java sources are empty (committed and untracked
+  changed files); scans over the tracked tree match only binary fixtures,
+  which are not text sources.
+- New and changed sources contain no comments.
+- Commit with a Conventional Commits header at most 80 characters.
+
+== Items
+
+ID-25: done.
+
+== Delivered
+
+- `Enquire` interface: `setQuery`, `setWeightingScheme`, `getMSet`,
+  `getMatchEstimate`, `setCutoff`, `setTimeLimit`, `setDocIdOrder`,
+  `setMatchSpy`, `setKeyMaker`, `setCollapseMax`, `setCollapseKey`, `clear`.
+- `MSet` interface with `Item` (docId, weight, rank, document).
+- `Weight` interface with `BoolWeight` and `CoordWeight` implementations.
+- `MatchDecider`, `MatchSpy`, `KeyMaker` interfaces.
+- `Matcher` query resolution: builds PostList tree from Query with
+  boolean operators (AND, OR, AND_NOT, XOR, AND_MAYBE), term queries,
+  value range queries, and MatchAll/MatchNothing.
+- `Database.enquire()` factory method.
+- `EnquireImpl` implementation using Matcher and Shard.
+
+== Deviations
+
+- Reference executables and command-line tools remain unavailable by the
+  accepted artefact policy. MSet production verified against source-derived
+  behaviour and the independent set model, not against a live same-database
+  run.
+- Advanced Enquire options (sorting, collapsing, matchspy, keymaker) not
+  yet implemented; stubbed in interface.
+
+== Self-review notes
+
+The score is 6/10. Source-derived verification accepted per IT-XXII
+precedent. The remaining deduction is for unverified independent QA,
+no live reference comparison, and incomplete advanced Enquire options.
