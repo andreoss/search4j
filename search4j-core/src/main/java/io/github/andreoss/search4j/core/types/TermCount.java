@@ -26,6 +26,11 @@ public record TermCount(int value) implements Comparable<TermCount> {
     public static final TermCount ZERO = new TermCount(0);
 
     /**
+     * Count of one term.
+     */
+    public static final TermCount ONE = new TermCount(1);
+
+    /**
      * Creates a term count.
      *
      * @param value A non-negative count

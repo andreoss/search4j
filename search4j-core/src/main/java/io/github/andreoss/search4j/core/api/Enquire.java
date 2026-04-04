@@ -113,6 +113,22 @@ public interface Enquire {
     void setDocIdOrder(boolean order);
 
     /**
+     * Sets sorting by a value slot.
+     *
+     * @param slot Slot to sort by
+     * @param ascending True for ascending order
+     */
+    void setSortByValue(io.github.andreoss.search4j.core.types.ValueNo slot, boolean ascending);
+
+    /**
+     * Sets sorting by a key extracted via a keymaker.
+     *
+     * @param keyMaker Key maker to extract sort keys
+     * @param ascending True for ascending order
+     */
+    void setSortByKey(KeyMaker keyMaker, boolean ascending);
+
+    /**
      * Sets a match spy to observe the matching process.
      *
      * @param matchSpy Spy notified during matching; null to clear
@@ -139,6 +155,33 @@ public interface Enquire {
      * @param collapseKey Key to use for collapsing; empty to clear
      */
     void setCollapseKey(String collapseKey);
+
+    /**
+     * Generates an expansion set from the query.
+     *
+     * @param maxTerms Maximum number of terms to return
+     * @return Expansion set
+     */
+    ESet getESet(int maxTerms);
+
+    /**
+     * Generates an expansion set with a custom expansion weight.
+     *
+     * @param maxTerms Maximum number of terms to return
+     * @param weight Expansion weight scheme to use
+     * @return Expansion set
+     */
+    ESet getESet(int maxTerms, ExpandWeight weight);
+
+    /**
+     * Generates an expansion set with a custom expansion weight and decider.
+     *
+     * @param maxTerms Maximum number of terms to return
+     * @param weight Expansion weight scheme to use
+     * @param decider Filter for expansion terms
+     * @return Expansion set
+     */
+    ESet getESet(int maxTerms, ExpandWeight weight, ExpandDecider decider);
 
     /**
      * Clears all options, resetting to defaults.
