@@ -41,6 +41,14 @@ public final class WeightInternal {
                 case 2 -> CoordWeight.deserialise(in);
                 case 3 -> BM25Weight.deserialise(in);
                 case 4 -> BM25PlusWeight.deserialise(in);
+                case 5 -> PL2Weight.deserialise(in);
+                case 6 -> PL2PlusWeight.deserialise(in);
+                case 7 -> IneB2Weight.deserialise(in);
+                case 8 -> IfB2Weight.deserialise(in);
+                case 9 -> InL2Weight.deserialise(in);
+                case 10 -> DPHWeight.deserialise(in);
+                case 11 -> DLHWeight.deserialise(in);
+                case 12 -> BB2Weight.deserialise(in);
                 default -> throw new SerialisationError(
                     "Unknown weight type: " + type
                 );
