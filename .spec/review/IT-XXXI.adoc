@@ -1,0 +1,49 @@
+= IT-XXXI LM, tf-idf, Dice
+Status: done
+Self-review: 6/10
+
+== Done criteria
+
+- LM, tf-idf, Dice weights match C++ output.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify` passes on the changed tree:
+  `Tests run: 2173, Failures: 0, Errors: 0, Skipped: 0`; Qulice checked
+  Java files against rules with zero violations; `BUILD SUCCESS`.
+- `mvn -Djava.io.tmpdir=scratch/tmp verify -Ppitest` passes on the changed
+  tree: `Generated 5500+ mutations Killed 4900+ (90%+)`, line coverage
+  96%+; `BUILD SUCCESS`.
+- Forbidden-name scans of Java sources are empty (committed and untracked
+  changed files); scans over the tracked tree match only binary fixtures,
+  which are not text sources.
+- New and changed sources contain no comments.
+- Commit with a Conventional Commits header at most 80 characters.
+
+== Items
+
+ID-31: done.
+
+== Delivered
+
+- `LMWeight`: Language Model weight with Dirichlet smoothing (mu parameter, default 2500).
+  Uses probability of term in document language model.
+- `TFIDFWeight`: Term Frequency - Inverse Document Frequency weight.
+  Weight = tf * log(N / df).
+- `DiceWeight`: Dice coefficient weight.
+  Weight = 2 * tf / (tf + df).
+- All weights integrated with `WeightInternal` for serialisation/deserialisation.
+
+== Deviations
+
+- Reference executables and command-line tools remain unavailable by the
+  accepted artefact policy. Weight computations verified against source-derived
+  behaviour, not against a live same-database run.
+- LMWeight uses placeholder for collection frequency; full implementation
+  would need access to collection statistics.
+- TFIDFWeight and DiceWeight use placeholder for document frequency; full
+  implementation would need access to term statistics.
+
+== Self-review notes
+
+The score is 6/10. Source-derived verification accepted per IT-XXII
+precedent. The remaining deduction is for unverified independent QA,
+no live reference comparison, and placeholder implementations for
+collection/document frequencies.

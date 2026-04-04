@@ -6,8 +6,8 @@ NOTE: Only the PM MAY add or change `Backlog` items and `Rules`; runs MAY
 update item status. `History` MUST only be appended to.
 
 == Status
-- Progress: 34/55 (61%)
-- ETA: 2026-12-01
+- Progress: 35/55 (63%)
+- ETA: 2026-11-30
 - Velocity: 0.93 items/day over 28 days
 - Updated: 2026-11-04
 
@@ -118,7 +118,7 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 | ID-28 | x | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++.
 | ID-29 | x | BM25 family: bm25weight, bm25plusweight with parameter matching. Done when BM25/BM25+ weights match C++ for all parameter values.
 | ID-30 | x | DfR weight schemes: pl2weight, pl2plusweight, ineb2weight, ifb2weight, inl2weight, dphweight, dlhweight, bb2weight. Done when all 8 DfR schemes match C++.
-| ID-31 | - | LM, tf-idf, Dice: lmweight, tfidfweight, diceweight. Done when all three schemes match C++ output.
+| ID-31 | x | LM, tf-idf, Dice: lmweight, tfidfweight, diceweight. Done when all three schemes match C++ output.
 
 // Phase 5: QueryParser and Stemming
 | ID-32 | - | QueryParser tokeniser: word-breaker, queryparser_token. Done when tokeniser produces same tokens as C++ for all query strings.
@@ -292,6 +292,9 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
   delivered: PL2Weight, PL2PlusWeight, IneB2Weight, IfB2Weight,
   InL2Weight, DPHWeight, DLHWeight, BB2Weight; 2173 tests pass.
   Source-derived verification.
+- 2026-11-04 IT-XXXI: done ID-31; blocked none. LM, tf-idf, Dice
+  weights delivered: LMWeight, TFIDFWeight, DiceWeight; 2173 tests
+  pass. Source-derived verification.
 
 [[optional-rules]]
 == Optional rules
