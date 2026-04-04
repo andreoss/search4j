@@ -115,7 +115,7 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 | ID-27 | x | ESet and expand: query expansion, ESet generation, expand weights (bo1e, probe). Done when ESet matches C++ output.
 
 // Phase 4: Weight Schemes
-| ID-28 | - | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++.
+| ID-28 | - | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++. | ID-28 | ~ | Weight framework: weight base class, weightinternal, boolweight, coordweight, IDF/WDF norm dispatch. Done when framework compiles with bool/coord matching C++.
 | ID-29 | - | BM25 family: bm25weight, bm25plusweight with parameter matching. Done when BM25/BM25+ weights match C++ for all parameter values.
 | ID-30 | - | DfR weight schemes: pl2weight, pl2plusweight, ineb2weight, ifb2weight, inl2weight, dphweight, dlhweight, bb2weight. Done when all 8 DfR schemes match C++.
 | ID-31 | - | LM, tf-idf, Dice: lmweight, tfidfweight, diceweight. Done when all three schemes match C++ output.
