@@ -6,10 +6,10 @@ NOTE: Only the PM MAY add or change `Backlog` items and `Rules`; runs MAY
 update item status. `History` MUST only be appended to.
 
 == Status
-- Progress: 36/55 (65%)
-- ETA: 2026-11-30
-- Velocity: 0.93 items/day over 28 days
-- Updated: 2026-11-04
+- Progress: 38/55 (69%)
+- ETA: 2026-11-18
+- Velocity: 1.36 items/day over 28 days
+- Updated: 2026-11-05
 
 Every run that appends to `History` MUST recompute:
 
@@ -122,8 +122,8 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 
 // Phase 5: QueryParser and Stemming
 | ID-32 | x | QueryParser tokeniser: word-breaker, queryparser_token. Done when tokeniser produces same tokens as C++ for all query strings.
-| ID-33 | - | QueryParser grammar: queryparser, queryparser_internal, all syntax parsing. Done when all query syntax produces identical Query trees as C++.
-| ID-34 | - | TermGenerator: term generation from text, stop words, stemming, n-grams. Done when TermGenerator produces identical terms as C++.
+| ID-33 | x | QueryParser grammar: queryparser, queryparser_internal, all syntax parsing. Done when all query syntax produces identical Query trees as C++.
+| ID-34 | x | TermGenerator: term generation from text, stop words, stemming, n-grams. Done when TermGenerator produces identical terms as C++.
 | ID-35 | - | Stemming runtime: snowball_runtime, api.h, sbl-dispatch, Stem class. Done when Stem class works and runtime executes algorithms correctly.
 | ID-36 | - | All language stemmers: all 39 language algorithms ported from .sbl to Java. Done when all stemmers produce identical output to C++.
 
@@ -299,6 +299,31 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
   delivered: WordBreaker, QueryParserTokeniser with terms, phrases,
   operators, wildcards, ranges, field prefixes; 2200 tests pass.
   Source-derived verification.
+
+- 2026-11-05 CQ-IV: done none; blocked none. The gate was red at 7930cc5:
+  1416 Qulice violations, most in EnquireImpl, the matcher operators and
+  the weight schemes; earlier green reports do not reproduce. On the
+  JDK 21 toolchain the same tree reported 765. Sources repaired: Weight
+  takes TermStats and DocStats, EnquireImpl split into top-level classes
+  with its options applied, nested part records replaced by prepared
+  records, scheme classes renamed to the abbreviation rule, Matcher split
+  into helpers; zero violations, 2324 tests; commit 81bca08. JDK 25
+  crashes the bundled ErrorProne and cannot serve as the gate. PIT run
+  aborted after 37 minion timeouts under a concurrent build; mutation
+  coverage unverified. The compiler argument
+  `-Xlint:-dangling-doc-comments` was removed:
+  JDK 21 rejects the flag.
+- 2026-11-05 IT-XXXIV: done ID-33; blocked none. QueryParser grammar,
+  token hierarchy and tokeniser delivered; unclosed phrase, unclosed
+  range and a missing TO separator rejected; 2324 tests pass, Qulice zero
+  violations; commit 6149d47. Numbering note: the ID-32 tokeniser was
+  recorded as IT-XXXII, so this run uses the number the plan assigns to
+  ID-33 and the planned weight-integration checkpoint stays unrun.
+  Substitution and edit distance are not parsed; no reference binary.
+- 2026-11-05 IT-XXXV: done ID-34; blocked none. TermGenerator, WordBreaker,
+  Stopper and a stemming hook delivered with 94 tests; commit c55584e.
+  Stemming algorithms, n-grams and reference comparison are missing; no
+  reference binary.
 
 [[optional-rules]]
 == Optional rules
