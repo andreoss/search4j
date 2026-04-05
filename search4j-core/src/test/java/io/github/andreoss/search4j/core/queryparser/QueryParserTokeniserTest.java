@@ -3,177 +3,271 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /**
- * Tests for QueryParserTokeniser.
+ * Tests of the query parser tokeniser.
  */
 package io.github.andreoss.search4j.core.queryparser;
 
+import io.github.andreoss.search4j.core.types.QueryOp;
+import java.util.List;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Tests for QueryParserTokeniser.
+ * Tests of {@link QueryParserTokeniser}.
+ *
+ * @since 0.1.0
  */
-class QueryParserTokeniserTest {
+@SuppressWarnings({"PMD.UnnecessaryLocalRule", "PMD.UnitTestContainsTooManyAsserts"})
+final class QueryParserTokeniserTest {
 
     @Test
-    void tokeniseSimpleTerm() {
-        final List<QueryParserToken> tokens = tokenise("hello");
-        assertEquals(2, tokens.size()); // term + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Term);
-        assertEquals("hello", ((QueryParserToken.Term) tokens.get(0)).text());
+    void tokenisesASimpleTerm() {
+        Assertions.assertEquals(
+            2, QueryParserTokeniserTest.tokens("hello").size(),
+            "Term and end of input"
+        );
     }
 
     @Test
-    void tokeniseMultipleTerms() {
-        final List<QueryParserToken> tokens = tokenise("hello world");
-        assertEquals(3, tokens.size()); // term + term + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Term);
-        assertEquals("hello", ((QueryParserToken.Term) tokens.get(0)).text());
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Term);
-        assertEquals("world", ((QueryParserToken.Term) tokens.get(1)).text());
+    void carriesTermText() {
+        final QueryParserToken token = QueryParserTokeniserTest
+            .tokens("hello").get(0);
+        Assertions.assertEquals(
+            "hello", ((QueryParserToken.Term) token).text(), "Term text"
+        );
     }
 
     @Test
-    void tokenisePhrase() {
-        final List<QueryParserToken> tokens = tokenise("\"hello world\"");
-        assertEquals(2, tokens.size()); // phrase + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Phrase);
-        final String[] terms = ((QueryParserToken.Phrase) tokens.get(0)).terms();
-        assertArrayEquals(new String[]{"hello", "world"}, terms);
+    void tokenisesTwoTerms() {
+        final List<QueryParserToken> found =
+            QueryParserTokeniserTest.tokens("hello world");
+        Assertions.assertEquals(
+            List.of("hello", "world"),
+            List.of(
+                ((QueryParserToken.Term) found.get(0)).text(),
+                ((QueryParserToken.Term) found.get(1)).text()
+            ),
+            "Terms in order"
+        );
     }
 
     @Test
-    void tokeniseAndOperator() {
-        final List<QueryParserToken> tokens = tokenise("hello AND world");
-        // term + operator + term + EOF
-        assertEquals(4, tokens.size());
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Term);
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Operator);
-        assertTrue(tokens.get(2) instanceof QueryParserToken.Term);
+    void tokenisesAPhrase() {
+        final QueryParserToken token = QueryParserTokeniserTest
+            .tokens("\"hello world\"").get(0);
+        Assertions.assertEquals(
+            List.of("hello", "world"),
+            ((QueryParserToken.Phrase) token).terms(),
+            "Words of the phrase"
+        );
     }
 
     @Test
-    void tokeniseOrOperator() {
-        final List<QueryParserToken> tokens = tokenise("hello OR world");
-        assertEquals(4, tokens.size());
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Term);
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Operator);
-        assertTrue(tokens.get(2) instanceof QueryParserToken.Term);
+    void escapesAQuoteInsideAPhrase() {
+        final QueryParserToken token = QueryParserTokeniserTest
+            .tokens("\"hello \\\"world\\\"\"").get(0);
+        Assertions.assertEquals(
+            List.of("hello", "\"world\""),
+            ((QueryParserToken.Phrase) token).terms(),
+            "Escaped quote"
+        );
     }
 
     @Test
-    void tokeniseNotOperator() {
-        final List<QueryParserToken> tokens = tokenise("hello NOT world");
-        assertEquals(4, tokens.size());
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Term);
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Operator);
-        assertTrue(tokens.get(2) instanceof QueryParserToken.Term);
+    void rejectsAnUnclosedPhrase() {
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> QueryParserTokeniserTest.tokens("\"hello"),
+            "Unclosed phrase"
+        );
     }
 
     @Test
-    void tokenisePlusOperator() {
-        final List<QueryParserToken> tokens = tokenise("+hello");
-        assertEquals(3, tokens.size()); // operator + term + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Operator);
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Term);
-        assertEquals("hello", ((QueryParserToken.Term) tokens.get(1)).text());
+    void tokenisesBooleanKeywords() {
+        final List<QueryParserToken> found =
+            QueryParserTokeniserTest.tokens("hello AND world");
+        Assertions.assertEquals(
+            List.of(QueryOp.AND),
+            List.of(((QueryParserToken.Operator) found.get(1)).op()),
+            "Operator between the terms"
+        );
     }
 
     @Test
-    void tokeniseMinusOperator() {
-        final List<QueryParserToken> tokens = tokenise("-hello");
-        assertEquals(3, tokens.size()); // operator + term + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Operator);
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Term);
-        assertEquals("hello", ((QueryParserToken.Term) tokens.get(1)).text());
+    void tokenisesOrAndNotKeywords() {
+        Assertions.assertEquals(
+            List.of(QueryOp.OR, QueryOp.AND_NOT),
+            List.of(
+                ((QueryParserToken.Operator) QueryParserTokeniserTest
+                    .tokens("hello OR world").get(1)).op(),
+                ((QueryParserToken.Operator) QueryParserTokeniserTest
+                    .tokens("hello NOT world").get(1)).op()
+            ),
+            "OR and NOT"
+        );
     }
 
     @Test
-    void tokeniseWildcard() {
-        final List<QueryParserToken> tokens = tokenise("hello*");
-        assertEquals(2, tokens.size()); // wildcard + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Wildcard);
-        assertEquals("hello*", ((QueryParserToken.Wildcard) tokens.get(0)).pattern());
+    void treatsLowerCaseKeywordsAsTerms() {
+        final List<QueryParserToken> found =
+            QueryParserTokeniserTest.tokens("hello and world");
+        Assertions.assertEquals(
+            4, found.size(), "Three terms and end of input"
+        );
     }
 
     @Test
-    void tokeniseQuestionWildcard() {
-        final List<QueryParserToken> tokens = tokenise("hell?");
-        assertEquals(2, tokens.size()); // wildcard + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Wildcard);
-        assertEquals("hell?", ((QueryParserToken.Wildcard) tokens.get(0)).pattern());
+    void tokenisesThePlusOperator() {
+        final List<QueryParserToken> found =
+            QueryParserTokeniserTest.tokens("+hello");
+        Assertions.assertEquals(
+            List.of(QueryOp.AND),
+            List.of(((QueryParserToken.Operator) found.get(0)).op()),
+            "Required term"
+        );
     }
 
     @Test
-    void tokeniseRange() {
-        final List<QueryParserToken> tokens = tokenise("[a TO z]");
-        assertEquals(2, tokens.size()); // range + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Range);
-        final QueryParserToken.Range range = (QueryParserToken.Range) tokens.get(0);
-        assertEquals("a", range.lower());
-        assertEquals("z", range.upper());
-        assertTrue(range.inclusive());
+    void tokenisesTheMinusOperator() {
+        final List<QueryParserToken> found =
+            QueryParserTokeniserTest.tokens("-hello");
+        Assertions.assertEquals(
+            List.of(QueryOp.AND_NOT),
+            List.of(((QueryParserToken.Operator) found.get(0)).op()),
+            "Excluded term"
+        );
     }
 
     @Test
-    void tokeniseFieldPrefix() {
-        final List<QueryParserToken> tokens = tokenise("title:hello");
-        assertEquals(3, tokens.size()); // prefix + term + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Prefix);
-        assertEquals("title", ((QueryParserToken.Prefix) tokens.get(0)).field());
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Term);
-        assertEquals("hello", ((QueryParserToken.Term) tokens.get(1)).text());
+    void tokenisesAWildcard() {
+        final QueryParserToken token = QueryParserTokeniserTest
+            .tokens("hello*").get(0);
+        Assertions.assertEquals(
+            "hello*", ((QueryParserToken.Wildcard) token).pattern(),
+            "Pattern with its glob character"
+        );
     }
 
     @Test
-    void tokeniseParentheses() {
-        final List<QueryParserToken> tokens = tokenise("(hello world)");
-        assertEquals(5, tokens.size()); // group start + term + term + group end + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.GroupStart);
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Term);
-        assertTrue(tokens.get(2) instanceof QueryParserToken.Term);
-        assertTrue(tokens.get(3) instanceof QueryParserToken.GroupEnd);
+    void tokenisesASingleCharacterWildcard() {
+        final QueryParserToken token = QueryParserTokeniserTest
+            .tokens("hell?").get(0);
+        Assertions.assertEquals(
+            "hell?", ((QueryParserToken.Wildcard) token).pattern(),
+            "Pattern with a question mark"
+        );
     }
 
     @Test
-    void tokeniseComplex() {
-        final List<QueryParserToken> tokens = tokenise("title:hello AND body:world");
-        // prefix + term + operator + prefix + term + EOF = 6
-        assertEquals(6, tokens.size());
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Prefix);
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Term);
-        assertTrue(tokens.get(2) instanceof QueryParserToken.Operator);
-        assertTrue(tokens.get(3) instanceof QueryParserToken.Prefix);
-        assertTrue(tokens.get(4) instanceof QueryParserToken.Term);
+    void tokenisesAnInclusiveRange() {
+        final QueryParserToken.Range range =
+            (QueryParserToken.Range) QueryParserTokeniserTest
+                .tokens("[a TO z]").get(0);
+        Assertions.assertEquals(
+            List.of("a", "z"), List.of(range.lower(), range.upper()),
+            "Bounds of the range"
+        );
+        Assertions.assertTrue(range.inclusive(), "Inclusive bounds");
     }
 
     @Test
-    void tokeniseTilde() {
-        final List<QueryParserToken> tokens = tokenise("hello~");
-        assertEquals(3, tokens.size()); // term + operator + EOF
-        assertTrue(tokens.get(0) instanceof QueryParserToken.Term);
-        assertEquals("hello", ((QueryParserToken.Term) tokens.get(0)).text());
-        assertTrue(tokens.get(1) instanceof QueryParserToken.Operator);
+    void tokenisesAnExclusiveRange() {
+        final QueryParserToken.Range range =
+            (QueryParserToken.Range) QueryParserTokeniserTest
+                .tokens("{a TO z}").get(0);
+        Assertions.assertFalse(range.inclusive(), "Exclusive bounds");
     }
 
     @Test
-    void tokeniseEmpty() {
-        final List<QueryParserToken> tokens = tokenise("");
-        assertEquals(1, tokens.size()); // EOF only
-        assertEquals(QueryParserToken.EOF.INSTANCE, tokens.get(0));
+    void rejectsAMalformedRange() {
+        Assertions.assertAll(
+            () -> Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> QueryParserTokeniserTest.tokens("[a z]"),
+                "Missing separator"
+            ),
+            () -> Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> QueryParserTokeniserTest.tokens("[a TO z"),
+                "Missing closing bracket"
+            )
+        );
     }
 
     @Test
-    void tokeniseWhitespaceOnly() {
-        final List<QueryParserToken> tokens = tokenise("   \t\n  ");
-        assertEquals(1, tokens.size()); // EOF only
-        assertEquals(QueryParserToken.EOF.INSTANCE, tokens.get(0));
+    void tokenisesAField() {
+        final QueryParserToken.FieldSpec spec =
+            (QueryParserToken.FieldSpec) QueryParserTokeniserTest
+                .tokens("title:hello").get(0);
+        Assertions.assertEquals(
+            List.of("title", "hello"), List.of(spec.field(), spec.value()),
+            "Field name and value"
+        );
     }
 
-    private List<QueryParserToken> tokenise(final String query) {
+    @Test
+    void tokenisesAFieldValueRange() {
+        final List<QueryParserToken> found =
+            QueryParserTokeniserTest.tokens("0:[a TO z]");
+        Assertions.assertEquals(
+            List.of(QueryParserToken.Type.PREFIX, QueryParserToken.Type.RANGE),
+            List.of(found.get(0).type(), found.get(1).type()),
+            "Field name then range"
+        );
+    }
+
+    @Test
+    void tokenisesParentheses() {
+        final List<QueryParserToken> found =
+            QueryParserTokeniserTest.tokens("(hello world)");
+        Assertions.assertEquals(
+            List.of(
+                QueryParserToken.Type.GROUP_START,
+                QueryParserToken.Type.TERM,
+                QueryParserToken.Type.TERM,
+                QueryParserToken.Type.GROUP_END
+            ),
+            List.of(
+                found.get(0).type(), found.get(1).type(),
+                found.get(2).type(), found.get(3).type()
+            ),
+            "Group around two terms"
+        );
+    }
+
+    @Test
+    void tokenisesProximityWithADistance() {
+        final List<QueryParserToken> found =
+            QueryParserTokeniserTest.tokens("hello ~5 world");
+        Assertions.assertEquals(
+            List.of(QueryOp.NEAR, "5"),
+            List.of(
+                ((QueryParserToken.Operator) found.get(1)).op(),
+                ((QueryParserToken.Term) found.get(2)).text()
+            ),
+            "Near operator and its distance"
+        );
+    }
+
+    @Test
+    void tokenisesOnlyEndOfInputForAnEmptyQuery() {
+        Assertions.assertEquals(
+            List.of(QueryParserToken.End.INSTANCE),
+            QueryParserTokeniserTest.tokens(""),
+            "End of input"
+        );
+    }
+
+    @Test
+    void tokenisesOnlyEndOfInputForWhitespace() {
+        Assertions.assertEquals(
+            List.of(QueryParserToken.End.INSTANCE),
+            QueryParserTokeniserTest.tokens(String.format(" \t%n ")),
+            "End of input"
+        );
+    }
+
+    private static List<QueryParserToken> tokens(final String query) {
         return new QueryParserTokeniser(query).tokenise();
     }
 }

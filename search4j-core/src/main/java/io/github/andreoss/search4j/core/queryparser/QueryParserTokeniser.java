@@ -7,22 +7,52 @@
  */
 package io.github.andreoss.search4j.core.queryparser;
 
+import io.github.andreoss.search4j.core.types.QueryOp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Tokeniser for query strings.
  *
  * <p>Produces a stream of {@link QueryParserToken} from a query string,
- * handling terms, phrases, operators, wildcards, ranges, and field prefixes.</p>
+ * handling terms, phrases, operators, wildcards, ranges and field
+ * prefixes.</p>
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.UnnecessaryLocalRule")
 public final class QueryParserTokeniser {
 
+    /**
+     * Operator that requires the following term.
+     */
+    private static final char PLUS = '+';
+
+    /**
+     * Operator that excludes the following term.
+     */
+    private static final char MINUS = '-';
+
+    /**
+     * Proximity operator.
+     */
+    private static final char TILDE = '~';
+
+    /**
+     * Query string being tokenised.
+     */
     private final String input;
-    private int position;
+
+    /**
+     * Tokens produced so far.
+     */
     private final List<QueryParserToken> tokens;
+
+    /**
+     * Offset of the next character to read.
+     */
+    private int pos;
 
     /**
      * Creates a tokeniser for a query string.
@@ -31,270 +61,236 @@ public final class QueryParserTokeniser {
      */
     public QueryParserTokeniser(final String query) {
         this.input = query;
-        this.position = 0;
-        this.tokens = new ArrayList<>();
+        this.tokens = new ArrayList<>(8);
+        this.pos = 0;
     }
 
     /**
      * Tokenises the entire query string.
      *
-     * @return List of tokens
+     * @return Tokens ending with the end-of-input token
      */
     public List<QueryParserToken> tokenise() {
         this.tokens.clear();
-        this.position = 0;
-
-        while (this.position < this.input.length()) {
-            this.skipWhitespace();
-
-            if (this.position >= this.input.length()) {
-                break;
-            }
-
-            this.tokeniseNext();
+        this.pos = 0;
+        this.skip();
+        while (this.pos < this.input.length()) {
+            this.next();
+            this.skip();
         }
-
-        this.tokens.add(QueryParserToken.EOF.INSTANCE);
+        this.tokens.add(QueryParserToken.End.INSTANCE);
         return List.copyOf(this.tokens);
     }
 
-    private void skipWhitespace() {
-        while (this.position < this.input.length()
-            && Character.isWhitespace(this.input.charAt(this.position))) {
-            this.position++;
+    private void skip() {
+        while (
+            this.pos < this.input.length()
+                && Character.isWhitespace(this.input.charAt(this.pos))
+        ) {
+            this.pos = this.pos + 1;
         }
     }
 
-    private void tokeniseNext() {
-        final char c = this.input.charAt(this.position);
-
-        switch (c) {
-            case '"' -> this.tokenisePhrase();
-            case '(' -> this.addToken(new QueryParserToken.GroupStart(this.position++));
-            case ')' -> this.addToken(new QueryParserToken.GroupEnd(this.position++));
-            case '[' -> this.tokeniseRange();
-            case '+' -> this.tokeniseOperator("+");
-            case '-' -> this.tokeniseOperator("-");
-            case '~' -> this.tokeniseOperator("~");
+    private void next() {
+        final char chr = this.input.charAt(this.pos);
+        switch (chr) {
+            case '"' -> this.phrase();
+            case '[' -> this.range(QueryParserToken.Range.Bounds.INCLUSIVE);
+            case '{' -> this.range(QueryParserToken.Range.Bounds.EXCLUSIVE);
+            case '(' -> this.group(new QueryParserToken.GroupStart(this.pos));
+            case ')' -> this.group(new QueryParserToken.GroupEnd(this.pos));
+            case QueryParserTokeniser.PLUS -> this
+                .operator(QueryOp.AND, QueryParserTokeniser.PLUS);
+            case QueryParserTokeniser.MINUS -> this
+                .operator(QueryOp.AND_NOT, QueryParserTokeniser.MINUS);
+            case QueryParserTokeniser.TILDE -> this
+                .operator(QueryOp.NEAR, QueryParserTokeniser.TILDE);
             default -> {
-                if (c == 'A' || c == 'O' || c == 'N') {
-                    this.tokeniseOperator();
-                } else if (Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.' || c == '*' || c == '?') {
-                    this.tokeniseTermOrPrefix();
+                if (QueryParserTokeniser.word(chr)) {
+                    this.term();
                 } else {
-                    // Skip unknown character
-                    this.position++;
+                    this.pos = this.pos + 1;
                 }
             }
         }
     }
 
-    private void tokenisePhrase() {
-        this.position++; // Skip opening quote
-        final int start = this.position;
-        final List<String> terms = new ArrayList<>();
-
-        while (this.position < this.input.length()
-            && this.input.charAt(this.position) != '"') {
-            this.skipWhitespace();
-            final int termStart = this.position;
-            while (this.position < this.input.length()
-                && this.input.charAt(this.position) != '"'
-                && !Character.isWhitespace(this.input.charAt(this.position))) {
-                this.position++;
-            }
-            if (this.position > termStart) {
-                terms.add(this.input.substring(termStart, this.position));
-            }
-            this.skipWhitespace();
-        }
-
-        if (this.position < this.input.length()) {
-            this.position++; // Skip closing quote
-        }
-
-        this.addToken(new QueryParserToken.Phrase(
-            terms.toArray(new String[0]), start));
+    private static boolean word(final char chr) {
+        return Character.isLetterOrDigit(chr)
+            || QueryParserTokeniser.point(chr)
+            || QueryParserTokeniser.glob(chr);
     }
 
-    private void tokeniseRange() {
-        this.position++; // Skip opening bracket
-        this.skipWhitespace();
-
-        final int lowerStart = this.position;
-        while (this.position < this.input.length()
-            && this.input.charAt(this.position) != 'T'
-            && this.input.charAt(this.position) != ']'
-            && !Character.isWhitespace(this.input.charAt(this.position))) {
-            this.position++;
-        }
-        final String lower = this.input.substring(lowerStart, this.position).trim();
-
-        this.skipWhitespace();
-        // Expect "TO"
-        if (this.position + 1 < this.input.length()
-            && this.input.charAt(this.position) == 'T'
-            && this.input.charAt(this.position + 1) == 'O') {
-            this.position += 2;
-        }
-
-        this.skipWhitespace();
-
-        final int upperStart = this.position;
-        while (this.position < this.input.length()
-            && this.input.charAt(this.position) != ']') {
-            this.position++;
-        }
-        final String upper = this.input.substring(upperStart, this.position).trim();
-
-        boolean inclusive = true;
-        if (this.position < this.input.length()
-            && this.input.charAt(this.position) == '}') {
-            inclusive = false;
-            this.position++;
-        } else if (this.position < this.input.length()) {
-            this.position++; // Skip closing bracket
-        }
-
-        this.addToken(new QueryParserToken.Range(lower, upper, inclusive, lowerStart));
+    private static boolean glob(final char chr) {
+        return chr == '-' || chr == '*' || chr == '?';
     }
 
-    private void tokeniseWildcard() {
-        final int start = this.position;
-        final StringBuilder pattern = new StringBuilder();
-
-        while (this.position < this.input.length()
-            && (this.input.charAt(this.position) == '*'
-                || this.input.charAt(this.position) == '?')) {
-            pattern.append(this.input.charAt(this.position));
-            this.position++;
-        }
-
-        // Collect the rest of the term
-        while (this.position < this.input.length()
-            && !Character.isWhitespace(this.input.charAt(this.position))
-            && this.input.charAt(this.position) != ')'
-            && this.input.charAt(this.position) != ']') {
-            pattern.append(this.input.charAt(this.position));
-            this.position++;
-        }
-
-        this.addToken(new QueryParserToken.Wildcard(pattern.toString(), start));
+    private static boolean point(final char chr) {
+        return chr == '_' || chr == '.';
     }
 
-    private void tokeniseOperator() {
-        this.tokeniseOperator(null);
-    }
-
-    private void tokeniseOperator(final String explicit) {
-        final int start = this.position;
-        String op;
-
-        if (explicit != null) {
-            op = explicit;
-            this.position++;
-        } else {
-            // Try to match AND, OR, NOT
-            if (this.matchKeyword("AND")) {
-                op = "AND";
-            } else if (this.matchKeyword("OR")) {
-                op = "OR";
-            } else if (this.matchKeyword("NOT")) {
-                op = "NOT";
-            } else {
-                op = "";
-            }
-        }
-
-        if (!op.isEmpty()) {
-            final QueryParserToken.Type type;
-            switch (op) {
-                case "AND" -> type = QueryParserToken.Type.OPERATOR;
-                case "OR" -> type = QueryParserToken.Type.OPERATOR;
-                case "NOT" -> type = QueryParserToken.Type.OPERATOR;
-                case "+" -> type = QueryParserToken.Type.OPERATOR;
-                case "-" -> type = QueryParserToken.Type.OPERATOR;
-                case "~" -> type = QueryParserToken.Type.OPERATOR;
-                default -> type = QueryParserToken.Type.TERM;
-            }
-            // For simplicity, treat all as OPERATOR tokens
-            this.addToken(new QueryParserToken.Operator(null, start));
-        }
-    }
-
-    private boolean matchKeyword(final String keyword) {
-        if (this.position + keyword.length() > this.input.length()) {
-            return false;
-        }
-        for (int i = 0; i < keyword.length(); i++) {
-            final char c1 = this.input.charAt(this.position + i);
-            final char c2 = keyword.charAt(i);
-            if (Character.toUpperCase(c1) != c2) {
-                return false;
-            }
-        }
-        // Check word boundary
-        final int next = this.position + keyword.length();
-        if (next < this.input.length()) {
-            final char nextChar = this.input.charAt(next);
-            if (Character.isLetterOrDigit(nextChar) || nextChar == '_') {
-                return false;
-            }
-        }
-        this.position = next;
-        return true;
-    }
-
-    private void tokeniseTermOrPrefix() {
-        final int start = this.position;
-        final StringBuilder term = new StringBuilder();
-
-        while (this.position < this.input.length()) {
-            final char c = this.input.charAt(this.position);
-            if (Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.' || c == '*' || c == '?') {
-                term.append(c);
-                this.position++;
-            } else if (c == ':' && term.length() > 0) {
-                // Field prefix
-                this.position++;
-                this.addToken(new QueryParserToken.Prefix(term.toString(), start));
-                this.tokeniseTermOrValue();
-                return;
-            } else {
-                break;
-            }
-        }
-
-        final String termStr = term.toString();
-        if (!termStr.isEmpty()) {
-            // Check for wildcard
-            if (termStr.contains("*") || termStr.contains("?")) {
-                this.addToken(new QueryParserToken.Wildcard(termStr, start));
-            } else {
-                this.addToken(new QueryParserToken.Term(termStr, start));
-            }
-        }
-    }
-
-    private void tokeniseTermOrValue() {
-        this.skipWhitespace();
-        final int start = this.position;
-        final StringBuilder value = new StringBuilder();
-
-        while (this.position < this.input.length()
-            && !Character.isWhitespace(this.input.charAt(this.position))
-            && this.input.charAt(this.position) != ')'
-            && this.input.charAt(this.position) != ']') {
-            value.append(this.input.charAt(this.position));
-            this.position++;
-        }
-
-        if (value.length() > 0) {
-            this.addToken(new QueryParserToken.Term(value.toString(), start));
-        }
-    }
-
-    private void addToken(final QueryParserToken token) {
+    private void group(final QueryParserToken token) {
+        this.pos = this.pos + 1;
         this.tokens.add(token);
+    }
+
+    private void phrase() {
+        final int start = this.pos;
+        this.pos = this.pos + 1;
+        final List<String> terms = new ArrayList<>(2);
+        final StringBuilder part = new StringBuilder();
+        boolean done = false;
+        while (this.pos < this.input.length() && !done) {
+            final char chr = this.input.charAt(this.pos);
+            if (chr == '"') {
+                done = true;
+                this.pos = this.pos + 1;
+            } else if (chr == '\\' && this.pos + 1 < this.input.length()) {
+                part.append(this.input.charAt(this.pos + 1));
+                this.pos = this.pos + 2;
+            } else if (Character.isWhitespace(chr)) {
+                QueryParserTokeniser.flush(part, terms);
+                this.pos = this.pos + 1;
+            } else {
+                part.append(chr);
+                this.pos = this.pos + 1;
+            }
+        }
+        if (!done) {
+            throw new IllegalArgumentException("Unclosed quoted phrase");
+        }
+        QueryParserTokeniser.flush(part, terms);
+        this.tokens.add(
+            new QueryParserToken.Phrase(List.copyOf(terms), start)
+        );
+    }
+
+    private static void flush(final StringBuilder part, final List<String> terms) {
+        if (!part.isEmpty()) {
+            terms.add(part.toString());
+            part.setLength(0);
+        }
+    }
+
+    private void range(final QueryParserToken.Range.Bounds bounds) {
+        final int start = this.pos;
+        final int close = this.closing(this.pos + 1);
+        if (close < 0) {
+            throw new IllegalArgumentException("Unclosed range");
+        }
+        final int split = this.separator(this.pos + 1, close);
+        if (split < 0) {
+            throw new IllegalArgumentException("Range requires a TO separator");
+        }
+        final String lower = this.input.substring(this.pos + 1, split).trim();
+        final String upper = this.input.substring(split + 4, close).trim();
+        this.pos = close + 1;
+        this.tokens.add(
+            new QueryParserToken.Range(
+                lower, upper, bounds, this.input.charAt(close), start
+            )
+        );
+    }
+
+    private int closing(final int from) {
+        int found = -1;
+        int offset = from;
+        while (offset < this.input.length() && found < 0) {
+            final char chr = this.input.charAt(offset);
+            if (chr == ']' || chr == '}') {
+                found = offset;
+            } else {
+                offset = offset + 1;
+            }
+        }
+        return found;
+    }
+
+    private int separator(final int from, final int bound) {
+        final String upper = this.input.toUpperCase(Locale.ROOT);
+        final int found = upper.indexOf(" TO ", from);
+        final int result;
+        if (found < 0 || found >= bound) {
+            result = -1;
+        } else {
+            result = found;
+        }
+        return result;
+    }
+
+    private void operator(final QueryOp oper, final char chr) {
+        final int start = this.pos;
+        this.pos = this.pos + 1;
+        this.tokens.add(new QueryParserToken.Operator(oper, start));
+        if (chr == QueryParserTokeniser.TILDE) {
+            this.distance(start);
+        }
+    }
+
+    private void distance(final int start) {
+        final int from = this.pos;
+        while (
+            this.pos < this.input.length()
+                && Character.isDigit(this.input.charAt(this.pos))
+        ) {
+            this.pos = this.pos + 1;
+        }
+        if (this.pos > from) {
+            final String text = this.input.substring(from, this.pos);
+            this.tokens.add(new QueryParserToken.Term(text, start));
+        }
+    }
+
+    private void term() {
+        final int start = this.pos;
+        while (
+            this.pos < this.input.length()
+                && QueryParserTokeniser.word(this.input.charAt(this.pos))
+        ) {
+            this.pos = this.pos + 1;
+        }
+        final String word = this.input.substring(start, this.pos);
+        if (this.pos < this.input.length() && this.input.charAt(this.pos) == ':') {
+            this.pos = this.pos + 1;
+            this.field(word, start);
+        } else if (word.indexOf('*') >= 0 || word.indexOf('?') >= 0) {
+            this.tokens.add(new QueryParserToken.Wildcard(word, start));
+        } else {
+            this.tokens.add(
+                QueryParserTokeniser.wordToken(word, start)
+            );
+        }
+    }
+
+    private static QueryParserToken wordToken(final String word, final int start) {
+        final QueryParserToken token;
+        if ("AND".equals(word)) {
+            token = new QueryParserToken.Operator(QueryOp.AND, start);
+        } else if ("OR".equals(word)) {
+            token = new QueryParserToken.Operator(QueryOp.OR, start);
+        } else if ("NOT".equals(word)) {
+            token = new QueryParserToken.Operator(QueryOp.AND_NOT, start);
+        } else {
+            token = new QueryParserToken.Term(word, start);
+        }
+        return token;
+    }
+
+    private void field(final String name, final int start) {
+        if (this.pos < this.input.length() && this.input.charAt(this.pos) == '[') {
+            this.tokens.add(new QueryParserToken.Prefix(name, start));
+            this.range(QueryParserToken.Range.Bounds.INCLUSIVE);
+        } else {
+            final int from = this.pos;
+            while (
+                this.pos < this.input.length()
+                    && !Character.isWhitespace(this.input.charAt(this.pos))
+                    && this.input.charAt(this.pos) != ')'
+            ) {
+                this.pos = this.pos + 1;
+            }
+            final String value = this.input.substring(from, this.pos);
+            this.tokens.add(new QueryParserToken.FieldSpec(name, value, start));
+        }
     }
 }
