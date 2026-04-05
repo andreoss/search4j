@@ -13,6 +13,7 @@ import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.backend.list.Probe;
+import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.ValueNo;
@@ -23,12 +24,21 @@ import java.util.function.Consumer;
  *
  * @since 0.1.0
  */
+@SuppressWarnings({
+    "PMD.NullAssignment",
+    "PMD.ProhibitPublicStaticMethods"
+})
 public final class ValueGePostList implements PostList {
 
     /**
-     * Lower-bound range underlying this list.
+     * Lower-bound range underlying this list, prepared on first use.
      */
-    private final ValueRangePostList range;
+    private ValueRangePostList range;
+
+    /**
+     * Shard whose values are read.
+     */
+    private final Shard shard;
 
     /**
      * Slot read.
@@ -50,18 +60,19 @@ public final class ValueGePostList implements PostList {
     public ValueGePostList(
         final Shard shard, final ValueNo slot, final String lower
     ) {
-        this(ValueGePostList.checked(shard, slot, lower));
-    }
-
-    /**
-     * Creates a lower-bound selection from a checked range.
-     *
-     * @param parts Slot, bound and underlying range
-     */
-    private ValueGePostList(final LowerParts parts) {
-        this.range = parts.range();
-        this.number = parts.slot();
-        this.bound = parts.bound();
+        if (shard == null) {
+            throw new InvalidArgumentError("A shard is required");
+        }
+        if (slot == null) {
+            throw new InvalidArgumentError("A slot is required");
+        }
+        if (lower == null) {
+            throw new InvalidArgumentError("A bound is required");
+        }
+        this.shard = shard;
+        this.number = slot;
+        this.bound = lower;
+        this.range = null;
     }
 
     /**
@@ -78,51 +89,19 @@ public final class ValueGePostList implements PostList {
         return new ValueGePostList(shard, slot, lower);
     }
 
-    /**
-     * Validates the bound and prepares the underlying range.
-     *
-     * @param shard Shard whose values are read
-     * @param slot Slot read
-     * @param lower Lowest accepted value, inclusive
-     * @return Checked parts
-     */
-    private static LowerParts checked(
-        final Shard shard, final ValueNo slot, final String lower
-    ) {
-        if (lower == null) {
-            throw new NullPointerException("lower");
-        }
-        return new LowerParts(
-            slot, lower, ValueRangePostList.ge(shard, slot, lower)
-        );
-    }
-
-    /**
-     * Slot, bound and underlying range.
-     *
-     * @param slot Slot read
-     * @param bound Lowest accepted value
-     * @param range Underlying lower-bound range
-     * @since 0.1.0
-     */
-    private record LowerParts(
-        ValueNo slot, String bound, ValueRangePostList range
-    ) {
-    }
-
     @Override
     public DocId docId() {
-        return this.range.docId();
+        return this.range().docId();
     }
 
     @Override
     public boolean atEnd() {
-        return this.range.atEnd();
+        return this.range().atEnd();
     }
 
     @Override
     public PostList next(final double least) {
-        final PostList moved = this.range.next(least);
+        final PostList moved = this.range().next(least);
         PostList result = this;
         if (moved.atEnd()) {
             result = moved;
@@ -132,7 +111,7 @@ public final class ValueGePostList implements PostList {
 
     @Override
     public PostList skipTo(final DocId target, final double least) {
-        final PostList moved = this.range.skipTo(target, least);
+        final PostList moved = this.range().skipTo(target, least);
         PostList result = this;
         if (moved.atEnd()) {
             result = moved;
@@ -142,12 +121,12 @@ public final class ValueGePostList implements PostList {
 
     @Override
     public Probe check(final DocId target, final double least) {
-        return new Probe(this, this.range.check(target, least).valid());
+        return new Probe(this, this.range().check(target, least).valid());
     }
 
     @Override
     public TermCount termFrequency() {
-        return this.range.termFrequency();
+        return this.range().termFrequency();
     }
 
     @Override
@@ -177,17 +156,17 @@ public final class ValueGePostList implements PostList {
 
     @Override
     public PositionList readPositionList() {
-        return this.range.readPositionList();
+        return this.range().readPositionList();
     }
 
     @Override
     public PositionList openPositionList() {
-        return this.range.openPositionList();
+        return this.range().openPositionList();
     }
 
     @Override
     public void gatherPositionLists(final Consumer<PositionList> sink) {
-        this.range.gatherPositionLists(sink);
+        this.range().gatherPositionLists(sink);
     }
 
     @Override
@@ -195,5 +174,14 @@ public final class ValueGePostList implements PostList {
         return String.format(
             "ValueGePostList(%s, %s)", this.number.value(), this.bound
         );
+    }
+
+    private ValueRangePostList range() {
+        if (this.range == null) {
+            this.range = ValueRangePostList.atLeast(
+                this.shard, this.number, this.bound
+            );
+        }
+        return this.range;
     }
 }

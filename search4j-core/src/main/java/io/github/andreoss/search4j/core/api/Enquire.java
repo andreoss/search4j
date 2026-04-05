@@ -8,8 +8,8 @@
 package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
-import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
+import io.github.andreoss.search4j.core.types.ValueNo;
 import java.time.Duration;
 
 /**
@@ -22,6 +22,7 @@ import java.time.Duration;
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.TooManyMethods")
 public interface Enquire {
 
     /**
@@ -53,34 +54,20 @@ public interface Enquire {
      * Runs the search and returns the match set.
      *
      * @param first Zero-based index of the first item to return
-     * @param maxItems Maximum number of items to return, zero for all
+     * @param max Maximum number of items to return, zero for all
      * @return Match set
      */
-    MSet getMSet(int first, int maxItems);
+    MSet getMSet(int first, int max);
 
     /**
      * Runs the search with a document filter and returns the match set.
      *
      * @param first Zero-based index of the first item to return
-     * @param maxItems Maximum number of items to return, zero for all
-     * @param matchDecider Optional filter applied to each candidate
+     * @param max Maximum number of items to return, zero for all
+     * @param decider Optional filter applied to each candidate
      * @return Match set
      */
-    MSet getMSet(int first, int maxItems, MatchDecider matchDecider);
-
-    /**
-     * Runs the search with a document filter and a check limit.
-     *
-     * @param first Zero-based index of the first item to return
-     * @param maxItems Maximum number of items to return, zero for all
-     * @param matchDecider Optional filter applied to each candidate
-     * @param checkAtLeast Minimum number of documents to check before
-     *  stopping early; zero for no early stop
-     * @return Match set
-     */
-    MSet getMSet(
-        int first, int maxItems, MatchDecider matchDecider, int checkAtLeast
-    );
+    MSet getMSet(int first, int max, MatchDecider decider);
 
     /**
      * Estimates the number of matching documents without producing the MSet.
@@ -92,17 +79,17 @@ public interface Enquire {
     /**
      * Sets a percentage cutoff for early termination.
      *
-     * @param percentCutoff Percentage of results above which to stop;
+     * @param percent Percentage of results above which to stop;
      *  zero for no cutoff
      */
-    void setCutoff(int percentCutoff);
+    void setCutoff(int percent);
 
     /**
      * Sets a time limit for the search.
      *
-     * @param timeLimit Maximum duration; null for no limit
+     * @param limit Maximum duration; null for no limit
      */
-    void setTimeLimit(Duration timeLimit);
+    void setTimeLimit(Duration limit);
 
     /**
      * Sets the document ordering of the match set.
@@ -118,70 +105,70 @@ public interface Enquire {
      * @param slot Slot to sort by
      * @param ascending True for ascending order
      */
-    void setSortByValue(io.github.andreoss.search4j.core.types.ValueNo slot, boolean ascending);
+    void setSortByValue(ValueNo slot, boolean ascending);
 
     /**
      * Sets sorting by a key extracted via a keymaker.
      *
-     * @param keyMaker Key maker to extract sort keys
+     * @param maker Key maker to extract sort keys
      * @param ascending True for ascending order
      */
-    void setSortByKey(KeyMaker keyMaker, boolean ascending);
+    void setSortByKey(KeyMaker maker, boolean ascending);
 
     /**
      * Sets a match spy to observe the matching process.
      *
-     * @param matchSpy Spy notified during matching; null to clear
+     * @param spy Spy notified during matching; null to clear
      */
-    void setMatchSpy(MatchSpy matchSpy);
+    void setMatchSpy(MatchSpy spy);
 
     /**
      * Sets a key maker for collapsing.
      *
-     * @param keyMaker Key maker for grouping results; null to clear
+     * @param maker Key maker for grouping results; null to clear
      */
-    void setKeyMaker(KeyMaker keyMaker);
+    void setKeyMaker(KeyMaker maker);
 
     /**
      * Sets the maximum number of documents in a collapsed group.
      *
-     * @param maxMax Maximum group size; zero for no collapsing
+     * @param max Maximum group size; zero for no collapsing
      */
-    void setCollapseMax(int maxMax);
+    void setCollapseMax(int max);
 
     /**
      * Sets the collapse key for a group.
      *
-     * @param collapseKey Key to use for collapsing; empty to clear
+     * @param key Key to use for collapsing; empty to clear
      */
-    void setCollapseKey(String collapseKey);
+    void setCollapseKey(String key);
 
     /**
      * Generates an expansion set from the query.
      *
-     * @param maxTerms Maximum number of terms to return
+     * @param max Maximum number of terms to return
      * @return Expansion set
      */
-    ESet getESet(int maxTerms);
+    ESet getESet(int max);
 
     /**
      * Generates an expansion set with a custom expansion weight.
      *
-     * @param maxTerms Maximum number of terms to return
+     * @param max Maximum number of terms to return
      * @param weight Expansion weight scheme to use
      * @return Expansion set
      */
-    ESet getESet(int maxTerms, ExpandWeight weight);
+    ESet getESet(int max, ExpandWeight weight);
 
     /**
      * Generates an expansion set with a custom expansion weight and decider.
      *
-     * @param maxTerms Maximum number of terms to return
+     * @param max Maximum number of terms to return
      * @param weight Expansion weight scheme to use
-     * @param decider Filter for expansion terms
+     * @param chooser Filter for expansion terms
      * @return Expansion set
      */
-    ESet getESet(int maxTerms, ExpandWeight weight, ExpandDecider decider);
+    ESet getESet(int max, ExpandWeight weight, ExpandDecider chooser);
 
     /**
      * Clears all options, resetting to defaults.

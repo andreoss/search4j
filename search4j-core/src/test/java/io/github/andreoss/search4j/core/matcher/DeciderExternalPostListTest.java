@@ -11,7 +11,9 @@ import io.github.andreoss.search4j.core.api.Database;
 import io.github.andreoss.search4j.core.api.DatabaseFactory;
 import io.github.andreoss.search4j.core.api.Document;
 import io.github.andreoss.search4j.core.api.WritableDatabase;
+import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PostList;
+import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.ArrayList;
@@ -39,8 +41,8 @@ final class DeciderExternalPostListTest {
         final DocId drop = database.addDocument(
             DeciderExternalPostListTest.document("drop", "no")
         );
-        final PostList candidates = new InMemoryAllDocuments(database);
-        final PostList filtered = new DeciderPostList(
+        final PostList candidates = new DeciderExternalPostListTest.InMemoryAllDocuments(database);
+        final PostList filtered = DeciderPostList.of(
             candidates, database,
             document -> "yes".equals(document.data())
         );
@@ -59,8 +61,8 @@ final class DeciderExternalPostListTest {
     void deciderReportsOneSubqueryAndDescription() {
         final WritableDatabase database = DatabaseFactory.inMemory();
         database.addDocument(DeciderExternalPostListTest.document("a", "x"));
-        final PostList filtered = new DeciderPostList(
-            new InMemoryAllDocuments(database), database,
+        final PostList filtered = DeciderPostList.of(
+            new DeciderExternalPostListTest.InMemoryAllDocuments(database), database,
             document -> true
         );
         Assertions.assertEquals(
@@ -84,7 +86,7 @@ final class DeciderExternalPostListTest {
             DeciderExternalPostListTest.document("b", "x")
         );
         final PostList external = new ExternalPostList(
-            database, new FixedSource(List.of(first, second)), 2.0
+            database, new DeciderExternalPostListTest.FixedSource(List.of(first, second)), 2.0
         );
         Assertions.assertEquals(
             List.of(first, second),
@@ -112,7 +114,7 @@ final class DeciderExternalPostListTest {
             DeciderExternalPostListTest.document("b", "x")
         );
         final PostList external = new ExternalPostList(
-            database, new FixedSource(List.of(first, second)), 1.0
+            database, new DeciderExternalPostListTest.FixedSource(List.of(first, second)), 1.0
         );
         Assertions.assertEquals(
             second,
@@ -124,22 +126,20 @@ final class DeciderExternalPostListTest {
     @Test
     void rejectsNullParts() {
         final WritableDatabase database = DatabaseFactory.inMemory();
-        final PostList candidates = new InMemoryAllDocuments(database);
+        final PostList candidates = new DeciderExternalPostListTest.InMemoryAllDocuments(database);
         Assertions.assertThrows(
-            NullPointerException.class,
-            () -> new DeciderPostList(candidates, database, null),
+            InvalidArgumentError.class,
+            () -> DeciderPostList.of(candidates, database, null),
             "Decider is required"
         );
         Assertions.assertThrows(
-            NullPointerException.class,
+            InvalidArgumentError.class,
             () -> new ExternalPostList(database, null, 1.0),
             "Source is required"
         );
     }
 
-    private static Document document(
-        final String term, final String data
-    ) {
+    private static Document document(final String term, final String data) {
         final Document doc = DatabaseFactory.document();
         doc.addTerm(term, new TermCount(1));
         doc.setData(data);
@@ -223,9 +223,7 @@ final class DeciderExternalPostListTest {
         }
 
         @Override
-        public double weight(
-            final io.github.andreoss.search4j.core.backend.list.DocStats doc
-        ) {
+        public double weight(final DocStats doc) {
             return 0.0;
         }
 

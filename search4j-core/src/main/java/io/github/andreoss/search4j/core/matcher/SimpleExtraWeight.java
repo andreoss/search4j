@@ -16,6 +16,9 @@ import io.github.andreoss.search4j.core.backend.list.DocStats;
  */
 final class SimpleExtraWeight implements ExtraWeight {
 
+    /**
+     * Contribution added to every document.
+     */
     private final double factor;
 
     SimpleExtraWeight(final double factor) {

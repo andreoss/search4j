@@ -9,10 +9,10 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.types.TermCount;
+import io.github.andreoss.search4j.core.backend.list.DocStats;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 
 /**
  * Boolean weight: every matching document has weight one.
@@ -22,31 +22,27 @@ import java.io.OutputStream;
  *
  * @since 0.1.0
  */
+@SuppressWarnings({
+    "PMD.UncommentedEmptyConstructor",
+    "PMD.UncommentedEmptyMethodBody"
+})
 public final class BoolWeight implements Weight {
 
     /**
      * Creates a Boolean weight.
      */
-    public BoolWeight() {}
+    public BoolWeight() {
+    }
 
     @Override
     public void init(
-        final ShardStatistics database, final Query query, final int termCount
-    ) {}
-
-    @Override
-    public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms
+        final ShardStatistics database, final Query query, final int terms
     ) {
-        return 1.0;
     }
 
     @Override
     public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms,
-        final java.util.List<TermCount> positions
+        final String term, final TermStats stats, final DocStats doc
     ) {
         return 1.0;
     }
@@ -63,20 +59,19 @@ public final class BoolWeight implements Weight {
         return out.toByteArray();
     }
 
-    /**
-     * Deserialises a Boolean weight from an input stream.
-     *
-     * @param in Stream positioned after the type byte
-     * @return The weight
-     * @throws IOException when the stream is malformed
-     */
-    static BoolWeight deserialise(final java.io.InputStream in)
-        throws IOException {
-        return new BoolWeight();
-    }
-
     @Override
     public String toString() {
         return "BoolWeight()";
+    }
+
+    /**
+     * Deserialises a Boolean weight from an input stream.
+     *
+     * @param source Stream positioned after the type byte
+     * @return The weight
+     * @throws IOException when the stream is malformed
+     */
+    static BoolWeight deserialise(final InputStream source) throws IOException {
+        return new BoolWeight();
     }
 }

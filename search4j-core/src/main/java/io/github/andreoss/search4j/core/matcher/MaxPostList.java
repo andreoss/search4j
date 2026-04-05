@@ -23,7 +23,10 @@ import java.util.List;
  *
  * @since 0.1.0
  */
-@SuppressWarnings("PMD.NullAssignment")
+@SuppressWarnings({
+    "PMD.NullAssignment",
+    "PMD.ProhibitPublicStaticMethods"
+})
 public final class MaxPostList implements PostList {
 
     /**
@@ -51,17 +54,8 @@ public final class MaxPostList implements PostList {
         final List<? extends PostList> children,
         final Runnable recalculation
     ) {
-        this(MaxPostList.check(children, recalculation));
-    }
-
-    /**
-     * Creates a weighted maximum union from checked children.
-     *
-     * @param members Child lists and callback
-     */
-    private MaxPostList(final MaxParts members) {
-        this.children = members.children();
-        this.recalc = members.callback();
+        this.children = new ArrayList<>(children);
+        this.recalc = recalculation;
         this.current = null;
     }
 
@@ -76,41 +70,18 @@ public final class MaxPostList implements PostList {
         final List<? extends PostList> children,
         final Runnable recalculation
     ) {
-        return new MaxPostList(children, recalculation);
-    }
-
-    /**
-     * Validates the children and the callback.
-     *
-     * @param children Child lists, at least one
-     * @param callback Callback run when a child is replaced
-     * @return Checked parts
-     */
-    private static MaxParts check(
-        final List<? extends PostList> children, final Runnable callback
-    ) {
         if (children == null) {
-            throw new NullPointerException("children");
+            throw new InvalidArgumentError("Children are required");
         }
-        if (callback == null) {
-            throw new NullPointerException("recalculation");
+        if (recalculation == null) {
+            throw new InvalidArgumentError("A callback is required");
         }
         if (children.isEmpty()) {
             throw new InvalidArgumentError(
                 "A maximum union needs at least one child"
             );
         }
-        return new MaxParts(new ArrayList<>(children), callback);
-    }
-
-    /**
-     * Child lists and replacement callback.
-     *
-     * @param children Child lists, at least one
-     * @param callback Callback run when a child is replaced
-     * @since 0.1.0
-     */
-    private record MaxParts(List<PostList> children, Runnable callback) {
+        return new MaxPostList(children, recalculation);
     }
 
     @Override
@@ -132,13 +103,13 @@ public final class MaxPostList implements PostList {
     public PostList next(final double least) {
         final DocId previous = this.current;
         this.current = null;
-        for (int index = 0; index < this.children.size(); ++index) {
+        int index = 0;
+        while (index < this.children.size()) {
             final PostList child = this.children.get(index);
             final PostList moved = this.move(child, previous, least);
-            if (moved == null) {
-                --index;
-            } else {
+            if (moved != null) {
                 this.observe(moved);
+                index = index + 1;
             }
         }
         return this.finish();
@@ -147,13 +118,13 @@ public final class MaxPostList implements PostList {
     @Override
     public PostList skipTo(final DocId target, final double least) {
         this.current = null;
-        for (int index = 0; index < this.children.size(); ++index) {
+        int index = 0;
+        while (index < this.children.size()) {
             final PostList child = this.children.get(index);
             final PostList moved = this.skip(child, target, least);
-            if (moved == null) {
-                --index;
-            } else {
+            if (moved != null) {
                 this.observe(moved);
+                index = index + 1;
             }
         }
         return this.finish();
@@ -172,7 +143,7 @@ public final class MaxPostList implements PostList {
     public TermCount wdf() {
         TermCount total = TermCount.ZERO;
         for (final PostList child : this.children) {
-            if (!child.atEnd() && child.docId().equals(this.current)) {
+            if (this.on(child)) {
                 total = total.plus(child.wdf());
             }
         }
@@ -183,7 +154,7 @@ public final class MaxPostList implements PostList {
     public double weight(final DocStats doc) {
         double result = 0.0;
         for (final PostList child : this.children) {
-            if (!child.atEnd() && child.docId().equals(this.current)) {
+            if (this.on(child)) {
                 result = Math.max(result, child.weight(doc));
             }
         }
@@ -229,27 +200,25 @@ public final class MaxPostList implements PostList {
     @Override
     public String description() {
         final StringBuilder text = new StringBuilder("(");
-        for (int index = 0; index < this.children.size(); ++index) {
+        int index = 0;
+        while (index < this.children.size()) {
             if (index > 0) {
                 text.append(" MAX ");
             }
             text.append(this.children.get(index).description());
+            index = index + 1;
         }
         return text.append(')').toString();
     }
 
-    /**
-     * Moves one child, dropping it when exhausted.
-     *
-     * @param child Child list
-     * @param previous Document the union was on, absent before the first move
-     * @param least Lowest weight contribution still wanted
-     * @return Moved child, or null when it was dropped
-     */
+    private boolean on(final PostList child) {
+        return !child.atEnd() && child.docId().equals(this.current);
+    }
+
     private PostList move(
         final PostList child, final DocId previous, final double least
     ) {
-        final DocId here = child.atEnd() ? DocId.NONE : child.docId();
+        final DocId here = MaxPostList.here(child);
         PostList moved = child;
         if (previous == null || here.compareTo(previous) <= 0) {
             if (previous == null || here.equals(previous)) {
@@ -262,18 +231,10 @@ public final class MaxPostList implements PostList {
         return moved;
     }
 
-    /**
-     * Skips one child to a target, dropping it when exhausted.
-     *
-     * @param child Child list
-     * @param target Document wanted
-     * @param least Lowest weight contribution still wanted
-     * @return Moved child, or null when it was dropped
-     */
     private PostList skip(
         final PostList child, final DocId target, final double least
     ) {
-        final DocId here = child.atEnd() ? DocId.NONE : child.docId();
+        final DocId here = MaxPostList.here(child);
         PostList moved = child;
         if (here.compareTo(target) < 0) {
             moved = this.replace(child, child.skipTo(target, least));
@@ -281,13 +242,16 @@ public final class MaxPostList implements PostList {
         return moved;
     }
 
-    /**
-     * Stores a moved child and reports the replacement.
-     *
-     * @param child Child list already moved
-     * @param moved Replacement returned by the move
-     * @return Replacement when still usable, otherwise null
-     */
+    private static DocId here(final PostList child) {
+        final DocId result;
+        if (child.atEnd()) {
+            result = DocId.NONE;
+        } else {
+            result = child.docId();
+        }
+        return result;
+    }
+
     private PostList replace(final PostList child, final PostList moved) {
         PostList result = moved;
         final int index = this.children.indexOf(child);
@@ -301,11 +265,6 @@ public final class MaxPostList implements PostList {
         return result;
     }
 
-    /**
-     * Keeps the smallest document seen so far.
-     *
-     * @param child Child list already moved
-     */
     private void observe(final PostList child) {
         final DocId candidate = child.docId();
         if (this.current == null
@@ -314,11 +273,6 @@ public final class MaxPostList implements PostList {
         }
     }
 
-    /**
-     * Reports the list to carry on with.
-     *
-     * @return This union, or the empty list once no child remains
-     */
     private PostList finish() {
         PostList result = this;
         if (this.children.isEmpty()) {

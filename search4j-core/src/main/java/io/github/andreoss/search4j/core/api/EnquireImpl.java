@@ -18,591 +18,529 @@ import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.ValueNo;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 /**
  * Default implementation of Enquire.
  *
  * @since 0.1.0
  */
+@SuppressWarnings({
+    "PMD.CouplingBetweenObjects",
+    "PMD.TooManyFields",
+    "PMD.NullAssignment"
+})
 public final class EnquireImpl implements Enquire {
 
-    private final Shard shard;
-    private Query query;
-    private Weight weight;
-    private int first;
-    private int maxItems;
-    private MatchDecider matchDecider;
-    private int checkAtLeast;
-    private int percentCutoff;
-    private Duration timeLimit;
-    private boolean docIdOrder;
-    private MatchSpy matchSpy;
-    private KeyMaker keyMaker;
-    private int collapseMax;
-    private String collapseKey;
-    private SortSpec sortSpec;
+    /**
+     * Sort matches by a value slot.
+     */
+    private static final int SLOT = 2;
 
+    /**
+     * Database the queries run over.
+     */
+    private final Shard shard;
+
+    /**
+     * Query of the next search.
+     */
+    private Query request;
+
+    /**
+     * Weighting scheme of the next search.
+     */
+    private Weight chosen;
+
+    /**
+     * Zero-based index of the first match to return.
+     */
+    private int offset;
+
+    /**
+     * Maximum number of matches to return, zero for all.
+     */
+    private int maxitem;
+
+    /**
+     * Filter applied to each candidate document.
+     */
+    private MatchDecider filter;
+
+    /**
+     * Minimum number of documents checked before an early stop.
+     */
+    private int atleast;
+
+    /**
+     * Percentage cutoff, zero for none.
+     */
+    private int cutoff;
+
+    /**
+     * Time limit of a search, null for none.
+     */
+    private Duration timelim;
+
+    /**
+     * Whether matches are ordered by document identifier.
+     */
+    private boolean idorder;
+
+    /**
+     * Spy notified of every match.
+     */
+    private MatchSpy observer;
+
+    /**
+     * Key maker used for collapsing and key sorting.
+     */
+    private KeyMaker keymake;
+
+    /**
+     * Maximum size of a collapse group, zero for no collapsing.
+     */
+    private int colmax;
+
+    /**
+     * Collapse key selected by the caller.
+     */
+    private String colkey;
+
+    /**
+     * Kind of sorting selected, zero for weight order.
+     */
+    private int sorttype;
+
+    /**
+     * Value slot used for slot sorting.
+     */
+    private ValueNo sortslot;
+
+    /**
+     * Whether the selected sorting is ascending.
+     */
+    private boolean sortasc;
+
+    /**
+     * Creates an enquire over a database.
+     *
+     * @param shard Database the queries run over
+     */
     public EnquireImpl(final Shard shard) {
         this.shard = shard;
-        this.first = 0;
-        this.maxItems = 0;
-        this.percentCutoff = 0;
-        this.timeLimit = null;
-        this.docIdOrder = false;
+        this.offset = 0;
+        this.maxitem = 0;
+        this.cutoff = 0;
+        this.sortasc = false;
+        this.colkey = "";
     }
 
     @Override
     public void setQuery(final Query query) {
-        this.query = query;
-        this.weight = null;
+        this.request = query;
+        this.chosen = null;
     }
 
     @Override
     public void setQuery(final Query query, final Weight weight) {
-        this.query = query;
-        this.weight = weight;
+        this.request = query;
+        this.chosen = weight;
     }
 
     @Override
     public void setWeightingScheme(final Weight weight) {
-        this.weight = weight;
+        this.chosen = weight;
     }
 
     @Override
-    public MSet getMSet(final int first, final int maxItems) {
-        this.first = first;
-        this.maxItems = maxItems;
-        return this.execute(null);
-    }
-
-    @Override
-    public MSet getMSet(
-        final int first, final int maxItems, final MatchDecider matchDecider
-    ) {
-        this.first = first;
-        this.maxItems = maxItems;
-        this.matchDecider = matchDecider;
-        return this.execute(matchDecider);
+    public MSet getMSet(final int first, final int max) {
+        return this.getMSet(first, max, null);
     }
 
     @Override
     public MSet getMSet(
-        final int first, final int maxItems, final MatchDecider matchDecider,
-        final int checkAtLeast
+        final int first, final int max, final MatchDecider decider
     ) {
-        this.first = first;
-        this.maxItems = maxItems;
-        this.matchDecider = matchDecider;
-        this.checkAtLeast = checkAtLeast;
-        return this.execute(matchDecider);
+        this.offset = first;
+        this.maxitem = max;
+        this.filter = decider;
+        final MSet result;
+        if (this.request == null || this.request.empty()) {
+            result = new MSetImpl(
+                List.of(), TermCount.ZERO, TermCount.ZERO
+            );
+        } else {
+            result = this.search();
+        }
+        return result;
     }
 
     @Override
     public TermCount getMatchEstimate() {
-        if (this.query == null) {
-            return TermCount.ZERO;
+        final TermCount estimate;
+        if (this.request == null) {
+            estimate = TermCount.ZERO;
+        } else {
+            estimate = MatchEstimate.from(
+                Matcher.resolve(this.shard, this.request)
+            ).resolve(
+                this.shard.docCount(), DocId.of(1), this.shard.lastDocId()
+            ).max();
         }
-        final PostList postList = Matcher.resolve(this.shard, this.query);
-        final MatchEstimates est = MatchEstimate.from(postList).resolve(
-            this.shard.docCount(), DocId.of(1), this.shard.lastDocId()
-        );
-        return est.max();
+        return estimate;
     }
 
     @Override
-    public void setCutoff(final int percentCutoff) {
-        this.percentCutoff = percentCutoff;
+    public void setCutoff(final int percent) {
+        this.cutoff = percent;
     }
 
     @Override
-    public void setTimeLimit(final Duration timeLimit) {
-        this.timeLimit = timeLimit;
+    public void setTimeLimit(final Duration limit) {
+        this.timelim = limit;
     }
 
     @Override
     public void setDocIdOrder(final boolean order) {
-        this.docIdOrder = order;
-        this.sortSpec = null;
+        this.idorder = order;
+        this.sorttype = 0;
     }
 
     @Override
     public void setSortByValue(final ValueNo slot, final boolean ascending) {
-        this.sortSpec = new SortSpec(SortSpec.Type.VALUE, slot, null, ascending);
-        this.docIdOrder = false;
+        this.sorttype = EnquireImpl.SLOT;
+        this.sortslot = slot;
+        this.sortasc = ascending;
+        this.idorder = false;
     }
 
     @Override
-    public void setSortByKey(final KeyMaker keyMaker, final boolean ascending) {
-        this.sortSpec = new SortSpec(SortSpec.Type.KEY, null, keyMaker, ascending);
-        this.docIdOrder = false;
+    public void setSortByKey(final KeyMaker maker, final boolean ascending) {
+        this.sorttype = 3;
+        this.keymake = maker;
+        this.sortasc = ascending;
+        this.idorder = false;
     }
 
     @Override
-    public void setMatchSpy(final MatchSpy matchSpy) {
-        this.matchSpy = matchSpy;
+    public void setMatchSpy(final MatchSpy spy) {
+        this.observer = spy;
     }
 
     @Override
-    public void setKeyMaker(final KeyMaker keyMaker) {
-        this.keyMaker = keyMaker;
+    public void setKeyMaker(final KeyMaker maker) {
+        this.keymake = maker;
     }
 
     @Override
-    public void setCollapseMax(final int maxMax) {
-        this.collapseMax = maxMax;
+    public void setCollapseMax(final int max) {
+        this.colmax = max;
     }
 
     @Override
-    public void setCollapseKey(final String collapseKey) {
-        this.collapseKey = collapseKey;
+    public void setCollapseKey(final String key) {
+        this.colkey = key;
     }
 
     @Override
     public void clear() {
-        this.query = null;
-        this.weight = null;
-        this.first = 0;
-        this.maxItems = 0;
-        this.matchDecider = null;
-        this.checkAtLeast = 0;
-        this.percentCutoff = 0;
-        this.timeLimit = null;
-        this.docIdOrder = false;
-        this.matchSpy = null;
-        this.keyMaker = null;
-        this.collapseMax = 0;
-        this.collapseKey = "";
-        this.sortSpec = null;
-    }
-
-    private MSet execute(final MatchDecider decider) {
-        if (this.query == null || this.query.empty()) {
-            return new MSetImpl(List.of(), new TermCount(0), new TermCount(0));
-        }
-
-        final Weight scheme = this.weight != null ? this.weight : new BoolWeight();
-        final io.github.andreoss.search4j.core.backend.ShardStatistics stats = this.shard;
-        scheme.init(stats, this.query, this.query.length().value());
-
-        final PostList postList = Matcher.resolve(this.shard, this.query, scheme);
-
-        final List<MSet.Item> items = new ArrayList<>();
-        DocId docId = postList.next().docId();
-        int rank = 1;
-        int checked = 0;
-        int added = 0;
-
-        // Collapsing support
-        String prevCollapseKey = null;
-        int collapseCount = 0;
-
-        while (!docId.equals(DocId.NONE)) {
-            checked++;
-            boolean include = true;
-
-            if (decider != null) {
-                include = decider.decide(docId);
-            }
-
-            // MatchSpy notification
-            if (this.matchSpy != null) {
-                final double w = postList.weight(
-                    new io.github.andreoss.search4j.core.backend.list.DocStats(
-                        this.shard.docLength(docId),
-                        this.shard.uniqueTerms(docId),
-                        this.shard.wdfDocMax(docId)
-                    )
-                );
-                this.matchSpy.add(docId, w, postList.wdf());
-            }
-
-            // Collapsing logic
-            if (include && this.collapseMax > 0 && this.keyMaker != null) {
-                final String key = this.keyMaker.key(docId);
-                if (key != null && !key.isEmpty()) {
-                    if (prevCollapseKey != null && key.equals(prevCollapseKey)) {
-                        collapseCount++;
-                        if (collapseCount >= this.collapseMax) {
-                            include = false;
-                        }
-                    } else {
-                        prevCollapseKey = key;
-                        collapseCount = 1;
-                    }
-                }
-            }
-
-            if (include) {
-                added++;
-                if (added > this.first) {
-                    final double w = postList.weight(
-                        new io.github.andreoss.search4j.core.backend.list.DocStats(
-                            this.shard.docLength(docId),
-                            this.shard.uniqueTerms(docId),
-                            this.shard.wdfDocMax(docId)
-                        )
-                    );
-                    items.add(new MSetItemImpl(docId, w, rank, this.shard));
-                    rank++;
-                    if (this.maxItems > 0 && items.size() >= this.maxItems) {
-                        break;
-                    }
-                }
-            }
-
-            if (this.checkAtLeast > 0 && checked >= this.checkAtLeast
-                && items.size() >= this.maxItems && this.maxItems > 0) {
-                break;
-            }
-
-            // Percentage cutoff
-            if (this.percentCutoff > 0 && added > 0) {
-                final int percent = (added * 100) / checked;
-                if (percent >= this.percentCutoff) {
-                    break;
-                }
-            }
-
-            docId = postList.next().docId();
-        }
-
-        // Apply sorting if specified
-        if (this.sortSpec != null) {
-            this.applySort(items);
-        } else if (this.docIdOrder) {
-            items.sort(Comparator.comparing(MSet.Item::docId));
-        }
-
-        // Re-rank after sorting
-        for (int i = 0; i < items.size(); i++) {
-            ((MSetItemImpl) items.get(i)).setRank(i + 1);
-        }
-
-        final MatchEstimates est = MatchEstimate.from(postList).resolve(
-            this.shard.docCount(), DocId.of(1), this.shard.lastDocId()
-        );
-        return new MSetImpl(items, est.max(), est.max());
-    }
-
-    private void applySort(final List<MSet.Item> items) {
-        final Comparator<MSet.Item> comparator = switch (this.sortSpec.type) {
-            case VALUE -> {
-                final ValueNo slot = this.sortSpec.valueSlot;
-                yield (a, b) -> {
-                    final String av = this.shard.openDocument(a.docId(), false)
-                        .map(d -> d.value(slot).orElse("")).orElse("");
-                    final String bv = this.shard.openDocument(b.docId(), false)
-                        .map(d -> d.value(slot).orElse("")).orElse("");
-                    return this.sortSpec.ascending ? av.compareTo(bv) : bv.compareTo(av);
-                };
-            }
-            case KEY -> {
-                final KeyMaker keyMaker = this.sortSpec.keyMaker;
-                yield (a, b) -> {
-                    final String ak = keyMaker.key(a.docId());
-                    final String bk = keyMaker.key(b.docId());
-                    final int cmp = (ak == null ? "" : ak).compareTo(bk == null ? "" : bk);
-                    return this.sortSpec.ascending ? cmp : -cmp;
-                };
-            }
-        };
-        items.sort(comparator);
-    }
-
-    private static final class MSetItemImpl implements MSet.Item {
-
-        private final DocId docId;
-        private final double weight;
-        private int rank;
-        private final Shard shard;
-
-        MSetItemImpl(
-            final DocId docId, final double weight, final int rank,
-            final Shard shard
-        ) {
-            this.docId = docId;
-            this.weight = weight;
-            this.rank = rank;
-            this.shard = shard;
-        }
-
-        @Override
-        public DocId docId() {
-            return this.docId;
-        }
-
-        @Override
-        public double weight() {
-            return this.weight;
-        }
-
-        @Override
-        public int rank() {
-            return this.rank;
-        }
-
-        /**
-         * Updates the rank after sorting.
-         *
-         * @param rank New rank (one-based)
-         */
-        void setRank(final int rank) {
-            this.rank = rank;
-        }
-
-        @Override
-        public Document document() {
-            return this.shard.openDocument(this.docId, false)
-                .orElseThrow(() -> new IllegalStateException(
-                    "Document " + this.docId + " not found"
-                ));
-        }
-    }
-
-    private static final class MSetImpl implements MSet {
-
-        private final List<Item> items;
-        private final TermCount size;
-        private final TermCount maxSize;
-
-        MSetImpl(
-            final List<Item> items, final TermCount size, final TermCount maxSize
-        ) {
-            this.items = items;
-            this.size = size;
-            this.maxSize = maxSize;
-        }
-
-        @Override
-        public TermCount size() {
-            return this.size;
-        }
-
-        @Override
-        public TermCount maxSize() {
-            return this.maxSize;
-        }
-
-        @Override
-        public Item first() {
-            if (this.items.isEmpty()) {
-                throw new NoSuchElementException("Empty MSet");
-            }
-            return this.items.get(0);
-        }
-
-        @Override
-        public Item get(final int index) {
-            if (index < 0 || index >= this.items.size()) {
-                throw new IndexOutOfBoundsException(
-                    String.format("Index %d, size %d", index, this.items.size())
-                );
-            }
-            return this.items.get(index);
-        }
-
-        @Override
-        public List<Item> toList() {
-            return List.copyOf(this.items);
-        }
-
-        @Override
-        public java.util.Iterator<Item> iterator() {
-            return this.items.iterator();
-        }
+        this.request = null;
+        this.chosen = null;
+        this.offset = 0;
+        this.maxitem = 0;
+        this.filter = null;
+        this.atleast = 0;
+        this.cutoff = 0;
+        this.timelim = null;
+        this.idorder = false;
+        this.observer = null;
+        this.keymake = null;
+        this.colmax = 0;
+        this.colkey = "";
+        this.sorttype = 0;
+        this.sortslot = null;
+        this.sortasc = false;
     }
 
     @Override
-    public ESet getESet(final int maxTerms) {
-        return this.getESet(maxTerms, new Bo1EWeight());
+    public ESet getESet(final int max) {
+        return this.getESet(max, new Bo1EWeight());
     }
 
     @Override
-    public ESet getESet(final int maxTerms, final ExpandWeight weight) {
-        return this.getESet(maxTerms, weight, null);
+    public ESet getESet(final int max, final ExpandWeight weight) {
+        return this.getESet(max, weight, null);
     }
 
     @Override
     public ESet getESet(
-        final int maxTerms,
-        final ExpandWeight weight,
-        final ExpandDecider decider
+        final int max, final ExpandWeight weight, final ExpandDecider chooser
     ) {
-        if (this.query == null || this.query.empty()) {
-            return new ESetImpl(List.of());
+        final ESet result;
+        if (this.request == null || this.request.empty()) {
+            result = new ESetImpl(List.of());
+        } else {
+            result = new ESetImpl(this.expand(max, weight, chooser));
         }
+        return result;
+    }
 
-        final Weight scheme = this.weight != null ? this.weight : new BoolWeight();
-        final io.github.andreoss.search4j.core.backend.ShardStatistics stats = this.shard;
-        scheme.init(stats, this.query, this.query.length().value());
+    private MSet search() {
+        final Weight scheme;
+        if (this.chosen == null) {
+            scheme = new BoolWeight();
+        } else {
+            scheme = this.chosen;
+        }
+        scheme.init(this.shard, this.request, this.request.length().value());
+        final PostList list = Matcher.resolve(this.shard, this.request, scheme);
+        final MatchState state = new MatchState(this.shard, list);
+        final long start = System.nanoTime();
+        DocId docid = list.next().docId();
+        while (!docid.equals(DocId.NONE) && !this.stop(state, start)) {
+            this.consider(docid, state);
+            docid = list.next().docId();
+        }
+        this.order(state.found());
+        state.rank();
+        final MatchEstimates max = MatchEstimate.from(list).resolve(
+            this.shard.docCount(), DocId.of(1), this.shard.lastDocId()
+        );
+        return new MSetImpl(state.found(), max.max(), max.max());
+    }
 
-        final PostList postList = Matcher.resolve(this.shard, this.query, scheme);
+    private boolean stop(final MatchState state, final long start) {
+        final boolean stop;
+        if (this.timelim != null
+            && System.nanoTime() - start > this.timelim.toNanos()) {
+            stop = true;
+        } else {
+            stop = this.limit(state);
+        }
+        return stop;
+    }
 
-        // Collect term frequencies from top matching documents
-        final java.util.Map<String, TermCount> termFreqs = new java.util.HashMap<>();
-        final java.util.Map<String, TermCount> docFreqs = new java.util.HashMap<>();
-        int matchingDocs = 0;
-        DocId docId = postList.next().docId();
-        int checked = 0;
+    private boolean limit(final MatchState state) {
+        boolean stop = false;
+        if (this.maxitem > 0 && state.found().size() >= this.maxitem) {
+            stop = true;
+        } else if (this.atleast > 0 && state.seen() >= this.atleast
+            && this.maxitem > 0 && state.found().size() >= this.maxitem) {
+            stop = true;
+        } else if (this.cutoff > 0 && state.added() > 0) {
+            stop = this.cut(state);
+        }
+        return stop;
+    }
 
-        while (!docId.equals(DocId.NONE) && checked < 100) {
-            checked++;
-            boolean include = true;
+    private boolean cut(final MatchState state) {
+        final double top = EnquireImpl.top(state);
+        return top > 0.0 && state.found()
+            .get(state.found().size() - 1).weight() * 100.0
+            < top * this.cutoff;
+    }
 
-            if (this.matchDecider != null) {
-                include = this.matchDecider.decide(docId);
+    private static double top(final MatchState state) {
+        double top = 0.0;
+        for (final MSet.Item item : state.found()) {
+            if (item.weight() > top) {
+                top = item.weight();
             }
+        }
+        return top;
+    }
 
-            if (include) {
-                matchingDocs++;
-                final io.github.andreoss.search4j.core.api.Document doc =
-                    this.shard.openDocument(docId, false).orElse(null);
-                if (doc != null) {
-                    final io.github.andreoss.search4j.core.api.TermIterator ti = doc.termList();
-                    while (ti.hasNext()) {
-                        final String term = ti.next();
-                        if (!term.isEmpty()) {
-                            termFreqs.merge(term, ti.wdf(), TermCount::plus);
-                            docFreqs.merge(term, new TermCount(1), TermCount::plus);
-                        }
-                    }
+    private void consider(final DocId docid, final MatchState state) {
+        state.check();
+        if (this.accepts(docid, state)) {
+            final double score = state.score(docid);
+            this.report(docid, state, score);
+            state.drop();
+            if (state.added() > this.offset) {
+                state.add(docid, score);
+            }
+        } else {
+            this.report(docid, state, state.score(docid));
+        }
+    }
+
+    private void report(
+        final DocId docid, final MatchState state, final double score
+    ) {
+        if (this.observer != null) {
+            this.observer.add(docid, score, state.list().wdf());
+        }
+    }
+
+    private boolean accepts(final DocId docid, final MatchState state) {
+        boolean include = true;
+        if (this.filter != null) {
+            include = this.filter.decide(docid);
+        }
+        if (include && this.colmax > 0 && this.keymake != null) {
+            include = this.collapse(docid, state);
+        }
+        return include;
+    }
+
+    private boolean collapse(final DocId docid, final MatchState state) {
+        String key = this.colkey;
+        if (key.isEmpty()) {
+            key = this.keymake.key(docid);
+        }
+        final boolean include;
+        if (key == null || key.isEmpty()) {
+            include = true;
+        } else if (key.equals(state.prev())) {
+            state.group(state.group() + 1);
+            include = state.group() < this.colmax;
+        } else {
+            state.prev(key);
+            state.group(1);
+            include = true;
+        }
+        return include;
+    }
+
+    private void order(final List<MSet.Item> found) {
+        final Comparator<MSet.Item> order;
+        if (this.sorttype == 0) {
+            order = this.defaultOrder();
+        } else {
+            order = this.comparator();
+        }
+        found.sort(order);
+    }
+
+    private Comparator<MSet.Item> defaultOrder() {
+        final Comparator<MSet.Item> order;
+        if (this.idorder) {
+            order = Comparator.comparing(MSet.Item::docId);
+        } else {
+            order = Comparator.comparingDouble(MSet.Item::weight).reversed();
+        }
+        return order;
+    }
+
+    private Comparator<MSet.Item> comparator() {
+        final Comparator<MSet.Item> result;
+        if (this.sorttype == EnquireImpl.SLOT) {
+            final ValueNo slot = this.sortslot;
+            result = (left, right) -> this.compare(
+                this.value(left, slot), this.value(right, slot)
+            );
+        } else {
+            final KeyMaker maker = this.keymake;
+            result = (left, right) -> this.compare(
+                maker.key(left.docId()), maker.key(right.docId())
+            );
+        }
+        return result;
+    }
+
+    private String value(final MSet.Item item, final ValueNo slot) {
+        return this.shard.openDocument(item.docId(), false)
+            .flatMap(document -> document.value(slot))
+            .orElse("");
+    }
+
+    private int compare(final String left, final String right) {
+        final String safe;
+        if (left == null) {
+            safe = "";
+        } else {
+            safe = left;
+        }
+        final String other;
+        if (right == null) {
+            other = "";
+        } else {
+            other = right;
+        }
+        return this.ascending(safe.compareTo(other));
+    }
+
+    private int ascending(final int result) {
+        final int ordered;
+        if (this.sortasc) {
+            ordered = result;
+        } else {
+            ordered = -result;
+        }
+        return ordered;
+    }
+
+    private List<ESet.Item> expand(
+        final int max, final ExpandWeight weight, final ExpandDecider chooser
+    ) {
+        final Weight scheme;
+        if (this.chosen == null) {
+            scheme = new BoolWeight();
+        } else {
+            scheme = this.chosen;
+        }
+        final Map<String, TermCount> freqs = new HashMap<>(8);
+        final Map<String, TermCount> docs = new HashMap<>(8);
+        final int matching = this.collect(scheme, freqs, docs);
+        final ExpandWeight expand;
+        if (weight == null) {
+            expand = new Bo1EWeight();
+        } else {
+            expand = weight;
+        }
+        expand.init(this.shard, this.request, freqs.size());
+        final List<ESet.Item> items = new ArrayList<>(freqs.size());
+        final ExpandRun run = new ExpandRun(docs, matching, expand);
+        run.chooser(chooser);
+        run.items(items);
+        for (final Map.Entry<String, TermCount> entry : freqs.entrySet()) {
+            run.add(entry.getKey(), entry.getValue());
+        }
+        items.sort(
+            Comparator.comparingDouble(ESet.Item::weight).reversed()
+        );
+        if (max > 0 && items.size() > max) {
+            items.subList(max, items.size()).clear();
+        }
+        return items;
+    }
+
+    private int collect(
+        final Weight scheme, final Map<String, TermCount> freqs,
+        final Map<String, TermCount> docs
+    ) {
+        final PostList list = Matcher.resolve(this.shard, this.request, scheme);
+        DocId docid = list.next().docId();
+        int matching = 0;
+        while (!docid.equals(DocId.NONE) && matching < 100) {
+            if (this.accepts(docid, new MatchState(this.shard, list))) {
+                matching = matching + 1;
+                this.terms(docid, freqs, docs);
+            }
+            docid = list.next().docId();
+        }
+        return matching;
+    }
+
+    private void terms(
+        final DocId docid, final Map<String, TermCount> freqs,
+        final Map<String, TermCount> docs
+    ) {
+        final Document document = this.shard
+            .openDocument(docid, false).orElse(null);
+        if (document != null) {
+            final TermIterator terms = document.termList();
+            while (terms.hasNext()) {
+                final String term = terms.next();
+                if (!term.isEmpty()) {
+                    freqs.merge(term, terms.wdf(), TermCount::plus);
+                    docs.merge(term, new TermCount(1), TermCount::plus);
                 }
             }
-            docId = postList.next().docId();
-        }
-
-        // Compute expansion weights
-        final ExpandWeight ew = weight != null ? weight : new Bo1EWeight();
-        ew.init(stats, this.query, termFreqs.size());
-
-        final List<ESet.Item> items = new ArrayList<>();
-        for (final java.util.Map.Entry<String, TermCount> entry : termFreqs.entrySet()) {
-            final String term = entry.getKey();
-            final TermCount termFreq = entry.getValue();
-            final TermCount docFreq = docFreqs.getOrDefault(term, new TermCount(0));
-            final TermCount matching = new TermCount(matchingDocs);
-
-            if (decider != null && !decider.decide(term, termFreq)) {
-                continue;
-            }
-
-            final double w = ew.weight(term, TermCount.ONE, termFreq, docFreq, matching);
-            if (w > 0.0) {
-                items.add(new ESetItemImpl(term, termFreq, w));
-            }
-        }
-
-        // Sort by weight descending
-        items.sort((a, b) -> Double.compare(b.weight(), a.weight()));
-
-        // Limit to maxTerms
-        if (maxTerms > 0 && items.size() > maxTerms) {
-            items.subList(maxTerms, items.size()).clear();
-        }
-
-        return new ESetImpl(items);
-    }
-
-    private static final class ESetItemImpl implements ESet.Item {
-
-        private final String term;
-        private final TermCount estimatedTermFrequency;
-        private final double weight;
-
-        ESetItemImpl(
-            final String term,
-            final TermCount estimatedTermFrequency,
-            final double weight
-        ) {
-            this.term = term;
-            this.estimatedTermFrequency = estimatedTermFrequency;
-            this.weight = weight;
-        }
-
-        @Override
-        public String term() {
-            return this.term;
-        }
-
-        @Override
-        public TermCount estimatedTermFrequency() {
-            return this.estimatedTermFrequency;
-        }
-
-        @Override
-        public double weight() {
-            return this.weight;
-        }
-    }
-
-    private static final class ESetImpl implements ESet {
-
-        private final List<Item> items;
-
-        ESetImpl(final List<Item> items) {
-            this.items = items;
-        }
-
-        @Override
-        public TermCount size() {
-            return new TermCount(this.items.size());
-        }
-
-        @Override
-        public Item first() {
-            if (this.items.isEmpty()) {
-                throw new NoSuchElementException("Empty ESet");
-            }
-            return this.items.get(0);
-        }
-
-        @Override
-        public Item get(final int index) {
-            if (index < 0 || index >= this.items.size()) {
-                throw new IndexOutOfBoundsException(
-                    String.format("Index %d, size %d", index, this.items.size())
-                );
-            }
-            return this.items.get(index);
-        }
-
-        @Override
-        public List<Item> toList() {
-            return List.copyOf(this.items);
-        }
-
-        @Override
-        public java.util.Iterator<Item> iterator() {
-            return this.items.iterator();
-        }
-    }
-
-    /**
-     * Sorting specification for Enquire.
-     */
-    private static final class SortSpec {
-
-        enum Type { VALUE, KEY }
-
-        private final Type type;
-        private final ValueNo valueSlot;
-        private final KeyMaker keyMaker;
-        private final boolean ascending;
-
-        SortSpec(
-            final Type type, final ValueNo valueSlot,
-            final KeyMaker keyMaker, final boolean ascending
-        ) {
-            this.type = type;
-            this.valueSlot = valueSlot;
-            this.keyMaker = keyMaker;
-            this.ascending = ascending;
         }
     }
 }

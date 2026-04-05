@@ -29,7 +29,7 @@ final class MaxPostListTest {
 
     @Test
     void mergesDocumentIdsInAscendingOrder() {
-        final PostList union = new MaxPostList(
+        final PostList union = MaxPostList.of(
             List.of(
                 BooleanPostListFixture.fake("left", 1, 4),
                 BooleanPostListFixture.fake("middle", 2, 3, 5),
@@ -55,7 +55,7 @@ final class MaxPostListTest {
         final BooleanPostListFixtureFake right = BooleanPostListFixture.fake(
             "right", 2, 3
         ).scoring(7.0).maxed(9.0);
-        final PostList union = new MaxPostList(
+        final PostList union = MaxPostList.of(
             List.of(left, right), () -> { }
         );
         Assertions.assertEquals(
@@ -77,7 +77,7 @@ final class MaxPostListTest {
 
     @Test
     void reportsFrequencyAndDescription() {
-        final PostList union = new MaxPostList(
+        final PostList union = MaxPostList.of(
             List.of(
                 BooleanPostListFixture.fake("left", 1, 4),
                 BooleanPostListFixture.fake("right", 2)
@@ -99,12 +99,12 @@ final class MaxPostListTest {
     void rejectsInvalidConstruction() {
         Assertions.assertThrows(
             InvalidArgumentError.class,
-            () -> new MaxPostList(List.of(), () -> { }),
+            () -> MaxPostList.of(List.of(), () -> { }),
             "At least one child"
         );
         Assertions.assertThrows(
-            NullPointerException.class,
-            () -> new MaxPostList(List.of(), null),
+            InvalidArgumentError.class,
+            () -> MaxPostList.of(List.of(), null),
             "Callback is required"
         );
     }

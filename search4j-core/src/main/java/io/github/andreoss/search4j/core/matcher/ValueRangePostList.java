@@ -27,6 +27,10 @@ import io.github.andreoss.search4j.core.types.ValueNo;
  *
  * @since 0.1.0
  */
+@SuppressWarnings({
+    "PMD.ProhibitPublicStaticMethods",
+    "PMD.NullAssignment"
+})
 public final class ValueRangePostList implements PostList {
 
     /**
@@ -45,31 +49,17 @@ public final class ValueRangePostList implements PostList {
     private ValueList values;
 
     /**
-     * Creates a range over a slot.
-     *
-     * @param shard Shard whose values are read
-     * @param slot Slot read
-     * @param lower Lowest accepted value, inclusive
-     * @param upper Highest accepted value, inclusive, empty for no bound
-     */
-    public ValueRangePostList(
-        final Shard shard, final ValueNo slot,
-        final String lower, final String upper
-    ) {
-        this(
-            shard, ValueRangePostList.bounds(slot, lower, upper)
-        );
-    }
-
-    /**
-     * Creates a range over a slot from prepared bounds.
+     * Creates a range over a prepared slot and bounds.
      *
      * @param shard Shard whose values are read
      * @param range Slot and inclusive bounds
      */
-    private ValueRangePostList(final Shard shard, final ValueRange range) {
+    public ValueRangePostList(final Shard shard, final ValueRange range) {
         if (shard == null) {
-            throw new NullPointerException("shard");
+            throw new InvalidArgumentError("A shard is required");
+        }
+        if (range == null) {
+            throw new InvalidArgumentError("A range is required");
         }
         this.shard = shard;
         this.range = range;
@@ -80,32 +70,13 @@ public final class ValueRangePostList implements PostList {
      * Creates a range over a slot.
      *
      * @param shard Shard whose values are read
-     * @param slot Slot read
-     * @param lower Lowest accepted value, inclusive
-     * @param upper Highest accepted value, inclusive, empty for no bound
+     * @param range Slot and inclusive bounds
      * @return Range posting list
      */
     public static ValueRangePostList of(
-        final Shard shard, final ValueNo slot,
-        final String lower, final String upper
+        final Shard shard, final ValueRange range
     ) {
-        return new ValueRangePostList(
-            shard, ValueRangePostList.bounds(slot, lower, upper)
-        );
-    }
-
-    /**
-     * Validates the slot and both bounds.
-     *
-     * @param slot Slot read
-     * @param lower Lowest accepted value, inclusive
-     * @param upper Highest accepted value, inclusive, empty for no bound
-     * @return Checked bounds
-     */
-    private static ValueRange bounds(
-        final ValueNo slot, final String lower, final String upper
-    ) {
-        return ValueRange.check(slot, lower, upper);
+        return new ValueRangePostList(shard, range);
     }
 
     /**
@@ -116,10 +87,12 @@ public final class ValueRangePostList implements PostList {
      * @param lower Lowest accepted value, inclusive
      * @return Lower-bound posting list
      */
-    public static ValueRangePostList ge(
+    public static ValueRangePostList atLeast(
         final Shard shard, final ValueNo slot, final String lower
     ) {
-        return ValueRangePostList.of(shard, slot, lower, "");
+        return new ValueRangePostList(
+            shard, ValueRange.of(slot, lower, "")
+        );
     }
 
     @Override
@@ -134,36 +107,28 @@ public final class ValueRangePostList implements PostList {
 
     @Override
     public PostList next(final double least) {
-        PostList result;
-        if (this.values == null) {
-            this.values = this.shard.openValueList(this.range.slot());
-            this.values.next();
-        } else {
-            this.values.next();
-        }
-        result = this.seek();
-        return result;
+        this.begin();
+        this.values.next();
+        return this.seek();
     }
 
     @Override
     public PostList skipTo(final DocId target, final double least) {
-        if (this.values == null) {
-            this.values = this.shard.openValueList(this.range.slot());
-        }
+        this.begin();
         this.values.skipTo(target);
         return this.seek();
     }
 
     @Override
     public Probe check(final DocId target, final double least) {
-        if (this.values == null) {
-            this.values = this.shard.openValueList(this.range.slot());
-        }
-        boolean valid = this.values.check(target)
-            && !this.values.atEnd()
-            && this.values.docId().equals(target)
-            && this.range.accepts(this.values.value());
-        return new Probe(this, valid);
+        this.begin();
+        return new Probe(
+            this,
+            this.values.check(target)
+                && !this.values.atEnd()
+                && this.values.docId().equals(target)
+                && this.range.accepts(this.values.value())
+        );
     }
 
     @Override
@@ -201,11 +166,12 @@ public final class ValueRangePostList implements PostList {
         return this.range.describe();
     }
 
-    /**
-     * Walks to the next accepted value.
-     *
-     * @return This list, or the empty list once the values are exhausted
-     */
+    private void begin() {
+        if (this.values == null) {
+            this.values = this.shard.openValueList(this.range.slot());
+        }
+    }
+
     private PostList seek() {
         PostList result = this;
         boolean more = !this.values.atEnd();
@@ -217,73 +183,5 @@ public final class ValueRangePostList implements PostList {
             result = EmptyPostList.INSTANCE;
         }
         return result;
-    }
-
-    /**
-     * Slot and inclusive bounds of a value range.
-     *
-     * @param slot Slot read
-     * @param lower Lowest accepted value, inclusive
-     * @param upper Highest accepted value, inclusive, empty for no bound
-     * @since 0.1.0
-     */
-    private record ValueRange(ValueNo slot, String lower, String upper) {
-
-        /**
-         * Validates the bounds.
-         *
-         * @param number Slot read
-         * @param low Lowest accepted value
-         * @param high Highest accepted value, empty for no bound
-         * @return Checked bounds
-         */
-        private static ValueRange check(
-            final ValueNo number, final String low, final String high
-        ) {
-            if (number == null) {
-                throw new NullPointerException("slot");
-            }
-            if (low == null) {
-                throw new NullPointerException("lower");
-            }
-            if (high == null) {
-                throw new NullPointerException("upper");
-            }
-            if (!high.isEmpty() && low.compareTo(high) > 0) {
-                throw new InvalidArgumentError(
-                    String.format(
-                        "Range lower bound %s exceeds upper bound %s",
-                        low, high
-                    )
-                );
-            }
-            return new ValueRange(number, low, high);
-        }
-
-        /**
-         * Tests whether a value is inside the range.
-         *
-         * @param value Candidate value
-         * @return True when accepted
-         */
-        private boolean accepts(final String value) {
-            boolean accepted = value.compareTo(this.lower) >= 0;
-            if (accepted && !this.upper.isEmpty()) {
-                accepted = value.compareTo(this.upper) <= 0;
-            }
-            return accepted;
-        }
-
-        /**
-         * Human-readable description.
-         *
-         * @return Description naming the slot and both bounds
-         */
-        private String describe() {
-            return String.format(
-                "ValueRangePostList(%s, %s, %s)",
-                this.slot.value(), this.lower, this.upper
-            );
-        }
     }
 }

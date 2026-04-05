@@ -86,24 +86,16 @@ public abstract class WrapperPostList implements PostList {
     }
 
     @Override
-    public TermCount wdf() {
-        return this.source.wdf();
-    }
+    public abstract TermCount wdf();
 
     @Override
-    public double weight(final DocStats doc) {
-        return this.source.weight(doc);
-    }
+    public abstract double weight(DocStats doc);
 
     @Override
-    public double recalcMaxWeight() {
-        return this.source.recalcMaxWeight();
-    }
+    public abstract double recalcMaxWeight();
 
     @Override
-    public TermCount countMatchingSubqueries() {
-        return this.source.countMatchingSubqueries();
-    }
+    public abstract TermCount countMatchingSubqueries();
 
     @Override
     public final DocRange docIdRange(final DocRange whole) {
@@ -126,9 +118,7 @@ public abstract class WrapperPostList implements PostList {
     }
 
     @Override
-    public String description() {
-        return this.source.description();
-    }
+    public abstract String description();
 
     /**
      * List currently wrapped.
@@ -154,7 +144,7 @@ public abstract class WrapperPostList implements PostList {
      * @param least Lowest weight contribution still wanted
      * @return This wrapper when still in use, otherwise the exhausted list
      */
-    protected PostList move(final double least) {
+    PostList move(final double least) {
         final PostList wrapped = this.source;
         final PostList moved = wrapped.next(least);
         this.replaced(wrapped, moved);
@@ -162,12 +152,5 @@ public abstract class WrapperPostList implements PostList {
         return moved;
     }
 
-    /**
-     * Observes that the wrapped list was replaced.
-     *
-     * @param before List before the move
-     * @param after List after the move
-     */
-    protected void replaced(final PostList before, final PostList after) {
-    }
+    abstract void replaced(PostList before, PostList after);
 }

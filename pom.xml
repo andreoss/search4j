@@ -72,7 +72,6 @@
             <release>${java.version}</release>
             <compilerArgs>
               <arg>-Xlint:all</arg>
-              <arg>-Xlint:-dangling-doc-comments</arg>
               <arg>-Werror</arg>
             </compilerArgs>
           </configuration>

@@ -9,9 +9,9 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
+import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.ser.Varints;
 import io.github.andreoss.search4j.core.types.TermCount;
-import io.github.andreoss.search4j.core.types.TotalLength;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,20 +21,39 @@ import java.io.InputStream;
  * of long documents.
  *
  * <p>BM25+ adds a constant delta to the BM25 score to ensure that terms
- * in long documents are not overly penalised.</p>
+ * source long documents are not overly penalised.</p>
  *
  * @since 0.1.0
  */
 public final class BM25PlusWeight implements Weight {
 
-    private double k1;
-    private double b;
-    private double delta;
-    private TermCount avgLength;
-    private TermCount docCount;
+    /**
+     * Term frequency saturation parameter.
+     */
+    private double sat;
 
     /**
-     * Creates a BM25+ weight with default parameters (k1=1.2, b=0.75, delta=1.0).
+     * Document length normalisation parameter.
+     */
+    private double norm;
+
+    /**
+     * Constant added to the score.
+     */
+    private double delta;
+
+    /**
+     * Average document length of the database.
+     */
+    private TermCount avglen;
+
+    /**
+     * Number of documents in the database.
+     */
+    private TermCount docs;
+
+    /**
+     * Creates a BM25+ weight with default parameters (sat=1.2, norm=0.75, delta=1.0).
      */
     public BM25PlusWeight() {
         this(1.2, 0.75, 1.0);
@@ -43,59 +62,52 @@ public final class BM25PlusWeight implements Weight {
     /**
      * Creates a BM25+ weight with specified parameters.
      *
-     * @param k1 Term frequency saturation parameter
-     * @param b Document length normalisation parameter
+     * @param sat Term frequency saturation parameter
+     * @param norm Document length normalisation parameter
      * @param delta Constant added to the score
      */
-    public BM25PlusWeight(final double k1, final double b, final double delta) {
-        this.k1 = k1;
-        this.b = b;
+    public BM25PlusWeight(final double sat, final double norm, final double delta) {
+        this.sat = sat;
+        this.norm = norm;
         this.delta = delta;
     }
 
     @Override
     public void init(
-        final ShardStatistics database, final Query query, final int termCount
+        final ShardStatistics database, final Query query, final int terms
     ) {
-        this.docCount = database.docCount();
-        final TotalLength totalLen = database.totalLength();
-        if (this.docCount.value() > 0) {
-            this.avgLength = new TermCount((int) (totalLen.value() / this.docCount.value()));
+        this.docs = database.docCount();
+        if (this.docs.value() > 0) {
+            this.avglen = new TermCount((int) (database.totalLength().value() / this.docs.value()));
         } else {
-            this.avgLength = TermCount.ZERO;
+            this.avglen = TermCount.ZERO;
         }
     }
 
     @Override
     public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms
+        final String term, final TermStats stats, final DocStats doc
     ) {
-        if (this.avgLength == null || this.avgLength.value() <= 0) {
-            return 0.0;
+        final TermCount wqf = stats.wqf();
+        final TermCount wdf = stats.wdf();
+        final TermCount doclen = doc.length();
+        double weight = 0.0;
+        if (this.avglen != null && this.avglen.value() > 0
+            && this.docs != null && this.docs.value() > 0) {
+            final double idf = WeightNorms.idf(this.docs, wdf);
+            final double part = WeightNorms.bmNorm(
+                wdf, doclen, new Bm25Norm(this.avglen, this.sat, this.norm)
+            );
+            weight = (idf * part + this.delta) * wqf.value();
         }
-        if (this.docCount == null || this.docCount.value() <= 0) {
-            return 0.0;
-        }
-        final double idf = WeightNorms.idf(this.docCount, wdf);
-        final double wdfNorm = WeightNorms.wdfNormalised(wdf, docLength, this.avgLength, this.k1, this.b);
-        return (idf * wdfNorm + this.delta) * wqf.value();
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms,
-        final java.util.List<TermCount> positions
-    ) {
-        return this.weight(term, wqf, wdf, docLength, uniqueTerms);
+        return weight;
     }
 
     @Override
     public Weight copy() {
-        final BM25PlusWeight copy = new BM25PlusWeight(this.k1, this.b, this.delta);
-        copy.avgLength = this.avgLength;
-        copy.docCount = this.docCount;
+        final BM25PlusWeight copy = new BM25PlusWeight(this.sat, this.norm, this.delta);
+        copy.avglen = this.avglen;
+        copy.docs = this.docs;
         return copy;
     }
 
@@ -103,33 +115,36 @@ public final class BM25PlusWeight implements Weight {
     public byte[] serialise() {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write(4); // BM25+ type
-            Varints.encode(out, (long) (this.k1 * 1000));
-            Varints.encode(out, (long) (this.b * 1000));
+            out.write(4);
+            Varints.encode(out, (long) (this.sat * 1000));
+            Varints.encode(out, (long) (this.norm * 1000));
             Varints.encode(out, (long) (this.delta * 1000));
-        } catch (final IOException e) {
-            throw new AssertionError(e);
+        } catch (final IOException ex) {
+            throw new AssertionError(ex);
         }
         return out.toByteArray();
+    }
+
+    @Override
+    public String toString() {
+        return String.format(
+            "BM25PlusWeight(k1=%.3f, b=%.3f, delta=%.3f)",
+            this.sat, this.norm, this.delta
+        );
     }
 
     /**
      * Deserialises a BM25+ weight from an input stream.
      *
-     * @param in Stream positioned after the type byte
+     * @param source Stream positioned after the type byte
      * @return The weight
      * @throws IOException when the stream is malformed
      */
-    static BM25PlusWeight deserialise(final InputStream in) throws IOException {
+    static BM25PlusWeight deserialise(final InputStream source) throws IOException {
         final BM25PlusWeight weight = new BM25PlusWeight();
-        weight.k1 = Varints.decode(in) / 1000.0;
-        weight.b = Varints.decode(in) / 1000.0;
-        weight.delta = Varints.decode(in) / 1000.0;
+        weight.sat = Varints.decode(source) / 1000.0;
+        weight.norm = Varints.decode(source) / 1000.0;
+        weight.delta = Varints.decode(source) / 1000.0;
         return weight;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("BM25PlusWeight(k1=%.3f, b=%.3f, delta=%.3f)", this.k1, this.b, this.delta);
     }
 }

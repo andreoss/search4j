@@ -9,6 +9,8 @@ package io.github.andreoss.search4j.core.ser;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Variable-length unsigned integer packing.
@@ -72,7 +74,7 @@ public final class Varints {
      * @param value Non-negative value
      * @throws IOException when writing fails
      */
-    public static void encode(final java.io.OutputStream out, final long value)
+    public static void encode(final OutputStream out, final long value)
         throws IOException {
         long remaining = value;
         while (remaining >= 0x80) {
@@ -85,21 +87,21 @@ public final class Varints {
     /**
      * Decodes a variable-length integer from an input stream.
      *
-     * @param in Input stream
+     * @param source Input stream
      * @return Original value
      * @throws IOException when reading fails
      */
-    public static int decode(final java.io.InputStream in)
-        throws IOException {
+    public static int decode(final InputStream source) throws IOException {
         long result = 0L;
         int shift = 0;
-        int b;
-        while ((b = in.read()) >= 0) {
-            result |= (b & 0x7FL) << shift;
-            if ((b & 0x80) == 0) {
+        int read = source.read();
+        while (read >= 0) {
+            result |= (read & 0x7FL) << shift;
+            if ((read & 0x80) == 0) {
                 return (int) result;
             }
             shift += 7;
+            read = source.read();
         }
         throw new IOException("Unexpected end of stream");
     }

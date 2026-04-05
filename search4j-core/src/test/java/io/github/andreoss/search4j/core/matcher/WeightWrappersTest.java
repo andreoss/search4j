@@ -9,6 +9,7 @@ package io.github.andreoss.search4j.core.matcher;
 
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PostList;
+import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import org.junit.jupiter.api.Assertions;
@@ -19,7 +20,10 @@ import org.junit.jupiter.api.Test;
  *
  * @since 0.1.0
  */
-@SuppressWarnings("PMD.UnitTestContainsTooManyAsserts")
+@SuppressWarnings({
+    "PMD.UnitTestContainsTooManyAsserts",
+    "PMD.UnnecessaryLocalRule"
+})
 final class WeightWrappersTest {
 
     @Test
@@ -89,7 +93,8 @@ final class WeightWrappersTest {
             "child", 1, 2
         ).scoring(5.0).maxed(9.0).wdf(4);
         final SynonymPostList synonym = new SynonymPostList(
-            child, WeightWrappersTest.doubling(), false, () -> { }
+            child, new SynonymSpec(WeightWrappersTest.doubling(), false),
+            () -> { }
         );
         synonym.skipTo(DocId.of(1), 0.0);
         Assertions.assertEquals(
@@ -114,7 +119,8 @@ final class WeightWrappersTest {
             "child", 1
         ).scoring(5.0).maxed(9.0);
         final SynonymPostList synonym = new SynonymPostList(
-            child, WeightWrappersTest.doubling(), false, () -> { }
+            child, new SynonymSpec(WeightWrappersTest.doubling(), false),
+            () -> { }
         );
         synonym.next(9.0);
         Assertions.assertEquals(
@@ -128,7 +134,8 @@ final class WeightWrappersTest {
             "child", 1
         ).scoring(1.0).wdf(40);
         final SynonymPostList synonym = new SynonymPostList(
-            child, WeightWrappersTest.identity(), true, () -> { }
+            child, new SynonymSpec(WeightWrappersTest.identity(), true),
+            () -> { }
         );
         synonym.skipTo(DocId.of(1), 0.0);
         Assertions.assertEquals(
@@ -141,25 +148,25 @@ final class WeightWrappersTest {
     void rejectsNullParts() {
         final PostList child = BooleanPostListFixture.fake("child", 1);
         Assertions.assertThrows(
-            NullPointerException.class,
+            InvalidArgumentError.class,
             () -> new ExtraWeightPostList(child, null, () -> { }),
             "Extra weight is required"
         );
         Assertions.assertThrows(
-            NullPointerException.class,
+            InvalidArgumentError.class,
             () -> new SynonymPostList(
-                child, null, false, () -> { }
+                child, new SynonymSpec(null, false), () -> { }
             ),
             "Term weight is required"
         );
     }
 
     private static SynonymWeight doubling() {
-        return new DoublingSynonymWeight();
+        return new WeightWrappersTest.DoublingSynonymWeight();
     }
 
     private static SynonymWeight identity() {
-        return new IdentitySynonymWeight();
+        return new WeightWrappersTest.IdentitySynonymWeight();
     }
 
     /**

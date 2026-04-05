@@ -9,9 +9,9 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
+import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.ser.Varints;
 import io.github.andreoss.search4j.core.types.TermCount;
-import io.github.andreoss.search4j.core.types.TotalLength;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,72 +26,74 @@ import java.io.InputStream;
  */
 public final class BB2Weight implements Weight {
 
-    private double c;
-    private TermCount avgLength;
-    private TermCount docCount;
+    /**
+     * After-effect parameter.
+     */
+    private double coef;
 
     /**
-     * Creates a BB2 weight with default parameter (c=1.0).
+     * Average document length of the database.
+     */
+    private TermCount avglen;
+
+    /**
+     * Number of documents in the database.
+     */
+    private TermCount docs;
+
+    /**
+     * Creates a BB2 weight with the default parameter.
      */
     public BB2Weight() {
         this(1.0);
     }
 
     /**
-     * Creates a BB2 weight with specified parameter.
+     * Creates a BB2 weight with the given after-effect parameter.
      *
-     * @param c After-effect parameter
+     * @param coef After-effect parameter
      */
-    public BB2Weight(final double c) {
-        this.c = c;
+    public BB2Weight(final double coef) {
+        this.coef = coef;
     }
 
     @Override
     public void init(
-        final ShardStatistics database, final Query query, final int termCount
+        final ShardStatistics database, final Query query, final int terms
     ) {
-        this.docCount = database.docCount();
-        final TotalLength totalLen = database.totalLength();
-        if (this.docCount.value() > 0) {
-            this.avgLength = new TermCount((int) (totalLen.value() / this.docCount.value()));
+        this.docs = database.docCount();
+        if (this.docs.value() > 0) {
+            this.avglen = new TermCount(
+                (int) (database.totalLength().value() / this.docs.value())
+            );
         } else {
-            this.avgLength = TermCount.ZERO;
+            this.avglen = TermCount.ZERO;
         }
     }
 
     @Override
     public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms
+        final String term, final TermStats stats, final DocStats doc
     ) {
-        if (this.avgLength == null || this.avgLength.value() <= 0) {
-            return 0.0;
+        final TermCount wqf = stats.wqf();
+        final TermCount wdf = stats.wdf();
+        double weight = 0.0;
+        if (this.avglen != null && this.avglen.value() > 0
+            && this.docs != null && this.docs.value() > 0) {
+            final double idf = Math.log(
+                (this.docs.value() + 1.0) / (wdf.value() + 1.0)
+            ) / Math.log(2.0);
+            final double value = wdf.value();
+            weight = idf * (value / (value + this.coef)) * wqf.value();
         }
-        if (this.docCount == null || this.docCount.value() <= 0) {
-            return 0.0;
-        }
-        // BB2 IDF: log2((N + 1) / (nt + 1))
-        final double idf = Math.log((this.docCount.value() + 1.0) / (wdf.value() + 1.0)) / Math.log(2.0);
-        // BB2 normalisation: wdf / (wdf + c)
-        final double wdfVal = wdf.value();
-        final double tfn = wdfVal / (wdfVal + this.c);
-        return idf * tfn * wqf.value();
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms,
-        final java.util.List<TermCount> positions
-    ) {
-        return this.weight(term, wqf, wdf, docLength, uniqueTerms);
+        return weight;
     }
 
     @Override
     public Weight copy() {
-        final BB2Weight copy = new BB2Weight(this.c);
-        copy.avgLength = this.avgLength;
-        copy.docCount = this.docCount;
+        final BB2Weight copy = new BB2Weight(this.coef);
+        copy.avglen = this.avglen;
+        copy.docs = this.docs;
         return copy;
     }
 
@@ -99,29 +101,29 @@ public final class BB2Weight implements Weight {
     public byte[] serialise() {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write(12); // BB2 type
-            Varints.encode(out, (long) (this.c * 1000));
-        } catch (final IOException e) {
-            throw new AssertionError(e);
+            out.write(12);
+            Varints.encode(out, (long) (this.coef * 1000));
+        } catch (final IOException ex) {
+            throw new AssertionError(ex);
         }
         return out.toByteArray();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("BB2Weight(c=%.3f)", this.coef);
     }
 
     /**
      * Deserialises a BB2 weight from an input stream.
      *
-     * @param in Stream positioned after the type byte
+     * @param source Stream positioned after the type byte
      * @return The weight
      * @throws IOException when the stream is malformed
      */
-    static BB2Weight deserialise(final InputStream in) throws IOException {
+    static BB2Weight deserialise(final InputStream source) throws IOException {
         final BB2Weight weight = new BB2Weight();
-        weight.c = Varints.decode(in) / 1000.0;
+        weight.coef = Varints.decode(source) / 1000.0;
         return weight;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("BB2Weight(c=%.3f)", this.c);
     }
 }

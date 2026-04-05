@@ -8,6 +8,7 @@
 package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.error.SerialisationError;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -19,32 +20,35 @@ import java.io.InputStream;
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.ProhibitPublicStaticMethods")
 public final class ExpandWeightInternal {
 
-    private ExpandWeightInternal() {}
+    private ExpandWeightInternal() {
+    }
 
     /**
      * Deserialises an expansion weight from an input stream.
      *
-     * @param in Stream positioned at the start of a weight
+     * @param source Stream positioned at the start of a weight
      * @return The weight
-     * @throws SerialisationError when the stream is malformed
      */
-    public static ExpandWeight deserialise(final InputStream in) {
+    public static ExpandWeight deserialise(final InputStream source) {
         try {
-            final int type = in.read();
+            final int type = source.read();
             if (type < 0) {
                 throw new SerialisationError("Empty weight stream");
             }
             return switch (type) {
-                case 1 -> Bo1EWeight.deserialise(in);
-                case 2 -> ProbeWeight.deserialise(in);
+                case 1 -> Bo1EWeight.deserialise(source);
+                case 2 -> ProbeWeight.deserialise(source);
                 default -> throw new SerialisationError(
-                    "Unknown expand weight type: " + type
+                    String.format("Unknown expand weight type: %d", type)
                 );
             };
-        } catch (final IOException e) {
-            throw new SerialisationError(e);
+        } catch (final IOException ex) {
+            throw new SerialisationError(
+                String.format("Expand weight stream failed: %s", ex)
+            );
         }
     }
 
@@ -55,6 +59,6 @@ public final class ExpandWeightInternal {
      * @return The weight
      */
     static ExpandWeight deserialise(final byte[] data) {
-        return deserialise(new java.io.ByteArrayInputStream(data));
+        return deserialise(new ByteArrayInputStream(data));
     }
 }

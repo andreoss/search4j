@@ -9,7 +9,6 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 /**
  * An expansion set: a list of terms for query expansion with their weights.
@@ -33,18 +32,16 @@ public interface ESet extends Iterable<ESet.Item> {
      * Returns the first item or throws when empty.
      *
      * @return First item
-     * @throws NoSuchElementException when no items
      */
-    Item first() throws NoSuchElementException;
+    Item first();
 
     /**
      * Returns the item at an index.
      *
      * @param index Zero-based index below {@link #size()}
      * @return Item at the index
-     * @throws IndexOutOfBoundsException when out of range
      */
-    Item get(int index) throws IndexOutOfBoundsException;
+    Item get(int index);
 
     /**
      * Returns all items as a list.

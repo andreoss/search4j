@@ -9,9 +9,9 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
+import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.ser.Varints;
 import io.github.andreoss.search4j.core.types.TermCount;
-import io.github.andreoss.search4j.core.types.TotalLength;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,12 +26,23 @@ import java.io.InputStream;
  */
 public final class IneB2Weight implements Weight {
 
-    private double c;
-    private TermCount avgLength;
-    private TermCount docCount;
+    /**
+     * After-effect parameter.
+     */
+    private double coef;
 
     /**
-     * Creates an IneB2 weight with default parameter (c=1.0).
+     * Average document length of the database.
+     */
+    private TermCount avglen;
+
+    /**
+     * Number of documents in the database.
+     */
+    private TermCount docs;
+
+    /**
+     * Creates an IneB2 weight with default parameter (coef=1.0).
      */
     public IneB2Weight() {
         this(1.0);
@@ -40,57 +51,49 @@ public final class IneB2Weight implements Weight {
     /**
      * Creates an IneB2 weight with specified parameter.
      *
-     * @param c After-effect parameter
+     * @param coef After-effect parameter
      */
-    public IneB2Weight(final double c) {
-        this.c = c;
+    public IneB2Weight(final double coef) {
+        this.coef = coef;
     }
 
     @Override
     public void init(
-        final ShardStatistics database, final Query query, final int termCount
+        final ShardStatistics database, final Query query, final int terms
     ) {
-        this.docCount = database.docCount();
-        final TotalLength totalLen = database.totalLength();
-        if (this.docCount.value() > 0) {
-            this.avgLength = new TermCount((int) (totalLen.value() / this.docCount.value()));
+        this.docs = database.docCount();
+        if (this.docs.value() > 0) {
+            this.avglen = new TermCount((int) (database.totalLength().value() / this.docs.value()));
         } else {
-            this.avgLength = TermCount.ZERO;
+            this.avglen = TermCount.ZERO;
         }
     }
 
     @Override
     public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms
+        final String term, final TermStats stats, final DocStats doc
     ) {
-        if (this.avgLength == null || this.avgLength.value() <= 0) {
-            return 0.0;
+        final TermCount wqf = stats.wqf();
+        final TermCount wdf = stats.wdf();
+        final TermCount doclen = doc.length();
+        double weight = 0.0;
+        if (this.avglen != null && this.avglen.value() > 0
+            && this.docs != null && this.docs.value() > 0) {
+            final double idf = Math.log(
+                (this.docs.value() + 1.0) / (wdf.value() + 0.5)
+            ) / Math.log(2.0);
+            final double part = WeightNorms.wdfPl(wdf, doclen, this.avglen);
+            final double tfn = part / (part + this.coef) * (this.coef / (this.coef + 1.0));
+            weight = idf * tfn * wqf.value();
         }
-        if (this.docCount == null || this.docCount.value() <= 0) {
-            return 0.0;
-        }
-        // IneB2 IDF: log2((N + 1) / (nt + 0.5))
-        final double idf = Math.log((this.docCount.value() + 1.0) / (wdf.value() + 0.5)) / Math.log(2.0);
-        final double wdfNorm = WeightNorms.wdfPL2(wdf, docLength, this.avgLength);
-        final double tfn = wdfNorm / (wdfNorm + this.c) * (this.c / (this.c + 1.0));
-        return idf * tfn * wqf.value();
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms,
-        final java.util.List<TermCount> positions
-    ) {
-        return this.weight(term, wqf, wdf, docLength, uniqueTerms);
+        return weight;
     }
 
     @Override
     public Weight copy() {
-        final IneB2Weight copy = new IneB2Weight(this.c);
-        copy.avgLength = this.avgLength;
-        copy.docCount = this.docCount;
+        final IneB2Weight copy = new IneB2Weight(this.coef);
+        copy.avglen = this.avglen;
+        copy.docs = this.docs;
         return copy;
     }
 
@@ -98,29 +101,29 @@ public final class IneB2Weight implements Weight {
     public byte[] serialise() {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write(7); // IneB2 type
-            Varints.encode(out, (long) (this.c * 1000));
-        } catch (final IOException e) {
-            throw new AssertionError(e);
+            out.write(7);
+            Varints.encode(out, (long) (this.coef * 1000));
+        } catch (final IOException ex) {
+            throw new AssertionError(ex);
         }
         return out.toByteArray();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("IneB2Weight(c=%.3f)", this.coef);
     }
 
     /**
      * Deserialises an IneB2 weight from an input stream.
      *
-     * @param in Stream positioned after the type byte
+     * @param source Stream positioned after the type byte
      * @return The weight
      * @throws IOException when the stream is malformed
      */
-    static IneB2Weight deserialise(final InputStream in) throws IOException {
+    static IneB2Weight deserialise(final InputStream source) throws IOException {
         final IneB2Weight weight = new IneB2Weight();
-        weight.c = Varints.decode(in) / 1000.0;
+        weight.coef = Varints.decode(source) / 1000.0;
         return weight;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("IneB2Weight(c=%.3f)", this.c);
     }
 }

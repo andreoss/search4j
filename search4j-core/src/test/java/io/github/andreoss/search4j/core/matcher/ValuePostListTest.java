@@ -34,7 +34,7 @@ final class ValuePostListTest {
             List.of(DocId.of(2), DocId.of(4)),
             ValuePostListTest.drain(
                 new ValueRangePostList(
-                    shard, new ValueNo(1), "b", "delta"
+                    shard, ValueRange.of(new ValueNo(1), "b", "delta")
                 )
             ),
             "Inclusive bounds on both ends"
@@ -43,7 +43,7 @@ final class ValuePostListTest {
             List.of(DocId.of(2)),
             ValuePostListTest.drain(
                 new ValueRangePostList(
-                    shard, new ValueNo(1), "b", "b"
+                    shard, ValueRange.of(new ValueNo(1), "b", "b")
                 )
             ),
             "Single valued range"
@@ -52,7 +52,7 @@ final class ValuePostListTest {
             List.of(),
             ValuePostListTest.drain(
                 new ValueRangePostList(
-                    shard, new ValueNo(1), "z", "zz"
+                    shard, ValueRange.of(new ValueNo(1), "z", "zz")
                 )
             ),
             "Range entirely above every value"
@@ -61,7 +61,7 @@ final class ValuePostListTest {
             List.of(DocId.of(1), DocId.of(2), DocId.of(4)),
             ValuePostListTest.drain(
                 new ValueRangePostList(
-                    shard, new ValueNo(1), "", "\uffff"
+                    shard, ValueRange.of(new ValueNo(1), "", "ÿ")
                 )
             ),
             "Wide range includes every stored value"
@@ -98,7 +98,7 @@ final class ValuePostListTest {
     void reportsFrequencyWeightsAndDescriptions() {
         final InMemoryShard shard = ValuePostListTest.populated();
         final PostList range = new ValueRangePostList(
-            shard, new ValueNo(1), "a", "z"
+            shard, ValueRange.of(new ValueNo(1), "a", "z")
         );
         Assertions.assertEquals(
             3, range.termFrequency().value(), "Slot frequency"
@@ -148,24 +148,26 @@ final class ValuePostListTest {
     void rejectsInvalidConstruction() {
         final InMemoryShard shard = ValuePostListTest.populated();
         Assertions.assertThrows(
-            NullPointerException.class,
-            () -> new ValueRangePostList(null, new ValueNo(1), "a", "b"),
+            InvalidArgumentError.class,
+            () -> new ValueRangePostList(
+                null, ValueRange.of(new ValueNo(1), "a", "b")
+            ),
             "Shard is required"
         );
         Assertions.assertThrows(
-            NullPointerException.class,
+            InvalidArgumentError.class,
             () -> new ValueGePostList(shard, null, "a"),
             "Slot is required"
         );
         Assertions.assertThrows(
-            NullPointerException.class,
+            InvalidArgumentError.class,
             () -> new ValueGePostList(shard, new ValueNo(1), null),
             "Bound is required"
         );
         Assertions.assertThrows(
             InvalidArgumentError.class,
             () -> new ValueRangePostList(
-                shard, new ValueNo(1), "z", "a"
+                shard, ValueRange.of(new ValueNo(1), "z", "a")
             ),
             "Lower bound above the upper bound"
         );

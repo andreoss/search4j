@@ -9,8 +9,8 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
+import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.ser.Varints;
-import io.github.andreoss.search4j.core.types.TermCount;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,43 +23,42 @@ import java.io.InputStream;
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.UncommentedEmptyConstructor")
 public final class CoordWeight implements Weight {
 
-    private int termCount;
+    /**
+     * Number of terms in the query.
+     */
+    private int terms;
 
     /**
      * Creates a Coordinate weight.
      */
-    public CoordWeight() {}
+    public CoordWeight() {
+    }
 
     @Override
     public void init(
-        final ShardStatistics database, final Query query, final int termCount
+        final ShardStatistics database, final Query query, final int count
     ) {
-        this.termCount = termCount;
+        this.terms = count;
     }
 
     @Override
     public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms
+        final String term, final TermStats stats, final DocStats doc
     ) {
-        return 1.0 / this.termCount;
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms,
-        final java.util.List<TermCount> positions
-    ) {
-        return 1.0 / this.termCount;
+        double weight = 0.0;
+        if (this.terms > 0) {
+            weight = 1.0 / this.terms;
+        }
+        return weight;
     }
 
     @Override
     public Weight copy() {
         final CoordWeight copy = new CoordWeight();
-        copy.termCount = this.termCount;
+        copy.terms = this.terms;
         return copy;
     }
 
@@ -68,28 +67,29 @@ public final class CoordWeight implements Weight {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             out.write(2);
-            Varints.encode(out, this.termCount);
-        } catch (final IOException e) {
-            throw new AssertionError(e);
+            Varints.encode(out, this.terms);
+        } catch (final IOException ex) {
+            throw new AssertionError(ex);
         }
         return out.toByteArray();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("CoordWeight(%d)", this.terms);
     }
 
     /**
      * Deserialises a Coordinate weight from an input stream.
      *
-     * @param in Stream positioned after the type byte
+     * @param source Stream positioned after the type byte
      * @return The weight
      * @throws IOException when the stream is malformed
      */
-    static CoordWeight deserialise(final InputStream in) throws IOException {
+    static CoordWeight deserialise(final InputStream source)
+        throws IOException {
         final CoordWeight weight = new CoordWeight();
-        weight.termCount = Varints.decode(in);
+        weight.terms = Varints.decode(source);
         return weight;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("CoordWeight(%d)", this.termCount);
     }
 }

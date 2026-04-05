@@ -10,7 +10,6 @@ package io.github.andreoss.search4j.core.api;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 /**
  * A match set: an ordered list of matching documents with their weights.
@@ -41,18 +40,16 @@ public interface MSet extends Iterable<MSet.Item> {
      * Returns the first item or throws when empty.
      *
      * @return First item
-     * @throws NoSuchElementException when no items
      */
-    Item first() throws NoSuchElementException;
+    Item first();
 
     /**
      * Returns the item at an index.
      *
      * @param index Zero-based index below {@link #size()}
      * @return Item at the index
-     * @throws IndexOutOfBoundsException when out of range
      */
-    Item get(int index) throws IndexOutOfBoundsException;
+    Item get(int index);
 
     /**
      * Returns all items as a list.

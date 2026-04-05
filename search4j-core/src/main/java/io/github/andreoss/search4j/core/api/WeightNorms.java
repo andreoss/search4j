@@ -7,126 +7,127 @@
  */
 package io.github.andreoss.search4j.core.api;
 
-import io.github.andreoss.search4j.core.backend.ShardStatistics;
 import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
- * IDF and WDF normalisation functions for weight schemes.
- *
- * <p>Provides standard normalisation functions used by various
- * weighting schemes.</p>
+ * IDF and within-document frequency normalisation functions of the weight
+ * schemes.
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.ProhibitPublicStaticMethods")
 public final class WeightNorms {
 
     /**
      * Utility class, no instances.
      */
-    private WeightNorms() {}
-
-    /**
-     * Computes IDF: log((N - n + 0.5) / (n + 0.5)).
-     *
-     * @param docCount Total number of documents
-     * @param termFreq Number of documents containing the term
-     * @return IDF value
-     */
-    public static double idf(final TermCount docCount, final TermCount termFreq) {
-        final double n = docCount.value();
-        final double nt = termFreq.value();
-        if (nt <= 0.0 || n <= 0.0) {
-            return 0.0;
-        }
-        return Math.log((n - nt + 0.5) / (nt + 0.5));
+    private WeightNorms() {
     }
 
     /**
-     * Computes normalised WDF: wdf / (wdf + k * (1 - b + b * docLength / avgLength)).
+     * Computes the inverse document frequency.
      *
-     * @param wdf Within-document frequency
-     * @param docLength Document length
-     * @param avgLength Average document length
-     * @param k BM25 k parameter
-     * @param b BM25 b parameter
-     * @return Normalised WDF
+     * @param docs Total number of documents
+     * @param freq Number of documents containing the term
+     * @return Inverse document frequency
      */
-    public static double wdfNormalised(
-        final TermCount wdf, final TermCount docLength,
-        final TermCount avgLength, final double k, final double b
-    ) {
-        final double wdfVal = wdf.value();
-        final double dl = docLength.value();
-        final double avgl = avgLength.value();
-        if (wdfVal <= 0.0 || avgl <= 0.0) {
-            return 0.0;
+    public static double idf(final TermCount docs, final TermCount freq) {
+        final double total = docs.value();
+        final double count = freq.value();
+        double idf = 0.0;
+        if (count > 0.0 && total > 0.0) {
+            idf = Math.log((total - count + 0.5) / (count + 0.5));
         }
-        final double denom = wdfVal + k * (1.0 - b + b * dl / avgl);
-        return denom > 0.0 ? wdfVal / denom : 0.0;
+        return idf;
     }
 
     /**
-     * Computes PL2 normalised WDF: wdf * log2(1 + avgLength / docLength).
+     * Computes the PL2 normalised within-document frequency.
      *
      * @param wdf Within-document frequency
-     * @param docLength Document length
-     * @param avgLength Average document length
-     * @return Normalised WDF
+     * @param doclen Document length
+     * @param avglen Average document length
+     * @return Normalised within-document frequency
      */
-    public static double wdfPL2(
-        final TermCount wdf, final TermCount docLength,
-        final TermCount avgLength
+    public static double wdfPl(
+        final TermCount wdf, final TermCount doclen, final TermCount avglen
     ) {
-        final double wdfVal = wdf.value();
-        final double dl = docLength.value();
-        final double avgl = avgLength.value();
-        if (wdfVal <= 0.0 || dl <= 0.0 || avgl <= 0.0) {
-            return 0.0;
+        final double value = wdf.value();
+        final double length = doclen.value();
+        final double avg = avglen.value();
+        double norm = 0.0;
+        if (value > 0.0 && length > 0.0 && avg > 0.0) {
+            norm = value * Math.log(1.0 + avg / length) / Math.log(2.0);
         }
-        return wdfVal * Math.log(1.0 + avgl / dl) / Math.log(2.0);
+        return norm;
     }
 
     /**
-     * Computes DPH normalised WDF: wdf * log2(1 + avgLength / docLength) + 0.5 * log2(2 * pi * wdf).
+     * Computes the DPH normalised within-document frequency.
      *
      * @param wdf Within-document frequency
-     * @param docLength Document length
-     * @param avgLength Average document length
-     * @return Normalised WDF
+     * @param doclen Document length
+     * @param avglen Average document length
+     * @return Normalised within-document frequency
      */
-    public static double wdfDPH(
-        final TermCount wdf, final TermCount docLength,
-        final TermCount avgLength
+    public static double wdfDph(
+        final TermCount wdf, final TermCount doclen, final TermCount avglen
     ) {
-        final double wdfVal = wdf.value();
-        final double dl = docLength.value();
-        final double avgl = avgLength.value();
-        if (wdfVal <= 0.0 || dl <= 0.0 || avgl <= 0.0) {
-            return 0.0;
+        final double value = wdf.value();
+        final double length = doclen.value();
+        final double avg = avglen.value();
+        double norm = 0.0;
+        if (value > 0.0 && length > 0.0 && avg > 0.0) {
+            final double first = value * Math.log(1.0 + avg / length)
+                / Math.log(2.0);
+            final double second = 0.5
+                * Math.log(2.0 * Math.PI * value) / Math.log(2.0);
+            norm = first + second;
         }
-        final double part1 = wdfVal * Math.log(1.0 + avgl / dl) / Math.log(2.0);
-        final double part2 = 0.5 * Math.log(2.0 * Math.PI * wdfVal) / Math.log(2.0);
-        return part1 + part2;
+        return norm;
     }
 
     /**
-     * Computes DLH normalised WDF: wdf * log2(avgLength / docLength).
+     * Computes the DLH normalised within-document frequency.
      *
      * @param wdf Within-document frequency
-     * @param docLength Document length
-     * @param avgLength Average document length
-     * @return Normalised WDF
+     * @param doclen Document length
+     * @param avglen Average document length
+     * @return Normalised within-document frequency
      */
-    public static double wdfDLH(
-        final TermCount wdf, final TermCount docLength,
-        final TermCount avgLength
+    public static double wdfDlh(
+        final TermCount wdf, final TermCount doclen, final TermCount avglen
     ) {
-        final double wdfVal = wdf.value();
-        final double dl = docLength.value();
-        final double avgl = avgLength.value();
-        if (wdfVal <= 0.0 || dl <= 0.0 || avgl <= 0.0) {
-            return 0.0;
+        final double value = wdf.value();
+        final double length = doclen.value();
+        final double avg = avglen.value();
+        double norm = 0.0;
+        if (value > 0.0 && length > 0.0 && avg > 0.0) {
+            norm = value * Math.log(avg / length) / Math.log(2.0);
         }
-        return wdfVal * Math.log(avgl / dl) / Math.log(2.0);
+        return norm;
+    }
+
+    /**
+     * Computes the BM25 normalised within-document frequency.
+     *
+     * @param wdf Within-document frequency
+     * @param doclen Document length
+     * @param norm Length normalisation of the scheme
+     * @return Normalised within-document frequency
+     */
+    static double bmNorm(
+        final TermCount wdf, final TermCount doclen, final Bm25Norm norm
+    ) {
+        final double value = wdf.value();
+        final double length = doclen.value();
+        final double avg = norm.avglen().value();
+        double result = 0.0;
+        final double denom = value
+            + norm.sat() * (1.0 - norm.bpar() + norm.bpar() * length / avg);
+        if (value > 0.0 && avg > 0.0 && denom > 0.0) {
+            result = value / denom;
+        }
+        return result;
     }
 }

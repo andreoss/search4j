@@ -21,6 +21,7 @@ import java.util.Objects;
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.ProhibitPublicStaticMethods")
 public final class MatchEstimate {
 
     /**
@@ -64,22 +65,12 @@ public final class MatchEstimate {
         this.last = upper;
     }
 
-    static MatchEstimate known(
-        final TermCount frequency, final DocId first, final DocId last
-    ) {
-        return MatchEstimate.known(
-            new MatchEstimates(frequency, frequency, frequency, first, last)
-        );
-    }
-
-    static MatchEstimate known(final MatchEstimates values) {
-        Objects.requireNonNull(values, "values");
-        return new MatchEstimate(
-            EstimateKind.KNOWN, List.of(), values,
-            values.first(), values.last()
-        );
-    }
-
+    /**
+     * Estimate of the matches of a posting list.
+     *
+     * @param list Posting list
+     * @return Match estimate
+     */
     public static MatchEstimate from(final PostList list) {
         final MatchEstimate result;
         if (list instanceof AndPostList conjunction) {
@@ -106,24 +97,14 @@ public final class MatchEstimate {
         return result;
     }
 
-    static MatchEstimate intersection(final List<? extends PostList> lists) {
-        return MatchEstimate.combine(EstimateKind.AND, lists);
-    }
-
-    static MatchEstimate difference(final PostList left, final PostList right) {
-        return MatchEstimate.combine(
-            EstimateKind.AND_NOT, List.of(left, right)
-        );
-    }
-
-    static MatchEstimate union(final List<? extends PostList> lists) {
-        return MatchEstimate.combine(EstimateKind.OR, lists);
-    }
-
-    static MatchEstimate exclusive(final List<? extends PostList> lists) {
-        return MatchEstimate.combine(EstimateKind.XOR, lists);
-    }
-
+    /**
+     * Clamps the estimate to a database.
+     *
+     * @param dbsize Number of documents in the database
+     * @param dbfirst First document of the database
+     * @param dblast Last document of the database
+     * @return Resolved estimates
+     */
     public MatchEstimates resolve(
         final TermCount dbsize, final DocId dbfirst, final DocId dblast
     ) {
@@ -148,6 +129,40 @@ public final class MatchEstimate {
             ),
             MatchEstimate.count(maximum), lower, upper
         );
+    }
+
+    static MatchEstimate known(
+        final TermCount frequency, final DocId first, final DocId last
+    ) {
+        return MatchEstimate.known(
+            new MatchEstimates(frequency, frequency, frequency, first, last)
+        );
+    }
+
+    static MatchEstimate known(final MatchEstimates values) {
+        Objects.requireNonNull(values, "values");
+        return new MatchEstimate(
+            EstimateKind.KNOWN, List.of(), values,
+            values.first(), values.last()
+        );
+    }
+
+    static MatchEstimate intersection(final List<? extends PostList> lists) {
+        return MatchEstimate.combine(EstimateKind.AND, lists);
+    }
+
+    static MatchEstimate difference(final PostList left, final PostList right) {
+        return MatchEstimate.combine(
+            EstimateKind.AND_NOT, List.of(left, right)
+        );
+    }
+
+    static MatchEstimate union(final List<? extends PostList> lists) {
+        return MatchEstimate.combine(EstimateKind.OR, lists);
+    }
+
+    static MatchEstimate exclusive(final List<? extends PostList> lists) {
+        return MatchEstimate.combine(EstimateKind.XOR, lists);
     }
 
     private static MatchEstimate combine(

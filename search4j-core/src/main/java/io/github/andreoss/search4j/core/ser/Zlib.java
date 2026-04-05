@@ -21,7 +21,7 @@ import java.util.zip.Inflater;
  *
  * @since 0.1.0
  */
-@SuppressWarnings({"PMD.ProhibitPublicStaticMethods", "PMD.CloseResource"})
+@SuppressWarnings("PMD.ProhibitPublicStaticMethods")
 public final class Zlib {
 
     /**

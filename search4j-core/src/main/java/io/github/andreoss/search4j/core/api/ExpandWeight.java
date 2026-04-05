@@ -9,7 +9,6 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
  * An expansion weight scheme: computes term weights for query expansion.
@@ -20,6 +19,7 @@ import io.github.andreoss.search4j.core.types.TermCount;
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.ProhibitPublicStaticMethods")
 public interface ExpandWeight {
 
     /**
@@ -27,24 +27,18 @@ public interface ExpandWeight {
      *
      * @param database Database statistics
      * @param query The query tree
-     * @param termCount Number of distinct terms in the query
+     * @param terms Number of distinct terms in the query
      */
-    void init(ShardStatistics database, Query query, int termCount);
+    void init(ShardStatistics database, Query query, int terms);
 
     /**
      * Weight of a term for expansion.
      *
      * @param term Term text
-     * @param wqf Within-query frequency (always 1 for expansion terms)
-     * @param termFreq Estimated term frequency in the database
-     * @param docFreq Document frequency in the matching set
-     * @param matchingDocs Number of matching documents
+     * @param stats Term and matching statistics
      * @return Expansion weight, non-negative
      */
-    double weight(
-        String term, TermCount wqf, TermCount termFreq,
-        TermCount docFreq, TermCount matchingDocs
-    );
+    double weight(String term, ExpandStats stats);
 
     /**
      * Creates an uninitialised copy for a parallel or nested query.
@@ -66,7 +60,7 @@ public interface ExpandWeight {
      * @param data Bytes of exactly one weight
      * @return The weight
      */
-    static ExpandWeight deserialise(byte[] data) {
+    static ExpandWeight deserialise(final byte[] data) {
         return ExpandWeightInternal.deserialise(data);
     }
 }

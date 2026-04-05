@@ -9,9 +9,9 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
+import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.ser.Varints;
 import io.github.andreoss.search4j.core.types.TermCount;
-import io.github.andreoss.search4j.core.types.TotalLength;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,12 +25,23 @@ import java.io.InputStream;
  */
 public final class InL2Weight implements Weight {
 
-    private double c;
-    private TermCount avgLength;
-    private TermCount docCount;
+    /**
+     * After-effect parameter.
+     */
+    private double coef;
 
     /**
-     * Creates an InL2 weight with default parameter (c=1.0).
+     * Average document length of the database.
+     */
+    private TermCount avglen;
+
+    /**
+     * Number of documents in the database.
+     */
+    private TermCount docs;
+
+    /**
+     * Creates an InL2 weight with default parameter (coef=1.0).
      */
     public InL2Weight() {
         this(1.0);
@@ -39,65 +50,52 @@ public final class InL2Weight implements Weight {
     /**
      * Creates an InL2 weight with specified parameter.
      *
-     * @param c After-effect parameter
+     * @param coef After-effect parameter
      */
-    public InL2Weight(final double c) {
-        this.c = c;
+    public InL2Weight(final double coef) {
+        this.coef = coef;
     }
 
     @Override
     public void init(
-        final ShardStatistics database, final Query query, final int termCount
+        final ShardStatistics database, final Query query, final int terms
     ) {
-        this.docCount = database.docCount();
-        final TotalLength totalLen = database.totalLength();
-        if (this.docCount.value() > 0) {
-            this.avgLength = new TermCount((int) (totalLen.value() / this.docCount.value()));
+        this.docs = database.docCount();
+        if (this.docs.value() > 0) {
+            this.avglen = new TermCount((int) (database.totalLength().value() / this.docs.value()));
         } else {
-            this.avgLength = TermCount.ZERO;
+            this.avglen = TermCount.ZERO;
         }
     }
 
     @Override
     public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms
+        final String term, final TermStats stats, final DocStats doc
     ) {
-        if (this.avgLength == null || this.avgLength.value() <= 0) {
-            return 0.0;
+        final TermCount wqf = stats.wqf();
+        final TermCount wdf = stats.wdf();
+        final TermCount doclen = doc.length();
+        double weight = 0.0;
+        final double value = wdf.value();
+        final boolean sized = this.docs != null && this.docs.value() > 0;
+        final boolean average = this.avglen != null && this.avglen.value() > 0;
+        if (sized && average && value > 0.0) {
+            final double avg = this.avglen.value();
+            final double idf = Math.log(
+                this.docs.value() / value
+            ) / Math.log(2.0);
+            final double denom = value
+                + this.coef * (doclen.value() / avg);
+            weight = idf * (value / denom) * wqf.value();
         }
-        if (this.docCount == null || this.docCount.value() <= 0) {
-            return 0.0;
-        }
-        // InL2 IDF: log2(N / nt)
-        final double idf = Math.log(this.docCount.value() / wdf.value()) / Math.log(2.0);
-        // L2 normalisation: wdf / (wdf + c * (1 - b + b * docLength / avgLength))
-        // For InL2, b = 1 (full length normalisation)
-        final double wdfVal = wdf.value();
-        final double dl = docLength.value();
-        final double avgl = this.avgLength.value();
-        if (wdfVal <= 0.0 || avgl <= 0.0) {
-            return 0.0;
-        }
-        final double denom = wdfVal + this.c * (dl / avgl);
-        final double tfn = denom > 0.0 ? wdfVal / denom : 0.0;
-        return idf * tfn * wqf.value();
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermCount wqf, final TermCount wdf,
-        final TermCount docLength, final TermCount uniqueTerms,
-        final java.util.List<TermCount> positions
-    ) {
-        return this.weight(term, wqf, wdf, docLength, uniqueTerms);
+        return weight;
     }
 
     @Override
     public Weight copy() {
-        final InL2Weight copy = new InL2Weight(this.c);
-        copy.avgLength = this.avgLength;
-        copy.docCount = this.docCount;
+        final InL2Weight copy = new InL2Weight(this.coef);
+        copy.avglen = this.avglen;
+        copy.docs = this.docs;
         return copy;
     }
 
@@ -105,29 +103,29 @@ public final class InL2Weight implements Weight {
     public byte[] serialise() {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write(9); // InL2 type
-            Varints.encode(out, (long) (this.c * 1000));
-        } catch (final IOException e) {
-            throw new AssertionError(e);
+            out.write(9);
+            Varints.encode(out, (long) (this.coef * 1000));
+        } catch (final IOException ex) {
+            throw new AssertionError(ex);
         }
         return out.toByteArray();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("InL2Weight(c=%.3f)", this.coef);
     }
 
     /**
      * Deserialises an InL2 weight from an input stream.
      *
-     * @param in Stream positioned after the type byte
+     * @param source Stream positioned after the type byte
      * @return The weight
      * @throws IOException when the stream is malformed
      */
-    static InL2Weight deserialise(final InputStream in) throws IOException {
+    static InL2Weight deserialise(final InputStream source) throws IOException {
         final InL2Weight weight = new InL2Weight();
-        weight.c = Varints.decode(in) / 1000.0;
+        weight.coef = Varints.decode(source) / 1000.0;
         return weight;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("InL2Weight(c=%.3f)", this.c);
     }
 }

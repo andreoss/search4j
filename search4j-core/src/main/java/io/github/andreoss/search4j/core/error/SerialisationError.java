@@ -62,14 +62,4 @@ public final class SerialisationError extends RuntimeError {
     ) {
         super(message, context, errno);
     }
-
-    /**
-     * Creates the error from a cause.
-     *
-     * @param cause Underlying cause
-     */
-    public SerialisationError(final Throwable cause) {
-        super(cause.getMessage(), "", 0);
-        initCause(cause);
-    }
 }

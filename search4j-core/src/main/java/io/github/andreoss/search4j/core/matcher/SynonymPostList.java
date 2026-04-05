@@ -9,6 +9,7 @@ package io.github.andreoss.search4j.core.matcher;
 
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PostList;
+import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
@@ -19,14 +20,9 @@ import io.github.andreoss.search4j.core.types.TermCount;
 public final class SynonymPostList extends WrapperPostList {
 
     /**
-     * Scheme scoring the group as one term.
+     * Scoring scheme of the group.
      */
-    private final SynonymWeight scheme;
-
-    /**
-     * Whether the within-document frequency is clamped to the document length.
-     */
-    private final boolean clamp;
+    private final SynonymSpec scheme;
 
     /**
      * Callback run when the wrapped list is replaced.
@@ -38,62 +34,40 @@ public final class SynonymPostList extends WrapperPostList {
      *
      * @param wrapped Wrapped union
      * @param scheme Scheme scoring the group as one term
-     * @param clamp Whether to clamp the frequency to the document length
      * @param recalculation Callback run when the wrapped list is replaced
      */
     public SynonymPostList(
-        final PostList wrapped, final SynonymWeight scheme,
-        final boolean clamp, final Runnable recalculation
+        final PostList wrapped, final SynonymSpec scheme,
+        final Runnable recalculation
     ) {
-        this(
-            SynonymPostList.prepare(wrapped, scheme, recalculation), clamp
-        );
-    }
-
-    /**
-     * Creates the wrapper from checked parts.
-     *
-     * @param parts Wrapped union and scoring scheme
-     * @param clamped Whether to clamp the frequency to the document length
-     */
-    private SynonymPostList(final SynonymParts parts, final boolean clamped) {
-        super(parts.wrapped());
-        this.scheme = parts.scheme();
-        this.clamp = clamped;
-        this.recalc = parts.recalc();
-    }
-
-    @Override
-    protected PostList move(final double least) {
-        final PostList wrapped = this.wrapped();
-        final PostList moved = wrapped.next(0.0);
-        this.replace(moved);
-        this.replaced(wrapped, moved);
-        return moved;
-    }
-
-    @Override
-    protected void replaced(final PostList before, final PostList after) {
-        if (!after.equals(before)) {
-            this.recalc.run();
+        super(wrapped);
+        if (scheme == null) {
+            throw new InvalidArgumentError("A scheme is required");
         }
+        if (recalculation == null) {
+            throw new InvalidArgumentError("A callback is required");
+        }
+        this.scheme = scheme;
+        this.recalc = recalculation;
+    }
+
+    @Override
+    public TermCount wdf() {
+        return this.wrapped().wdf();
     }
 
     @Override
     public double weight(final DocStats doc) {
         TermCount wdf = TermCount.ZERO;
-        if (this.scheme.needsWdf()) {
-            wdf = this.wdf();
-            if (this.clamp && wdf.value() > doc.length().value()) {
-                wdf = doc.length();
-            }
+        if (this.scheme.weight().needsWdf()) {
+            wdf = SynonymPostList.clamped(this.wdf(), doc);
         }
-        return this.scheme.sumPart(wdf, doc);
+        return this.scheme.weight().sumPart(wdf, doc);
     }
 
     @Override
     public double recalcMaxWeight() {
-        return this.scheme.maxPart();
+        return this.scheme.weight().maxPart();
     }
 
     @Override
@@ -108,37 +82,29 @@ public final class SynonymPostList extends WrapperPostList {
         );
     }
 
-    /**
-     * Validates the wrapped union and its scheme.
-     *
-     * @param wrapped Wrapped union
-     * @param scheme Scheme scoring the group as one term
-     * @param callback Callback run when the wrapped list is replaced
-     * @return Checked parts
-     */
-    private static SynonymParts prepare(
-        final PostList wrapped, final SynonymWeight scheme,
-        final Runnable callback
-    ) {
-        if (scheme == null) {
-            throw new NullPointerException("scheme");
-        }
-        if (callback == null) {
-            throw new NullPointerException("recalculation");
-        }
-        return new SynonymParts(wrapped, scheme, callback);
+    @Override
+    PostList move(final double least) {
+        final PostList wrapped = this.wrapped();
+        final PostList moved = wrapped.next(0.0);
+        this.replace(moved);
+        this.replaced(wrapped, moved);
+        return moved;
     }
 
-    /**
-     * Wrapped union with its scoring scheme.
-     *
-     * @param wrapped Wrapped union
-     * @param scheme Scheme scoring the group as one term
-     * @param recalc Callback run when the wrapped list is replaced
-     * @since 0.1.0
-     */
-    private record SynonymParts(
-        PostList wrapped, SynonymWeight scheme, Runnable recalc
-    ) {
+    @Override
+    void replaced(final PostList before, final PostList after) {
+        if (!after.equals(before)) {
+            this.recalc.run();
+        }
+    }
+
+    private static TermCount clamped(final TermCount wdf, final DocStats doc) {
+        final TermCount result;
+        if (wdf.value() > doc.length().value()) {
+            result = doc.length();
+        } else {
+            result = wdf;
+        }
+        return result;
     }
 }

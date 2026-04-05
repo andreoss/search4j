@@ -12,10 +12,10 @@ import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.EmptyPostList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.common.Strings;
+import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.error.InvalidOperationError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
-import java.util.Objects;
 
 /**
  * Documents supplied by an external posting source.
@@ -25,8 +25,16 @@ import java.util.Objects;
  *
  * @since 0.1.0
  */
-@SuppressWarnings("PMD.NullAssignment")
+@SuppressWarnings({
+    "PMD.NullAssignment",
+    "PMD.ProhibitPublicStaticMethods"
+})
 public final class ExternalPostList implements PostList {
+
+    /**
+     * Database read.
+     */
+    private final Database database;
 
     /**
      * Source of documents and weights.
@@ -59,17 +67,15 @@ public final class ExternalPostList implements PostList {
         final Database database, final PostingSource source,
         final double factor
     ) {
-        this(ExternalPostList.prepare(database, source, factor));
-    }
-
-    /**
-     * Creates the external list from checked parts.
-     *
-     * @param parts Database, source and factor
-     */
-    private ExternalPostList(final SourceParts parts) {
-        this.source = parts.source();
-        this.factor = parts.factor();
+        if (database == null) {
+            throw new InvalidArgumentError("A database is required");
+        }
+        if (source == null) {
+            throw new InvalidArgumentError("A posting source is required");
+        }
+        this.database = database;
+        this.source = source;
+        this.factor = factor;
         this.current = null;
         this.started = false;
     }
@@ -89,38 +95,6 @@ public final class ExternalPostList implements PostList {
         return new ExternalPostList(database, source, factor);
     }
 
-    /**
-     * Validates the arguments and resets the source.
-     *
-     * @param database Database read
-     * @param source Source of documents and weights
-     * @param factor Weight factor applied to every document
-     * @return Checked parts
-     */
-    private static SourceParts prepare(
-        final Database database, final PostingSource source,
-        final double factor
-    ) {
-        if (database == null) {
-            throw new NullPointerException("database");
-        }
-        if (source == null) {
-            throw new NullPointerException("source");
-        }
-        source.reset(database, 0);
-        return new SourceParts(source, factor);
-    }
-
-    /**
-     * Source and weight factor.
-     *
-     * @param source Source of documents and weights
-     * @param factor Weight factor applied to every document
-     * @since 0.1.0
-     */
-    private record SourceParts(PostingSource source, double factor) {
-    }
-
     @Override
     public DocId docId() {
         if (this.current == null) {
@@ -138,6 +112,7 @@ public final class ExternalPostList implements PostList {
 
     @Override
     public PostList next(final double least) {
+        this.start();
         this.source.next(least);
         this.started = true;
         return this.advance();
@@ -148,6 +123,7 @@ public final class ExternalPostList implements PostList {
         PostList result = this;
         if (this.current == null
             || target.compareTo(this.current) > 0) {
+            this.start();
             this.source.skipTo(target, least);
             this.started = true;
             result = this.advance();
@@ -185,6 +161,13 @@ public final class ExternalPostList implements PostList {
         return String.format(
             "ExternalPostList(%s)", Strings.decimal(this.factor)
         );
+    }
+
+    private void start() {
+        if (!this.started) {
+            this.source.reset(this.database, 0);
+            this.started = true;
+        }
     }
 
     private PostList advance() {

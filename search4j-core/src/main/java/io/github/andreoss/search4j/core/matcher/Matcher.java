@@ -7,6 +7,7 @@
  */
 package io.github.andreoss.search4j.core.matcher;
 
+import io.github.andreoss.search4j.core.api.BoolWeight;
 import io.github.andreoss.search4j.core.api.Weight;
 import io.github.andreoss.search4j.core.api.query.BoundNode;
 import io.github.andreoss.search4j.core.api.query.Node;
@@ -19,7 +20,6 @@ import io.github.andreoss.search4j.core.backend.list.LeafPostList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.QueryOp;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +28,10 @@ import java.util.Optional;
  *
  * @since 0.1.0
  */
+@SuppressWarnings({
+    "PMD.ProhibitPublicStaticMethods",
+    "RefactorSwitch"
+})
 public final class Matcher {
 
     /**
@@ -44,7 +48,7 @@ public final class Matcher {
      * @return PostList tree
      */
     public static PostList resolve(final Shard shard, final Query query) {
-        return resolve(shard, query, new io.github.andreoss.search4j.core.api.BoolWeight());
+        return Matcher.resolve(shard, query, new BoolWeight());
     }
 
     /**
@@ -58,141 +62,171 @@ public final class Matcher {
     public static PostList resolve(
         final Shard shard, final Query query, final Weight weight
     ) {
+        final PostList result;
         if (query.empty()) {
-            return EmptyPostList.INSTANCE;
+            result = EmptyPostList.INSTANCE;
+        } else {
+            result = Matcher.resolveNode(
+                shard, query.node(), weight, () -> {
+                }
+            );
         }
-        return resolveNode(shard, query.node(), weight, () -> {});
+        return result;
     }
 
     private static PostList resolveNode(
         final Shard shard, final Node node, final Weight weight,
         final Runnable recalc
     ) {
-        return switch (node.type()) {
-            case LEAF_TERM -> {
-                final String term = node.term();
-                final Optional<LeafPostList> leaf = shard.openLeafPostList(term, false);
-                if (leaf.isPresent()) {
-                    leaf.get().weighting(new LeafTermWeight(term, weight));
-                    yield leaf.get();
-                }
-                yield EmptyPostList.INSTANCE;
-            }
-            case VALUE_RANGE -> {
-                final RangeNode range = (RangeNode) node;
-                yield ValueRangePostList.of(
-                    shard, range.slot(), range.lower(), range.upper()
-                );
-            }
-            case VALUE_GE -> {
-                final BoundNode bound = (BoundNode) node;
-                yield ValueRangePostList.ge(shard, bound.slot(), bound.limit());
-            }
-            case VALUE_LE -> {
-                final BoundNode bound = (BoundNode) node;
-                yield ValueRangePostList.of(
-                    shard, bound.slot(), "", bound.limit()
-                );
-            }
-            case LEAF_MATCH_ALL -> shard.openPostList("");
-            case LEAF_MATCH_NOTHING -> EmptyPostList.INSTANCE;
-            case WILDCARD, EDIT_DISTANCE -> {
-                throw new InvalidArgumentError(
-                    "Wildcard and edit distance not yet supported in matcher"
-                );
-            }
-            case AND, OR, AND_NOT, XOR, AND_MAYBE -> {
-                final int count = node.subqueryCount();
-                final PostList[] subqueries = new PostList[count];
-                for (int i = 0; i < count; i++) {
-                    subqueries[i] = resolveNode(shard, node.subquery(i).node(), weight, recalc);
-                }
-                yield resolveOperator(shard, node.type(), subqueries, recalc);
-            }
-            case SCALE_WEIGHT -> {
-                final ScaleNode scale = (ScaleNode) node;
-                final PostList sub = resolveNode(shard, scale.subquery(0).node(), weight, recalc);
-                yield new ExtraWeightPostList(sub, new SimpleExtraWeight(scale.factor()), recalc);
-            }
-            default -> throw new InvalidArgumentError(
-                "Unknown query type: " + node.type()
+        final PostList result;
+        switch (node.type()) {
+            case LEAF_TERM -> result = Matcher.leaf(
+                shard, node.term(), weight
             );
-        };
+            case LEAF_MATCH_ALL -> result = shard.openPostList("");
+            case LEAF_MATCH_NOTHING -> result = EmptyPostList.INSTANCE;
+            case AND, OR, AND_NOT, XOR, AND_MAYBE -> result = Matcher.branch(
+                shard, node, weight, recalc
+            );
+            case SCALE_WEIGHT -> result = Matcher.scale(
+                shard, (ScaleNode) node, weight, recalc
+            );
+            case VALUE_RANGE, VALUE_GE, VALUE_LE -> result = Matcher.value(
+                shard, node
+            );
+            default -> throw new InvalidArgumentError(
+                String.format(
+                    "Query type %s is not supported", node.type()
+                )
+            );
+        }
+        return result;
     }
 
-    private static PostList resolveOperator(
+    private static PostList leaf(
+        final Shard shard, final String term, final Weight weight
+    ) {
+        final Optional<LeafPostList> leaf =
+            shard.openLeafPostList(term, false);
+        final PostList result;
+        if (leaf.isPresent()) {
+            leaf.get().weighting(new LeafTermWeight(term, weight));
+            result = leaf.get();
+        } else {
+            result = EmptyPostList.INSTANCE;
+        }
+        return result;
+    }
+
+    private static PostList value(final Shard shard, final Node node) {
+        final PostList result;
+        if (node.type() == QueryOp.VALUE_RANGE) {
+            final RangeNode range = (RangeNode) node;
+            result = ValueRangePostList.of(
+                shard,
+                ValueRange.of(range.slot(), range.lower(), range.upper())
+            );
+        } else if (node.type() == QueryOp.VALUE_GE) {
+            final BoundNode bound = (BoundNode) node;
+            result = ValueRangePostList.atLeast(
+                shard, bound.slot(), bound.limit()
+            );
+        } else {
+            final BoundNode bound = (BoundNode) node;
+            result = ValueRangePostList.of(
+                shard, ValueRange.of(bound.slot(), "", bound.limit())
+            );
+        }
+        return result;
+    }
+
+    private static PostList branch(
+        final Shard shard, final Node node, final Weight weight,
+        final Runnable recalc
+    ) {
+        final int count = node.subqueryCount();
+        final PostList[] subqueries = new PostList[count];
+        int index = 0;
+        while (index < count) {
+            subqueries[index] = Matcher.resolveNode(
+                shard, node.subquery(index).node(), weight, recalc
+            );
+            index = index + 1;
+        }
+        return Matcher.operator(shard, node.type(), subqueries, recalc);
+    }
+
+    private static PostList scale(
+        final Shard shard, final ScaleNode node, final Weight weight,
+        final Runnable recalc
+    ) {
+        return new ExtraWeightPostList(
+            Matcher.resolveNode(
+                shard, node.subquery(0).node(), weight, recalc
+            ),
+            new SimpleExtraWeight(node.factor()), recalc
+        );
+    }
+
+    private static PostList operator(
         final Shard shard, final QueryOp type, final PostList[] subqueries,
         final Runnable recalc
     ) {
-        return switch (type) {
-            case AND -> {
-                yield new AndPostList(List.of(subqueries), recalc);
-            }
-            case OR -> {
-                if (subqueries.length == 2) {
-                    yield new OrPostList(subqueries[0], subqueries[1], recalc);
-                } else {
-                    PostList result = subqueries[0];
-                    for (int i = 1; i < subqueries.length; i++) {
-                        result = new OrPostList(result, subqueries[i], recalc);
-                    }
-                    yield result;
-                }
-            }
-            case AND_NOT -> {
-                if (subqueries.length == 2) {
-                    yield new AndNotPostList(subqueries[0], subqueries[1], shard.docCount());
-                } else {
-                    throw new InvalidArgumentError("AND_NOT requires exactly 2 subqueries");
-                }
-            }
-            case XOR -> {
-                final List<PostList> xorLists = List.of(subqueries);
-                // Need database size for XOR - use shard.docCount()
-                // This is a simplification; proper implementation needs the database size
-                yield new XorPostList(xorLists, shard.docCount(), recalc);
-            }
-            case AND_MAYBE -> {
-                if (subqueries.length == 2) {
-                    yield new AndMaybePostList(subqueries[0], subqueries[1], recalc);
-                } else {
-                    throw new InvalidArgumentError("AND_MAYBE requires exactly 2 subqueries");
-                }
-            }
-            default -> throw new InvalidArgumentError(
-                "Unhandled operator: " + type
+        final PostList result;
+        switch (type) {
+            case AND -> result = new AndPostList(List.of(subqueries), recalc);
+            case OR -> result = Matcher.disjoin(subqueries, recalc);
+            case AND_NOT -> result = Matcher.difference(subqueries, shard);
+            case XOR -> result = new XorPostList(
+                List.of(subqueries), shard.docCount(), recalc
             );
-        };
+            case AND_MAYBE -> result = Matcher.maybe(subqueries, recalc);
+            default -> throw new InvalidArgumentError(
+                String.format("Operator %s is not supported", type)
+            );
+        }
+        return result;
     }
 
-    /**
-     * Weight adapter for a leaf term.
-     */
-    private static final class LeafTermWeight
-        implements io.github.andreoss.search4j.core.backend.list.TermWeight {
-
-        private final String term;
-        private final Weight weight;
-
-        LeafTermWeight(final String term, final Weight weight) {
-            this.term = term;
-            this.weight = weight;
+    private static PostList disjoin(
+        final PostList[] subqueries, final Runnable recalc
+    ) {
+        final PostList result;
+        if (subqueries.length == 2) {
+            result = new OrPostList(subqueries[0], subqueries[1], recalc);
+        } else {
+            PostList joined = subqueries[0];
+            int index = 1;
+            while (index < subqueries.length) {
+                joined = new OrPostList(joined, subqueries[index], recalc);
+                index = index + 1;
+            }
+            result = joined;
         }
+        return result;
+    }
 
-        @Override
-        public double sumPart(
-            final io.github.andreoss.search4j.core.types.TermCount wdf,
-            final io.github.andreoss.search4j.core.backend.list.DocStats doc
-        ) {
-            return this.weight.weight(
-                this.term, new io.github.andreoss.search4j.core.types.TermCount(1),
-                wdf, doc.length(), doc.unique()
+    private static PostList difference(
+        final PostList[] subqueries, final Shard shard
+    ) {
+        if (subqueries.length != 2) {
+            throw new InvalidArgumentError(
+                "AND_NOT requires exactly 2 subqueries"
             );
         }
+        return new AndNotPostList(
+            subqueries[0], subqueries[1], shard.docCount()
+        );
+    }
 
-        @Override
-        public double maxPart() {
-            return 1.0; // Placeholder
+    private static PostList maybe(
+        final PostList[] subqueries, final Runnable recalc
+    ) {
+        if (subqueries.length != 2) {
+            throw new InvalidArgumentError(
+                "AND_MAYBE requires exactly 2 subqueries"
+            );
         }
+        return new AndMaybePostList(subqueries[0], subqueries[1], recalc);
     }
 }

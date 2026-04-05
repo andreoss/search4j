@@ -9,7 +9,7 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.types.TermCount;
+import io.github.andreoss.search4j.core.backend.list.DocStats;
 
 /**
  * A weighting scheme: computes term weight contributions for scoring.
@@ -20,6 +20,7 @@ import io.github.andreoss.search4j.core.types.TermCount;
  *
  * @since 0.1.0
  */
+@SuppressWarnings("PMD.ProhibitPublicStaticMethods")
 public interface Weight {
 
     /**
@@ -27,40 +28,19 @@ public interface Weight {
      *
      * @param database Database statistics
      * @param query The query tree
-     * @param termCount Number of distinct terms in the query
+     * @param terms Number of distinct terms in the query
      */
-    void init(ShardStatistics database, Query query, int termCount);
+    void init(ShardStatistics database, Query query, int terms);
 
     /**
      * Weight contribution of a term for a document.
      *
      * @param term Term text
-     * @param wqf Within-query frequency
-     * @param wdf Within-document frequency
-     * @param docLength Length of the document
-     * @param uniqueTerms Distinct term count of the document
+     * @param stats Within-query and within-document frequencies
+     * @param doc Length statistics of the document
      * @return Weight contribution, non-negative
      */
-    double weight(
-        String term, TermCount wqf, TermCount wdf, TermCount docLength,
-        TermCount uniqueTerms
-    );
-
-    /**
-     * Weight contribution of a term for a document with position data.
-     *
-     * @param term Term text
-     * @param wqf Within-query frequency
-     * @param wdf Within-document frequency
-     * @param docLength Length of the document
-     * @param uniqueTerms Distinct term count of the document
-     * @param positions Positions of the term in the document
-     * @return Weight contribution, non-negative
-     */
-    double weight(
-        String term, TermCount wqf, TermCount wdf, TermCount docLength,
-        TermCount uniqueTerms, java.util.List<TermCount> positions
-    );
+    double weight(String term, TermStats stats, DocStats doc);
 
     /**
      * Creates an uninitialised copy for a parallel or nested query.
@@ -82,7 +62,7 @@ public interface Weight {
      * @param data Bytes of exactly one weight
      * @return The weight
      */
-    static Weight deserialise(byte[] data) {
+    static Weight deserialise(final byte[] data) {
         return WeightInternal.deserialise(data);
     }
 }

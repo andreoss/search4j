@@ -10,7 +10,6 @@ package io.github.andreoss.search4j.core.api;
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
 import io.github.andreoss.search4j.core.ser.Varints;
-import io.github.andreoss.search4j.core.types.TermCount;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,20 +22,27 @@ import java.io.InputStream;
  *
  * @since 0.1.0
  */
+@SuppressWarnings({
+    "PMD.UncommentedEmptyConstructor",
+    "PMD.UncommentedEmptyMethodBody"
+})
 public final class Bo1EWeight implements ExpandWeight {
 
-    private int matchingDocs;
+    /**
+     * Number of documents matching the expanded query.
+     */
+    private int matches;
 
     /**
      * Creates a Bo1 expansion weight.
      */
-    public Bo1EWeight() {}
+    public Bo1EWeight() {
+    }
 
     @Override
     public void init(
-        final ShardStatistics database, final Query query, final int termCount
+        final ShardStatistics database, final Query query, final int terms
     ) {
-        // Matching docs will be set during ESet generation
     }
 
     /**
@@ -45,32 +51,26 @@ public final class Bo1EWeight implements ExpandWeight {
      * @param docs Number of matching documents
      */
     public void setMatchingDocs(final int docs) {
-        this.matchingDocs = docs;
+        this.matches = docs;
     }
 
     @Override
-    public double weight(
-        final String term, final TermCount wqf, final TermCount termFreq,
-        final TermCount docFreq, final TermCount matchingDocs
-    ) {
-        if (termFreq.value() == 0 || docFreq.value() == 0 || matchingDocs.value() == 0) {
-            return 0.0;
+    public double weight(final String term, final ExpandStats stats) {
+        double weight = 0.0;
+        final double tfr = stats.freq().value();
+        final double dfr = stats.dfreq().value();
+        final double total = stats.docs().value();
+        final double expected = dfr * (dfr + 1.0) / total;
+        if (tfr > 0.0 && dfr > 0.0 && total > 0.0 && expected > 0.0) {
+            weight = Math.log(tfr / expected) / Math.log(2.0);
         }
-        // Bo1 weight: log2((termFreq * matchingDocs) / (docFreq * (docFreq + 1)))
-        final double tf = termFreq.value();
-        final double df = docFreq.value();
-        final double md = matchingDocs.value();
-        final double expected = df * (df + 1) / md;
-        if (expected <= 0.0) {
-            return 0.0;
-        }
-        return Math.log(tf / expected) / Math.log(2.0);
+        return weight;
     }
 
     @Override
     public ExpandWeight copy() {
         final Bo1EWeight copy = new Bo1EWeight();
-        copy.matchingDocs = this.matchingDocs;
+        copy.matches = this.matches;
         return copy;
     }
 
@@ -79,28 +79,28 @@ public final class Bo1EWeight implements ExpandWeight {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             out.write(1);
-            Varints.encode(out, this.matchingDocs);
-        } catch (final IOException e) {
-            throw new AssertionError(e);
+            Varints.encode(out, this.matches);
+        } catch (final IOException ex) {
+            throw new AssertionError(ex);
         }
         return out.toByteArray();
-    }
-
-    /**
-     * Deserialises a Bo1 expansion weight from an input stream.
-     *
-     * @param in Stream positioned after the type byte
-     * @return The weight
-     * @throws IOException when the stream is malformed
-     */
-    static Bo1EWeight deserialise(final InputStream in) throws IOException {
-        final Bo1EWeight weight = new Bo1EWeight();
-        weight.matchingDocs = Varints.decode(in);
-        return weight;
     }
 
     @Override
     public String toString() {
         return String.format("Bo1EWeight()");
+    }
+
+    /**
+     * Deserialises a Bo1 expansion weight from an input stream.
+     *
+     * @param source Stream positioned after the type byte
+     * @return The weight
+     * @throws IOException when the stream is malformed
+     */
+    static Bo1EWeight deserialise(final InputStream source) throws IOException {
+        final Bo1EWeight weight = new Bo1EWeight();
+        weight.matches = Varints.decode(source);
+        return weight;
     }
 }

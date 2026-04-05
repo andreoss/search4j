@@ -17,14 +17,15 @@ import io.github.andreoss.search4j.core.types.TermCount;
  *
  * @since 0.1.0
  */
+@FunctionalInterface
 public interface ExpandDecider {
 
     /**
      * Tests whether a term should be included in the expansion set.
      *
      * @param term Candidate term
-     * @param termFreq Estimated term frequency in the database
+     * @param freq Estimated term frequency in the database
      * @return True to include, false to exclude
      */
-    boolean decide(String term, TermCount termFreq);
+    boolean decide(String term, TermCount freq);
 }
