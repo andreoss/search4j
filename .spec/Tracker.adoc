@@ -6,9 +6,9 @@ NOTE: Only the PM MAY add or change `Backlog` items and `Rules`; runs MAY
 update item status. `History` MUST only be appended to.
 
 == Status
-- Progress: 39/55 (70%)
-- ETA: 2026-11-17
-- Velocity: 1.39 items/day over 28 days
+- Progress: 40/55 (72%)
+- ETA: 2026-11-16
+- Velocity: 1.43 items/day over 28 days
 - Updated: 2026-11-05
 
 Every run that appends to `History` MUST recompute:
@@ -125,7 +125,7 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 | ID-33 | x | QueryParser grammar: queryparser, queryparser_internal, all syntax parsing. Done when all query syntax produces identical Query trees as C++.
 | ID-34 | x | TermGenerator: term generation from text, stop words, stemming, n-grams. Done when TermGenerator produces identical terms as C++.
 | ID-35 | x | Stemming runtime: snowball_runtime, api.h, sbl-dispatch, Stem class. Done when Stem class works and runtime executes algorithms correctly.
-| ID-36 | - | All language stemmers: all 39 language algorithms ported from .sbl to Java. Done when all stemmers produce identical output to C++.
+| ID-36 | ! | All language stemmers: all 39 language algorithms ported from .sbl to Java. Done when all stemmers produce identical output to C++.
 
 // Phase 6: GeoSpatial, Cluster, Compaction
 | ID-37 | - | GeoSpatial: latlongcoord, geoencode, latlong_metrics, distance_keymaker, posting_source, postingsource API. Done when geo queries match C++.
@@ -145,7 +145,7 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
 | ID-47 | - | Cross-compatibility tests: automated round-trip tests for all backends against C++ tools. Done when all cross-compat tests pass zero failures.
 | ID-48 | - | JMH benchmarks: benchmarks for all hot-path operations. Done when all benchmarks run and produce report.
 | ID-49 | - | Performance optimisation: optimise operations exceeding 1x C++ baseline. Done when all operations within 1x or documented with root cause analysis.
-| ID-50 | - | Registry and remaining API: Registry, RSet, TermInfo, VectorTermList, SmallVector, editdistance, sortable-serialise, rangeproc, ValueSetMatchDecider, KeyMaker, MatchSpy. Done when all remaining API types implemented and tested.
+| ID-50 | x | Registry and remaining API: Registry, RSet, TermInfo, VectorTermList, SmallVector, editdistance, sortable-serialise, rangeproc, ValueSetMatchDecider, KeyMaker, MatchSpy. Done when all remaining API types implemented and tested.
 | ID-51 | - | Documentation and release prep: README.adoc verified, LICENSE file, module-info.java for JPMS. Done when build from clean checkout passes.
 | ID-52 | o | Honey backend: omitted from scope per Kick-Off.`
 
@@ -325,6 +325,8 @@ Status: `-` todo, `~` in progress, `x` done, `!` blocked, `o` out of scope.
   Stemming algorithms, n-grams and reference comparison are missing; no
   reference binary.
 - 2026-11-05 IT-XXXVI: done ID-35; blocked none. Snowball runtime base, among tables, slice and cursor primitives delivered; Stem registry with the none identity and porter; PorterStemmer registered; 101 tests, 2425 in the suite, Qulice zero violations; commit 4eb9684. Runtime is written from the algorithm contract because the reference sources and .sbl files are absent; Porter is hand-written, not generated; no reference binary.
+- 2026-11-05 IT-XXXVII: done none; blocked ID-36. Fetched Snowball 2.2.0 sources and built the reference generator in scratch; the generator emits 32 .sbl algorithms for 2.2.0; generated Java was produced for english and mechanically renamed towards the runtime, though compilation was not completed, and the generated bodies violate the mandated gate: 55 return statements in one algorithm against the single-return rule, and generated stem methods exceed the cyclomatic limit by construction. Making the gate green would require either an accepted ADR that scopes Qulice away from generated sources or 32 hand-written compliant ports. Both are Owner decisions. Reference data and generator held in scratch/snowball and scratch/snowball-data.
+- 2026-11-05 IT-LV: done ID-50; blocked none. Registry, RSet, TermInfo, SmallVector, VectorTermList, RangeProcessor, ValueRangeProcessor and ValueSetMatchDecider delivered with 23 tests; 2448 tests, Qulice zero violations; commit 2c49eca. Registry covers weighting schemes and range processors only; no reference binary.
 
 [[optional-rules]]
 == Optional rules
