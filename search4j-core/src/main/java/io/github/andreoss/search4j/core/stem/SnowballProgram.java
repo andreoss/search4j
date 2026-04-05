@@ -54,7 +54,7 @@ public abstract class SnowballProgram {
     /**
      * Lower bound of a backward scan.
      */
-    private int back;
+    private int backward;
 
     /**
      * Creates an empty program.
@@ -65,7 +65,7 @@ public abstract class SnowballProgram {
         this.limit = 0;
         this.bra = 0;
         this.ket = 0;
-        this.back = 0;
+        this.backward = 0;
     }
 
     /**
@@ -84,7 +84,7 @@ public abstract class SnowballProgram {
         this.limit = this.current.length();
         this.bra = 0;
         this.ket = 0;
-        this.back = 0;
+        this.backward = 0;
     }
 
     protected final void copyFrom(final SnowballProgram other) {
@@ -94,7 +94,7 @@ public abstract class SnowballProgram {
         this.limit = other.limit;
         this.bra = other.bra;
         this.ket = other.ket;
-        this.back = other.back;
+        this.backward = other.backward;
     }
 
     protected final int cursor() {
@@ -129,12 +129,12 @@ public abstract class SnowballProgram {
         this.ket = value;
     }
 
-    protected final int back() {
-        return this.back;
+    protected final int backward() {
+        return this.backward;
     }
 
-    protected final void back(final int value) {
-        this.back = value;
+    protected final void backward(final int value) {
+        this.backward = value;
     }
 
     protected final boolean nextChar() {
@@ -146,7 +146,7 @@ public abstract class SnowballProgram {
     }
 
     protected final boolean prevChar() {
-        final boolean moved = this.cursor > this.back;
+        final boolean moved = this.cursor > this.backward;
         if (moved) {
             this.cursor = this.cursor - 1;
         }
@@ -172,7 +172,7 @@ public abstract class SnowballProgram {
         final int[] groups, final int min, final int max
     ) {
         boolean found = false;
-        if (this.cursor > this.back) {
+        if (this.cursor > this.backward) {
             found = SnowballProgram.grouped(
                 this.current.charAt(this.cursor - 1), groups, min, max
             );
@@ -202,7 +202,7 @@ public abstract class SnowballProgram {
         final int[] groups, final int min, final int max
     ) {
         boolean found = false;
-        if (this.cursor > this.back) {
+        if (this.cursor > this.backward) {
             found = !SnowballProgram.grouped(
                 this.current.charAt(this.cursor - 1), groups, min, max
             );
@@ -227,7 +227,7 @@ public abstract class SnowballProgram {
 
     protected final boolean inRangeB(final int min, final int max) {
         boolean found = false;
-        if (this.cursor > this.back) {
+        if (this.cursor > this.backward) {
             final int chr = this.current.charAt(this.cursor - 1);
             found = chr >= min && chr <= max;
         }
@@ -251,7 +251,7 @@ public abstract class SnowballProgram {
 
     protected final boolean outRangeB(final int min, final int max) {
         boolean found = false;
-        if (this.cursor > this.back) {
+        if (this.cursor > this.backward) {
             final int chr = this.current.charAt(this.cursor - 1);
             found = chr < min || chr > max;
         }
@@ -275,7 +275,7 @@ public abstract class SnowballProgram {
 
     protected final boolean eqSB(final String text) {
         final int size = text.length();
-        boolean equal = this.cursor - this.back >= size;
+        boolean equal = this.cursor - this.backward >= size;
         for (int idx = 0; equal && idx < size; idx = idx + 1) {
             equal = this.current.charAt(this.cursor - size + idx)
                 == text.charAt(idx);
@@ -300,7 +300,7 @@ public abstract class SnowballProgram {
 
     protected final boolean eqVB(final CharSequence text) {
         final int size = text.length();
-        boolean equal = this.cursor - this.back >= size;
+        boolean equal = this.cursor - this.backward >= size;
         for (int idx = 0; equal && idx < size; idx = idx + 1) {
             equal = this.current.charAt(this.cursor - size + idx)
                 == text.charAt(idx);
@@ -335,7 +335,7 @@ public abstract class SnowballProgram {
         for (final Among entry : among) {
             final String text = entry.text();
             final int length = text.length();
-            if (length > size && this.cursor - this.back >= length
+            if (length > size && this.cursor - this.backward >= length
                 && SnowballProgram.endsWith(this.current, this.cursor, text)) {
                 result = entry.result();
                 size = length;
