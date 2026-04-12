@@ -15,6 +15,7 @@ import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Resolves match-count bounds and estimates from boolean query structure.
@@ -45,9 +46,9 @@ public final class MatchEstimate {
     private final List<MatchEstimate> children;
 
     /**
-     * Fixed estimates for a known leaf.
+     * Estimates of a known leaf, read when resolving.
      */
-    private final MatchEstimates bounds;
+    private final Supplier<MatchEstimates> bounds;
 
     /**
      * Lowest document identifier in this operation's range.
@@ -61,7 +62,8 @@ public final class MatchEstimate {
 
     private MatchEstimate(
         final EstimateKind operation, final List<MatchEstimate> members,
-        final MatchEstimates values, final DocId lower, final DocId upper
+        final Supplier<MatchEstimates> values, final DocId lower,
+        final DocId upper
     ) {
         this.kind = operation;
         this.children = members;
@@ -93,7 +95,7 @@ public final class MatchEstimate {
         } else if (list instanceof ExtraWeightPostList extra) {
             result = extra.matchEstimate();
         } else if (list instanceof ValueRangePostList range) {
-            result = MatchEstimate.known(range.estimates());
+            result = MatchEstimate.reported(range);
         } else if (list instanceof ValueGePostList range) {
             result = MatchEstimate.known(range.estimates());
         } else {
@@ -123,7 +125,7 @@ public final class MatchEstimate {
             throw new InvalidArgumentError("Database size must be positive");
         }
         final long lower = Math.max(
-            this.first.value(),
+            this.lowest().value(),
             Objects.requireNonNull(dbfirst, "database first").value()
         );
         final long upper = Math.min(
@@ -161,7 +163,15 @@ public final class MatchEstimate {
     static MatchEstimate known(final MatchEstimates values) {
         Objects.requireNonNull(values, "values");
         return new MatchEstimate(
-            EstimateKind.KNOWN, List.of(), values,
+            EstimateKind.KNOWN, List.of(), () -> values,
+            values.first(), values.last()
+        );
+    }
+
+    static MatchEstimate reported(final ValueRangePostList range) {
+        final MatchEstimates values = range.estimates();
+        return new MatchEstimate(
+            EstimateKind.KNOWN, List.of(), range::reported,
             values.first(), values.last()
         );
     }
@@ -263,14 +273,25 @@ public final class MatchEstimate {
         final long range
     ) {
         return switch (this.kind) {
-            case KNOWN -> new long[] {
-                this.bounds.min().value(), this.bounds.est().value(),
-                this.bounds.max().value(),
-            };
+            case KNOWN -> MatchEstimate.counts(this.bounds.get());
             case AND -> this.and(dbsize, dbfirst, dblast, range);
             case AND_NOT -> this.andNot(dbsize, dbfirst, dblast);
             case OR -> this.or(dbsize, dbfirst, dblast, range);
             case XOR -> this.xor(dbsize, dbfirst, dblast, range);
+        };
+    }
+
+    private DocId lowest() {
+        DocId result = this.first;
+        if (this.kind == EstimateKind.KNOWN) {
+            result = this.bounds.get().first();
+        }
+        return result;
+    }
+
+    private static long[] counts(final MatchEstimates values) {
+        return new long[] {
+            values.min().value(), values.est().value(), values.max().value(),
         };
     }
 

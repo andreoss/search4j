@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -47,14 +46,6 @@ final class WeightVectors {
      * Column of the first statistic in part vectors.
      */
     private static final int STATS = 2;
-
-    /**
-     * Schemes whose searches here give documents non-positive weights: the
-     * reference drops such documents, or ranks by identifier when no weight
-     * can be positive; that belongs to the search, not the scheme, so only
-     * their parts are compared.
-     */
-    private static final Set<String> NEGATIVE = Set.of("ifb2", "ifb2 0.5");
 
     /**
      * Schemes by specification.
@@ -91,7 +82,7 @@ final class WeightVectors {
         this.register();
         final Map<String, List<String[]>> docs = new HashMap<>(64);
         for (final String[] row : WeightVectors.rows("weight-vectors.tsv")) {
-            if (kinds.contains(row[0]) && !WeightVectors.deferred(row)) {
+            if (kinds.contains(row[0])) {
                 if ("D".equals(row[0])) {
                     docs.computeIfAbsent(
                         String.join("\t", row[1], row[2]),
@@ -272,11 +263,6 @@ final class WeightVectors {
 
     private Weight scheme(final String spec) {
         return this.schemes.computeIfAbsent(spec, WeightVectors::parse);
-    }
-
-    private static boolean deferred(final String... row) {
-        return ("D".equals(row[0]) || "C".equals(row[0]))
-            && WeightVectors.NEGATIVE.contains(row[1]);
     }
 
     private static String text(final List<MSet.Item> items) {

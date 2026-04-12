@@ -47,10 +47,19 @@ final class Optimiser {
      */
     private final Runnable recalc;
 
+    /**
+     * Number of weighted leaf subqueries.
+     */
+    private int subqueries;
+
     Optimiser(final Shard shard, final Scheme scheme, final Runnable recalc) {
         this.shard = shard;
         this.scheme = scheme;
         this.recalc = recalc;
+    }
+
+    int subqueries() {
+        return this.subqueries;
     }
 
     MatchTree tree(final Node node, final double factor) {
@@ -62,7 +71,7 @@ final class Optimiser {
             case SCALE_WEIGHT -> this.tree(
                 node.subquery(0).node(), factor * ((ScaleNode) node).factor()
             );
-            case VALUE_RANGE, VALUE_GE, VALUE_LE -> this.value(node);
+            case VALUE_RANGE, VALUE_GE, VALUE_LE -> this.value(node, factor);
             default -> throw new InvalidArgumentError(
                 String.format("Query type %s is not supported", node.type())
             );
@@ -71,6 +80,9 @@ final class Optimiser {
 
     private MatchTree leaf(final Node node, final double factor) {
         final MatchTree result;
+        if (factor != 0.0 && node.type() != QueryOp.LEAF_MATCH_NOTHING) {
+            this.subqueries = this.subqueries + 1;
+        }
         if (node.type() == QueryOp.LEAF_TERM) {
             result = this.term(node, factor);
         } else if (node.type() == QueryOp.LEAF_MATCH_ALL) {
@@ -108,8 +120,11 @@ final class Optimiser {
         return ctx.exclusive(this.shard.docCount(), this.recalc);
     }
 
-    private MatchTree value(final Node node) {
+    private MatchTree value(final Node node, final double factor) {
         final MatchTree result;
+        if (factor != 0.0) {
+            this.subqueries = this.subqueries + 1;
+        }
         if (node.type() == QueryOp.VALUE_RANGE) {
             final RangeNode range = (RangeNode) node;
             result = this.range(range.slot(), range.lower(), range.upper());
@@ -176,9 +191,12 @@ final class Optimiser {
             if (sub.type() == QueryOp.OR) {
                 this.disjoin(ctx, sub, factor, 0, zero);
             } else {
+                final int saved = this.subqueries;
                 final MatchTree tree = this.tree(sub, factor);
                 if (zero || tree == null || tree.list().recalcMaxWeight() != 0.0) {
                     ctx.add(tree);
+                } else {
+                    this.subqueries = saved;
                 }
             }
         }
@@ -256,29 +274,32 @@ final class Optimiser {
             if (end.compareTo(upper) >= 0) {
                 high = "";
             }
-            final MatchEstimates bounds = Optimiser.bounds(
-                0, RangeEstimate.frequency(stats, begin, high),
-                stats.frequency().value()
+            final ValueRangePostList list = new ValueRangePostList(
+                this.shard, ValueRange.of(slot, begin, high),
+                Optimiser.bounds(
+                    0, RangeEstimate.frequency(stats, begin, high),
+                    stats.frequency().value()
+                )
             );
-            result = new MatchTree(
-                new ValueRangePostList(this.shard, ValueRange.of(slot, begin, high), bounds),
-                MatchEstimate.known(bounds)
-            );
+            result = new MatchTree(list, MatchEstimate.reported(list));
         }
         return result;
     }
 
     private MatchTree valued(final ValueNo slot, final TermCount freq) {
         final MatchEstimates bounds = Optimiser.bounds(freq.value(), freq.value(), freq.value());
-        final PostList list;
+        final MatchTree result;
         if (freq.equals(this.shard.docCount())) {
-            list = this.shard.openPostList("");
+            result = new MatchTree(
+                this.shard.openPostList(""), MatchEstimate.known(bounds)
+            );
         } else {
-            list = new ValueRangePostList(
+            final ValueRangePostList list = new ValueRangePostList(
                 this.shard, ValueRange.of(slot, "", ""), bounds
             );
+            result = new MatchTree(list, MatchEstimate.reported(list));
         }
-        return new MatchTree(list, MatchEstimate.known(bounds));
+        return result;
     }
 
     private static MatchEstimates bounds(final long min, final long est, final long max) {

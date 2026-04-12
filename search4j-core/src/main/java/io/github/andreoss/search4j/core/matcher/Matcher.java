@@ -66,16 +66,42 @@ public final class Matcher {
     public static MatchTree build(
         final Shard shard, final Query query, final Weight weight
     ) {
+        return Matcher.build(shard, query, weight, new MatchCursor(shard));
+    }
+
+    /**
+     * Prepares a match: builds the posting list tree of a query on a cursor
+     * that recalculates maximum weights whenever the tree changes shape.
+     *
+     * @param shard Database shard
+     * @param query Query to match
+     * @param weight Weight scheme to apply
+     * @return Cursor positioned before the first match
+     */
+    public static MatchCursor cursor(
+        final Shard shard, final Query query, final Weight weight
+    ) {
+        final MatchCursor cursor = new MatchCursor(shard);
+        Matcher.build(shard, query, weight, cursor);
+        return cursor;
+    }
+
+    private static MatchTree build(
+        final Shard shard, final Query query, final Weight weight,
+        final MatchCursor cursor
+    ) {
         MatchTree tree = null;
+        int count = 0;
         if (!query.empty() && shard.docCount().value() > 0) {
-            final Runnable recalc = () -> {
-            };
+            final Runnable recalc = cursor::stale;
             final Scheme scheme = Scheme.of(weight, shard, query);
             double factor = 1.0;
             if (weight instanceof BoolWeight) {
                 factor = 0.0;
             }
-            tree = new Optimiser(shard, scheme, recalc).tree(query.node(), factor);
+            final Optimiser optimiser = new Optimiser(shard, scheme, recalc);
+            tree = optimiser.tree(query.node(), factor);
+            count = optimiser.subqueries();
             final ExtraWeight extra = scheme.extra();
             if (tree != null && extra.maxExtra() != 0.0) {
                 tree = new MatchTree(
@@ -90,7 +116,7 @@ public final class Matcher {
                 MatchEstimate.known(TermCount.ZERO, DocId.of(1), DocId.NONE)
             );
         }
-        tree.list().recalcMaxWeight();
+        cursor.start(tree, count);
         return tree;
     }
 }

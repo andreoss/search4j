@@ -146,7 +146,7 @@ public final class ValueGePostList implements PostList {
 
     @Override
     public TermCount countMatchingSubqueries() {
-        return TermCount.ZERO;
+        return new TermCount(1);
     }
 
     @Override

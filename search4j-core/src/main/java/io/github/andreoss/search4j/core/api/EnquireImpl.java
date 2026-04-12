@@ -9,30 +9,20 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.Shard;
-import io.github.andreoss.search4j.core.backend.list.PostList;
-import io.github.andreoss.search4j.core.matcher.MatchEstimates;
-import io.github.andreoss.search4j.core.matcher.MatchTree;
+import io.github.andreoss.search4j.core.matcher.MatchCursor;
 import io.github.andreoss.search4j.core.matcher.Matcher;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.ValueNo;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Default implementation of Enquire.
  *
  * @since 0.1.0
  */
-@SuppressWarnings({
-    "PMD.CouplingBetweenObjects",
-    "PMD.TooManyFields",
-    "PMD.NullAssignment"
-})
+@SuppressWarnings("PMD.NullAssignment")
 public final class EnquireImpl implements Enquire {
 
     /**
@@ -51,19 +41,9 @@ public final class EnquireImpl implements Enquire {
     private Query request;
 
     /**
-     * Weighting scheme of the next search.
+     * Weighting scheme of the next search, null for the default.
      */
     private Weight chosen;
-
-    /**
-     * Zero-based index of the first match to return.
-     */
-    private int offset;
-
-    /**
-     * Maximum number of matches to return, zero for all.
-     */
-    private int maxitem;
 
     /**
      * Filter applied to each candidate document.
@@ -71,9 +51,9 @@ public final class EnquireImpl implements Enquire {
     private MatchDecider filter;
 
     /**
-     * Minimum number of documents checked before an early stop.
+     * Minimum weight of a match, zero for none.
      */
-    private int atleast;
+    private double weightcut;
 
     /**
      * Percentage cutoff, zero for none.
@@ -132,9 +112,8 @@ public final class EnquireImpl implements Enquire {
      */
     public EnquireImpl(final Shard shard) {
         this.shard = shard;
-        this.offset = 0;
-        this.maxitem = 0;
         this.cutoff = 0;
+        this.weightcut = 0.0;
         this.sortasc = false;
         this.colkey = "";
     }
@@ -142,7 +121,6 @@ public final class EnquireImpl implements Enquire {
     @Override
     public void setQuery(final Query query) {
         this.request = query;
-        this.chosen = null;
     }
 
     @Override
@@ -158,25 +136,21 @@ public final class EnquireImpl implements Enquire {
 
     @Override
     public MSet getMSet(final int first, final int max) {
-        return this.getMSet(first, max, null);
+        return this.getMSet(first, max, 0);
+    }
+
+    @Override
+    public MSet getMSet(final int first, final int max, final int atleast) {
+        this.filter = null;
+        return this.run(first, max, atleast);
     }
 
     @Override
     public MSet getMSet(
         final int first, final int max, final MatchDecider decider
     ) {
-        this.offset = first;
-        this.maxitem = max;
         this.filter = decider;
-        final MSet result;
-        if (this.request == null || this.request.empty()) {
-            result = new MSetImpl(
-                List.of(), TermCount.ZERO, TermCount.ZERO
-            );
-        } else {
-            result = this.search();
-        }
-        return result;
+        return this.run(first, max, 0);
     }
 
     @Override
@@ -196,7 +170,13 @@ public final class EnquireImpl implements Enquire {
 
     @Override
     public void setCutoff(final int percent) {
+        this.setCutoff(percent, 0.0);
+    }
+
+    @Override
+    public void setCutoff(final int percent, final double weight) {
         this.cutoff = percent;
+        this.weightcut = weight;
     }
 
     @Override
@@ -250,10 +230,8 @@ public final class EnquireImpl implements Enquire {
     public void clear() {
         this.request = null;
         this.chosen = null;
-        this.offset = 0;
-        this.maxitem = 0;
         this.filter = null;
-        this.atleast = 0;
+        this.weightcut = 0.0;
         this.cutoff = 0;
         this.timelim = null;
         this.idorder = false;
@@ -284,95 +262,185 @@ public final class EnquireImpl implements Enquire {
         if (this.request == null || this.request.empty()) {
             result = new ESetImpl(List.of());
         } else {
-            result = new ESetImpl(this.expand(max, weight, chooser));
+            Weight scheme = this.chosen;
+            if (scheme == null) {
+                scheme = new BoolWeight();
+            }
+            result = new ESetImpl(
+                new Expansion(
+                    this.shard, this.request, scheme,
+                    docid -> this.accepts(docid, new MatchState())
+                ).items(max, weight, chooser)
+            );
         }
         return result;
     }
 
-    private MSet search() {
-        final Weight scheme;
-        if (this.chosen == null) {
-            scheme = new BoolWeight();
+    private MSet run(final int first, final int max, final int atleast) {
+        final MSet result;
+        if (this.request == null || this.request.empty()) {
+            result = new MSetImpl(
+                List.of(), TermCount.ZERO, TermCount.ZERO, TermCount.ZERO
+            );
         } else {
-            scheme = this.chosen;
+            result = this.search(first, max, atleast);
         }
-        final MatchTree tree = Matcher.build(this.shard, this.request, scheme);
-        final MatchState state = new MatchState(this.shard, tree.list());
-        final long start = System.nanoTime();
-        state.advance();
-        while (!state.list().atEnd() && !this.stop(state, start)) {
-            this.consider(state.list().docId(), state);
-            state.advance();
-        }
-        this.order(state.found());
-        state.rank();
-        final MatchEstimates max = tree.estimate().resolve(
-            this.shard.docCount(), DocId.of(1), this.shard.lastDocId()
+        return result;
+    }
+
+    private MSet search(final int first, final int max, final int atleast) {
+        final int docs = this.shard.docCount().value();
+        final int from = Math.min(first, docs);
+        final int count = Math.min(max, docs - from);
+        final int check = Math.max(Math.min(atleast, docs), from + count);
+        Ordering sort = this.ordering();
+        sort.refuse(this.cutoff);
+        final MatchCursor cursor = Matcher.cursor(
+            this.shard, this.request, this.scheme()
         );
-        return new MSetImpl(state.found(), max.max(), max.max());
-    }
-
-    private boolean stop(final MatchState state, final long start) {
-        final boolean stop;
-        if (this.timelim != null
-            && System.nanoTime() - start > this.timelim.toNanos()) {
-            stop = true;
-        } else {
-            stop = this.limit(state);
-        }
-        return stop;
-    }
-
-    private boolean limit(final MatchState state) {
-        boolean stop = false;
-        if (this.maxitem > 0 && state.found().size() >= this.maxitem) {
-            stop = true;
-        } else if (this.atleast > 0 && state.seen() >= this.atleast
-            && this.maxitem > 0 && state.found().size() >= this.maxitem) {
-            stop = true;
-        } else if (this.cutoff > 0 && state.added() > 0) {
-            stop = this.cut(state);
-        }
-        return stop;
-    }
-
-    private boolean cut(final MatchState state) {
-        final double top = EnquireImpl.top(state);
-        return top > 0.0 && state.found()
-            .get(state.found().size() - 1).weight() * 100.0
-            < top * this.cutoff;
-    }
-
-    private static double top(final MatchState state) {
-        double top = 0.0;
-        for (final MSet.Item item : state.found()) {
-            if (item.weight() > top) {
-                top = item.weight();
+        int percent = this.cutoff;
+        double factor = percent / 100.0 - Math.ulp(1.0);
+        if (cursor.maxWeight() == 0.0) {
+            if (sort == Ordering.RELEVANCE) {
+                sort = Ordering.DOCID;
             }
+            percent = 0;
+            factor = 0.0;
         }
-        return top;
-    }
-
-    private void consider(final DocId docid, final MatchState state) {
-        state.check();
-        if (this.accepts(docid, state)) {
-            final double score = state.score(docid);
-            this.report(docid, state, score);
-            state.drop();
-            if (state.added() > this.offset) {
-                state.add(docid, score);
-            }
+        long deadline = 0L;
+        if (this.timelim != null) {
+            deadline = System.nanoTime() + this.timelim.toNanos();
+        }
+        final Collector collector = new Collector(
+            new Limits(
+                Math.max(from + count, 1), check, percent, factor, deadline,
+                sort == Ordering.DOCID, this.sortasc
+            ),
+            sort, cursor
+        );
+        final MSet result;
+        if (check == 0) {
+            result = new MSetImpl(
+                List.of(), collector.estimated(this.filter != null, this.colmax)
+            );
         } else {
-            this.report(docid, state, state.score(docid));
+            collector.minimum(this.weightcut);
+            this.collect(cursor, collector, sort);
+            collector.finish();
+            result = new MSetImpl(
+                collector.items(from, count == 0, this.shard),
+                collector.bounds(this.filter != null)
+            );
         }
+        return result;
     }
 
-    private void report(
-        final DocId docid, final MatchState state, final double score
+    private Weight scheme() {
+        Weight scheme = this.chosen;
+        if (scheme == null) {
+            scheme = new BM25Weight();
+        }
+        return scheme;
+    }
+
+    private void collect(
+        final MatchCursor cursor, final Collector collector, final Ordering sort
     ) {
-        if (this.observer != null) {
-            this.observer.add(docid, score, state.list().wdf());
+        final MatchState state = new MatchState();
+        boolean more = cursor.next(collector.least());
+        while (more) {
+            if (this.filter == null || this.vet(cursor, collector)) {
+                more = this.consider(cursor, collector, sort, state);
+            }
+            more = more && cursor.next(collector.least());
         }
+    }
+
+    private boolean vet(final MatchCursor cursor, final Collector collector) {
+        final double least = collector.least();
+        boolean result = least <= 0.0 || cursor.weight() >= least;
+        if (result) {
+            result = this.filter.decide(cursor.docId());
+            collector.decide(result);
+        }
+        return result;
+    }
+
+    private boolean consider(
+        final MatchCursor cursor, final Collector collector, final Ordering sort,
+        final MatchState state
+    ) {
+        final double least = collector.least();
+        final boolean weighed = sort != Ordering.DOCID
+            && (sort != Ordering.VALUE || least > 0.0);
+        double weight = 0.0;
+        if (weighed) {
+            weight = cursor.weight();
+        }
+        final Candidate item = new Candidate(cursor.docId(), weight);
+        boolean more = true;
+        if ((!weighed || weight >= least) && this.unranked(cursor, collector, sort, item)
+            && this.grouped(item.docId(), state)) {
+            if (sort == Ordering.VALUE && !weighed) {
+                item.weight(cursor.weight());
+            }
+            this.report(cursor, item.weight());
+            more = collector.process(item);
+        }
+        return more;
+    }
+
+    private boolean unranked(
+        final MatchCursor cursor, final Collector collector, final Ordering sort,
+        final Candidate item
+    ) {
+        boolean result = true;
+        if (sort == Ordering.VALUE) {
+            item.key(this.key(item.docId()));
+            result = !collector.worse(item);
+        }
+        if (!result) {
+            double weight = item.weight();
+            if (collector.least() <= 0.0) {
+                weight = cursor.weight();
+            }
+            this.report(cursor, weight);
+            collector.reject(weight);
+        }
+        return result;
+    }
+
+    private void report(final MatchCursor cursor, final double weight) {
+        if (this.observer != null) {
+            this.observer.add(cursor.docId(), weight, cursor.wdf());
+        }
+    }
+
+    private Ordering ordering() {
+        final Ordering result;
+        if (this.idorder) {
+            result = Ordering.DOCID;
+        } else if (this.sorttype == 0) {
+            result = Ordering.RELEVANCE;
+        } else {
+            result = Ordering.VALUE;
+        }
+        return result;
+    }
+
+    private String key(final DocId docid) {
+        String result;
+        if (this.sorttype == EnquireImpl.SLOT) {
+            result = this.shard.openDocument(docid, false)
+                .flatMap(document -> document.value(this.sortslot))
+                .orElse("");
+        } else {
+            result = this.keymake.key(docid);
+        }
+        if (result == null) {
+            result = "";
+        }
+        return result;
     }
 
     private boolean accepts(final DocId docid, final MatchState state) {
@@ -380,166 +448,18 @@ public final class EnquireImpl implements Enquire {
         if (this.filter != null) {
             include = this.filter.decide(docid);
         }
-        if (include && this.colmax > 0 && this.keymake != null) {
-            include = this.collapse(docid, state);
+        return include && this.grouped(docid, state);
+    }
+
+    private boolean grouped(final DocId docid, final MatchState state) {
+        boolean include = true;
+        if (this.colmax > 0 && this.keymake != null) {
+            String key = this.colkey;
+            if (key.isEmpty()) {
+                key = this.keymake.key(docid);
+            }
+            include = state.admit(key, this.colmax);
         }
         return include;
-    }
-
-    private boolean collapse(final DocId docid, final MatchState state) {
-        String key = this.colkey;
-        if (key.isEmpty()) {
-            key = this.keymake.key(docid);
-        }
-        final boolean include;
-        if (key == null || key.isEmpty()) {
-            include = true;
-        } else if (key.equals(state.prev())) {
-            state.group(state.group() + 1);
-            include = state.group() < this.colmax;
-        } else {
-            state.prev(key);
-            state.group(1);
-            include = true;
-        }
-        return include;
-    }
-
-    private void order(final List<MSet.Item> found) {
-        final Comparator<MSet.Item> order;
-        if (this.sorttype == 0) {
-            order = this.defaultOrder();
-        } else {
-            order = this.comparator();
-        }
-        found.sort(order);
-    }
-
-    private Comparator<MSet.Item> defaultOrder() {
-        final Comparator<MSet.Item> order;
-        if (this.idorder) {
-            order = Comparator.comparing(MSet.Item::docId);
-        } else {
-            order = Comparator.comparingDouble(MSet.Item::weight).reversed();
-        }
-        return order;
-    }
-
-    private Comparator<MSet.Item> comparator() {
-        final Comparator<MSet.Item> result;
-        if (this.sorttype == EnquireImpl.SLOT) {
-            final ValueNo slot = this.sortslot;
-            result = (left, right) -> this.compare(
-                this.value(left, slot), this.value(right, slot)
-            );
-        } else {
-            final KeyMaker maker = this.keymake;
-            result = (left, right) -> this.compare(
-                maker.key(left.docId()), maker.key(right.docId())
-            );
-        }
-        return result;
-    }
-
-    private String value(final MSet.Item item, final ValueNo slot) {
-        return this.shard.openDocument(item.docId(), false)
-            .flatMap(document -> document.value(slot))
-            .orElse("");
-    }
-
-    private int compare(final String left, final String right) {
-        final String safe;
-        if (left == null) {
-            safe = "";
-        } else {
-            safe = left;
-        }
-        final String other;
-        if (right == null) {
-            other = "";
-        } else {
-            other = right;
-        }
-        return this.ascending(safe.compareTo(other));
-    }
-
-    private int ascending(final int result) {
-        final int ordered;
-        if (this.sortasc) {
-            ordered = result;
-        } else {
-            ordered = -result;
-        }
-        return ordered;
-    }
-
-    private List<ESet.Item> expand(
-        final int max, final ExpandWeight weight, final ExpandDecider chooser
-    ) {
-        final Weight scheme;
-        if (this.chosen == null) {
-            scheme = new BoolWeight();
-        } else {
-            scheme = this.chosen;
-        }
-        final Map<String, TermCount> freqs = new HashMap<>(8);
-        final Map<String, TermCount> docs = new HashMap<>(8);
-        final int matching = this.collect(scheme, freqs, docs);
-        final ExpandWeight expand;
-        if (weight == null) {
-            expand = new Bo1EWeight();
-        } else {
-            expand = weight;
-        }
-        expand.init(this.shard, this.request, freqs.size());
-        final List<ESet.Item> items = new ArrayList<>(freqs.size());
-        final ExpandRun run = new ExpandRun(docs, matching, expand);
-        run.chooser(chooser);
-        run.items(items);
-        for (final Map.Entry<String, TermCount> entry : freqs.entrySet()) {
-            run.add(entry.getKey(), entry.getValue());
-        }
-        items.sort(
-            Comparator.comparingDouble(ESet.Item::weight).reversed()
-        );
-        if (max > 0 && items.size() > max) {
-            items.subList(max, items.size()).clear();
-        }
-        return items;
-    }
-
-    private int collect(
-        final Weight scheme, final Map<String, TermCount> freqs,
-        final Map<String, TermCount> docs
-    ) {
-        final PostList list = Matcher.resolve(this.shard, this.request, scheme);
-        DocId docid = list.next().docId();
-        int matching = 0;
-        while (!docid.equals(DocId.NONE) && matching < 100) {
-            if (this.accepts(docid, new MatchState(this.shard, list))) {
-                matching = matching + 1;
-                this.terms(docid, freqs, docs);
-            }
-            docid = list.next().docId();
-        }
-        return matching;
-    }
-
-    private void terms(
-        final DocId docid, final Map<String, TermCount> freqs,
-        final Map<String, TermCount> docs
-    ) {
-        final Document document = this.shard
-            .openDocument(docid, false).orElse(null);
-        if (document != null) {
-            final TermIterator terms = document.termList();
-            while (terms.hasNext()) {
-                final String term = terms.next();
-                if (!term.isEmpty()) {
-                    freqs.merge(term, terms.wdf(), TermCount::plus);
-                    docs.merge(term, new TermCount(1), TermCount::plus);
-                }
-            }
-        }
     }
 }

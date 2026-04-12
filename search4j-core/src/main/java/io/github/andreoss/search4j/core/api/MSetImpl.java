@@ -25,39 +25,45 @@ final class MSetImpl implements MSet {
     private final List<MSet.Item> found;
 
     /**
-     * Number of matches considered.
+     * Bounds and estimate of the number of matches.
      */
-    private final TermCount size;
-
-    /**
-     * Estimated maximum number of matches.
-     */
-    private final TermCount maxsize;
+    private final TermCount[] bounds;
 
     /**
      * Creates a match set.
      *
      * @param found Matches in result order
-     * @param size Number of matches considered
-     * @param maxsize Estimated maximum number of matches
+     * @param bounds Lower bound, estimate and upper bound of the number of
+     *  matches
      */
-    MSetImpl(
-        final List<MSet.Item> found, final TermCount size,
-        final TermCount maxsize
-    ) {
+    MSetImpl(final List<MSet.Item> found, final TermCount... bounds) {
         this.found = found;
-        this.size = size;
-        this.maxsize = maxsize;
+        this.bounds = bounds.clone();
     }
 
     @Override
     public TermCount size() {
-        return this.size;
+        return this.matchesEstimated();
     }
 
     @Override
     public TermCount maxSize() {
-        return this.maxsize;
+        return this.matchesUpperBound();
+    }
+
+    @Override
+    public TermCount matchesLowerBound() {
+        return this.bounds[0];
+    }
+
+    @Override
+    public TermCount matchesEstimated() {
+        return this.bounds[1];
+    }
+
+    @Override
+    public TermCount matchesUpperBound() {
+        return this.bounds[2];
     }
 
     @Override

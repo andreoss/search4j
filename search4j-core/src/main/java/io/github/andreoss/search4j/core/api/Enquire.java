@@ -28,8 +28,8 @@ public interface Enquire {
     /**
      * Sets the query for the next search.
      *
-     * <p>The default Boolean weight scheme is used; call
-     * {@link #setQuery(Query, Weight)} to specify a weight scheme.</p>
+     * <p>The weighting scheme is kept; BM25 with default parameters is used
+     * until one is set.</p>
      *
      * @param query Query to run
      */
@@ -54,16 +54,27 @@ public interface Enquire {
      * Runs the search and returns the match set.
      *
      * @param first Zero-based index of the first item to return
-     * @param max Maximum number of items to return, zero for all
+     * @param max Maximum number of items to return, zero for none
      * @return Match set
      */
     MSet getMSet(int first, int max);
 
     /**
+     * Runs the search, counting at least a number of matching documents.
+     *
+     * @param first Zero-based index of the first item to return
+     * @param max Maximum number of items to return, zero for none
+     * @param atleast Minimum number of matching documents to count, which
+     *  makes the bounds exact when no more documents match
+     * @return Match set
+     */
+    MSet getMSet(int first, int max, int atleast);
+
+    /**
      * Runs the search with a document filter and returns the match set.
      *
      * @param first Zero-based index of the first item to return
-     * @param max Maximum number of items to return, zero for all
+     * @param max Maximum number of items to return, zero for none
      * @param decider Optional filter applied to each candidate
      * @return Match set
      */
@@ -77,12 +88,22 @@ public interface Enquire {
     TermCount getMatchEstimate();
 
     /**
-     * Sets a percentage cutoff for early termination.
+     * Sets a percentage cutoff with no minimum weight.
      *
-     * @param percent Percentage of results above which to stop;
-     *  zero for no cutoff
+     * @param percent Percentage of the best weight a match needs, zero for
+     *  no cutoff
      */
     void setCutoff(int percent);
+
+    /**
+     * Sets a percentage cutoff and a minimum weight: matches weighing less
+     * than the percentage of the best weight, or less than the minimum
+     * weight, are left out.
+     *
+     * @param percent Percentage of the best weight, zero for no cutoff
+     * @param weight Minimum weight, zero for none
+     */
+    void setCutoff(int percent, double weight);
 
     /**
      * Sets a time limit for the search.

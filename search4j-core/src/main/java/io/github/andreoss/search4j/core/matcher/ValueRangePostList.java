@@ -54,6 +54,21 @@ public final class ValueRangePostList implements PostList {
     private final MatchEstimates bounds;
 
     /**
+     * Number of documents found in the range.
+     */
+    private int accepted;
+
+    /**
+     * Number of documents with a value outside the range.
+     */
+    private int rejected;
+
+    /**
+     * First document holding a value, none until the first move.
+     */
+    private DocId opened;
+
+    /**
      * Creates a range over a prepared slot and bounds.
      *
      * @param shard Shard whose values are read
@@ -70,6 +85,7 @@ public final class ValueRangePostList implements PostList {
         this.range = range;
         this.bounds = bounds;
         this.values = null;
+        this.opened = DocId.NONE;
     }
 
     /**
@@ -113,8 +129,15 @@ public final class ValueRangePostList implements PostList {
 
     @Override
     public PostList next(final double least) {
+        final boolean fresh = this.values == null;
         this.begin();
         this.values.next();
+        if (fresh) {
+            this.opened = this.values.docId();
+            if (this.values.atEnd()) {
+                this.opened = this.shard.lastDocId().next();
+            }
+        }
         return this.seek();
     }
 
@@ -128,13 +151,14 @@ public final class ValueRangePostList implements PostList {
     @Override
     public Probe check(final DocId target, final double least) {
         this.begin();
-        return new Probe(
-            this,
-            this.values.check(target)
-                && !this.values.atEnd()
-                && this.values.docId().equals(target)
-                && this.range.accepts(this.values.value())
-        );
+        boolean valid = this.values.check(target)
+            && !this.values.atEnd()
+            && this.values.docId().equals(target);
+        if (valid) {
+            valid = this.range.accepts(this.values.value());
+            this.count(valid);
+        }
+        return new Probe(this, valid);
     }
 
     @Override
@@ -159,7 +183,7 @@ public final class ValueRangePostList implements PostList {
 
     @Override
     public TermCount countMatchingSubqueries() {
-        return TermCount.ZERO;
+        return new TermCount(1);
     }
 
     @Override
@@ -174,6 +198,35 @@ public final class ValueRangePostList implements PostList {
 
     MatchEstimates estimates() {
         return this.bounds;
+    }
+
+    /**
+     * Estimates refined by the documents seen so far: the documents found
+     * become the lower bound, the documents rejected leave the upper bound,
+     * and the estimate blends the static one with the rate seen.
+     *
+     * @return Bounds and estimate of the matches
+     */
+    MatchEstimates reported() {
+        final MatchEstimates fixed = this.bounds;
+        DocId lower = fixed.first();
+        if (this.opened.valid()) {
+            lower = this.opened;
+        }
+        long min = fixed.min().value();
+        long est = fixed.est().value();
+        long max = fixed.max().value();
+        if ((this.accepted != 0 || this.rejected != 0) && min != max) {
+            min = this.accepted;
+            final double rate = (double) (max - this.accepted - this.rejected)
+                / max * est;
+            est = this.accepted + (long) (rate + 0.5);
+            max = max - this.rejected;
+        }
+        return new MatchEstimates(
+            new TermCount((int) min), new TermCount((int) est),
+            new TermCount((int) max), lower, fixed.last()
+        );
     }
 
     private static MatchEstimates estimated(
@@ -199,13 +252,27 @@ public final class ValueRangePostList implements PostList {
     private PostList seek() {
         PostList result = this;
         boolean more = !this.values.atEnd();
-        while (more && !this.range.accepts(this.values.value())) {
-            this.values.next();
-            more = !this.values.atEnd();
+        while (more) {
+            final boolean inside = this.range.accepts(this.values.value());
+            this.count(inside);
+            if (inside) {
+                more = false;
+            } else {
+                this.values.next();
+                more = !this.values.atEnd();
+            }
         }
         if (this.values.atEnd()) {
             result = EmptyPostList.INSTANCE;
         }
         return result;
+    }
+
+    private void count(final boolean inside) {
+        if (inside) {
+            this.accepted = this.accepted + 1;
+        } else {
+            this.rejected = this.rejected + 1;
+        }
     }
 }

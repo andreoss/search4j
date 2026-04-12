@@ -25,16 +25,37 @@ public interface MSet extends Iterable<MSet.Item> {
     /**
      * The estimated number of matching documents.
      *
-     * @return Upper bound, zero when empty
+     * @return Same as {@link #matchesEstimated()}
      */
     TermCount size();
 
     /**
      * The maximum possible number of matching documents.
      *
-     * @return Upper bound, zero when empty
+     * @return Same as {@link #matchesUpperBound()}
      */
     TermCount maxSize();
+
+    /**
+     * A lower bound on the number of matching documents.
+     *
+     * @return Lower bound, zero when empty
+     */
+    TermCount matchesLowerBound();
+
+    /**
+     * An estimate of the number of matching documents.
+     *
+     * @return Estimate between the bounds, zero when empty
+     */
+    TermCount matchesEstimated();
+
+    /**
+     * An upper bound on the number of matching documents.
+     *
+     * @return Upper bound, zero when empty
+     */
+    TermCount matchesUpperBound();
 
     /**
      * Returns the first item or throws when empty.

@@ -191,7 +191,34 @@ final class MatcherVectors {
                 ),
                 row
             );
+        } else {
+            this.bounded(row);
         }
+    }
+
+    private void bounded(final String... row) {
+        final InMemoryShard shard = this.shard(row[2]);
+        final int size = shard.docCount().value();
+        int max = 1000;
+        if (row[3].startsWith("K")) {
+            max = 2;
+        }
+        int atleast = 0;
+        if (row[3].endsWith("F")) {
+            atleast = size;
+        }
+        final Enquire enquire = new EnquireImpl(shard);
+        enquire.setQuery(this.query(row[2]), MatcherVectors.scheme(row[1]));
+        final MSet found = enquire.getMSet(0, max, atleast);
+        this.same(
+            String.join("\t", row[4], row[5], row[6]),
+            String.join(
+                "\t", Integer.toString(found.matchesLowerBound().value()),
+                Integer.toString(found.matchesEstimated().value()),
+                Integer.toString(found.matchesUpperBound().value())
+            ),
+            row
+        );
     }
 
     private void counted(final String... row) {

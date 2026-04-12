@@ -13,8 +13,6 @@ import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Queue;
 
 /**
  * Subqueries gathered under a disjunction or an exclusive disjunction, with
@@ -83,7 +81,7 @@ final class UnionContext {
             );
         } else {
             result = new MatchTree(
-                UnionContext.huffman(this.lists, recalc),
+                new FrequencyHeap(this.lists).tree(recalc),
                 this.estimate(EstimateKind.OR)
             );
         }
@@ -110,21 +108,5 @@ final class UnionContext {
             kind, new DocRange(new DocId(this.first), new DocId(this.last)),
             this.estimates
         );
-    }
-
-    private static PostList huffman(final List<PostList> lists, final Runnable recalc) {
-        final Queue<PostList> queue = new PriorityQueue<>(
-            lists.size(),
-            (left, right) -> Integer.compare(
-                left.termFrequency().value(), right.termFrequency().value()
-            )
-        );
-        queue.addAll(lists);
-        while (queue.size() > 1) {
-            final PostList right = queue.poll();
-            final PostList left = queue.poll();
-            queue.add(new OrPostList(left, right, recalc));
-        }
-        return queue.poll();
     }
 }
