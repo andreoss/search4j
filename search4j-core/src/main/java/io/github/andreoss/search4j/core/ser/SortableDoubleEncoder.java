@@ -119,7 +119,7 @@ final class SortableDoubleEncoder {
         double remainder = mantissa * (1 << shift);
         int high = (int) remainder;
         remainder -= high;
-        int low = (int) (remainder * 4_294_967_296.0);
+        int low = (int) (long) (remainder * 4_294_967_296.0);
         if (negative) {
             high = -high;
             if (low != 0) {
