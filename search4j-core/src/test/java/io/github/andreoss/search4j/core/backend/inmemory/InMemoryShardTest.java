@@ -7,6 +7,7 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
+import io.github.andreoss.search4j.core.backend.DocumentInternal;
 import io.github.andreoss.search4j.core.backend.TermFrequencies;
 import io.github.andreoss.search4j.core.backend.list.LeafPostList;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
@@ -54,14 +55,33 @@ final class InMemoryShardTest {
             .orElseThrow();
         Assertions.assertEquals(
             List.of(
-                freqs.termFrequency(), freqs.collection(), freqs.collection(),
+                freqs.termFrequency(), freqs.collection(),
                 "InMemoryPostList(apple)"
             ),
             List.of(
                 list.termFrequency(), list.collectionFrequency(),
-                list.wdfUpperBound(), list.description()
+                list.description()
             ),
             "Term statistics"
+        );
+    }
+
+    @Test
+    void boundsLeafWdfByFirstPostingAndTheRest() {
+        final InMemoryShard shard = new InMemoryShard();
+        final List<TermCount> seen = new ArrayList<>(2);
+        for (final int first : new int[] {2, 6}) {
+            final DocumentInternal one = new DocumentInternal();
+            one.addTerm("pear", new TermCount(first));
+            shard.replaceDocument(DocId.of(1), one);
+            final DocumentInternal two = new DocumentInternal();
+            two.addTerm("pear", new TermCount(5));
+            shard.replaceDocument(DocId.of(2), two);
+            seen.add(shard.openLeafPostList("pear", false).orElseThrow().wdfUpperBound());
+        }
+        Assertions.assertEquals(
+            List.of(new TermCount(5), new TermCount(6)), seen,
+            "Larger of the first frequency and the collection rest"
         );
     }
 

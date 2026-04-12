@@ -7,123 +7,64 @@
  */
 package io.github.andreoss.search4j.core.api;
 
-import io.github.andreoss.search4j.core.api.query.Query;
-import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.backend.list.DocStats;
-import io.github.andreoss.search4j.core.ser.Varints;
-import io.github.andreoss.search4j.core.types.TermCount;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import io.github.andreoss.search4j.core.backend.list.TermWeight;
 
 /**
- * BB2 weight scheme: Bose-Einstein statistics B2 variant.
- *
- * <p>BB2 uses the Bose-Einstein statistics for the after-effect correction,
- * which models term occurrences as indistinguishable particles.</p>
+ * BB2 weighting from the divergence from randomness framework:
+ * Bose-Einstein model, Bernoulli after-effect, second normalisation.
  *
  * @since 0.1.0
  */
 public final class BB2Weight implements Weight {
 
     /**
-     * After-effect parameter.
+     * Name of the scheme.
      */
-    private double coef;
+    private static final String NAME = "bb2";
 
     /**
-     * Average document length of the database.
+     * Document length normalisation parameter, above zero.
      */
-    private TermCount avglen;
+    private final Positive coef;
 
     /**
-     * Number of documents in the database.
-     */
-    private TermCount docs;
-
-    /**
-     * Creates a BB2 weight with the default parameter.
+     * Creates the scheme with the default parameter one.
      */
     public BB2Weight() {
         this(1.0);
     }
 
     /**
-     * Creates a BB2 weight with the given after-effect parameter.
+     * Creates the scheme.
      *
-     * @param coef After-effect parameter
+     * @param coef Document length normalisation parameter, above zero
      */
     public BB2Weight(final double coef) {
-        this.coef = coef;
+        this.coef = new Positive("c", coef);
     }
 
     @Override
-    public void init(
-        final ShardStatistics database, final Query query, final int terms
-    ) {
-        this.docs = database.docCount();
-        if (this.docs.value() > 0) {
-            this.avglen = new TermCount(
-                (int) (database.totalLength().value() / this.docs.value())
-            );
-        } else {
-            this.avglen = TermCount.ZERO;
-        }
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermStats stats, final DocStats doc
-    ) {
-        final TermCount wqf = stats.wqf();
-        final TermCount wdf = stats.wdf();
-        double weight = 0.0;
-        if (this.avglen != null && this.avglen.value() > 0
-            && this.docs != null && this.docs.value() > 0) {
-            final double idf = Math.log(
-                (this.docs.value() + 1.0) / (wdf.value() + 1.0)
-            ) / Math.log(2.0);
-            final double value = wdf.value();
-            weight = idf * (value / (value + this.coef)) * wqf.value();
-        }
-        return weight;
-    }
-
-    @Override
-    public Weight copy() {
-        final BB2Weight copy = new BB2Weight(this.coef);
-        copy.avglen = this.avglen;
-        copy.docs = this.docs;
-        return copy;
+    public String name() {
+        return BB2Weight.NAME;
     }
 
     @Override
     public byte[] serialise() {
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write(12);
-            Varints.encode(out, (long) (this.coef * 1000));
-        } catch (final IOException ex) {
-            throw new AssertionError(ex);
-        }
-        return out.toByteArray();
+        return WeightBytes.doubles(this.coef.value());
     }
 
     @Override
-    public String toString() {
-        return String.format("BB2Weight(c=%.3f)", this.coef);
+    public Weight unserialise(final byte[] data) {
+        return new BB2Weight(WeightBytes.single(BB2Weight.NAME, data));
     }
 
-    /**
-     * Deserialises a BB2 weight from an input stream.
-     *
-     * @param source Stream positioned after the type byte
-     * @return The weight
-     * @throws IOException when the stream is malformed
-     */
-    static BB2Weight deserialise(final InputStream source) throws IOException {
-        final BB2Weight weight = new BB2Weight();
-        weight.coef = Varints.decode(source) / 1000.0;
-        return weight;
+    @Override
+    public Weight create(final String params) {
+        return new BB2Weight(WeightParams.single(BB2Weight.NAME, params, 1.0));
+    }
+
+    @Override
+    public TermWeight term(final WeightStats stats, final double factor) {
+        return Bb2Part.prepare(stats, factor, this.coef.value());
     }
 }

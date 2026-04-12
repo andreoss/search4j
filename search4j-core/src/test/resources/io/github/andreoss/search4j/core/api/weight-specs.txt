@@ -1,0 +1,67 @@
+bool
+coord
+bm25
+bm25 1.2 0 1 0.75 0.5
+bm25 2 1 0.5 0.3 0.2
+bm25 0 0 0 0 0
+bm25 1 0 1 0 0.5
+bm25 -1 -2 -3 1.5 0.1
+bm25 1.5
+bm25  0.9 0.1
+bm25 1e0 0 1 .5 5e-1
+trad
+trad 2
+bm25+
+bm25+ 1.2 0.5 2 0.75 0.3 0.4
+bm25+ 1 0 0 1 0 0
+bm25+ -1 -1 -1 -1 -1 -1
+pl2
+pl2 2.5
+pl2+
+pl2+ 1.5 0.3
+ineb2
+ineb2 3
+ifb2
+ifb2 0.5
+inl2
+inl2 4
+dph
+dlh
+bb2
+bb2 2
+lmjm
+lmjm 0.3
+lmjm 1.5
+lmdirichlet
+lmdirichlet 500 0
+lmdirichlet 100 0.5
+lmabsdiscount
+lmabsdiscount 0.3
+lm2stage
+lm2stage 0.4 100
+tfidf
+tfidf ntn
+tfidf bnn
+tfidf sfn
+tfidf lpn
+tfidf PPn
+tfidf Ltn
+tfidf mtn
+tfidf atn
+tfidf nsn
+tfidf NONE NONE NONE
+tfidf BOOLEAN TFIDF NONE
+tfidf SQUARE FREQ NONE
+tfidf LOG SQUARE NONE
+tfidf PIVOTED PIVOTED NONE
+tfidf LOG_AVERAGE PROB NONE
+tfidf AUG_LOG GLOBAL_FREQ NONE
+tfidf SQRT LOG_GLOBAL_FREQ NONE
+tfidf AUG_AVERAGE INCREMENTED_GLOBAL_FREQ NONE
+tfidf MAX SQRT_GLOBAL_FREQ NONE
+tfidf AUG TFIDF NONE
+dice
+@tfidf 000000000000e03f0000000000000040050101
+@tfidf 9a9999999999c93f000000000000f03f050601
+@tfidf 000000000000e03f0000000000000040050501
+@tfidf 000000000000d03f000000000000f83f010601

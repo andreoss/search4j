@@ -296,14 +296,13 @@ public final class EnquireImpl implements Enquire {
         } else {
             scheme = this.chosen;
         }
-        scheme.init(this.shard, this.request, this.request.length().value());
         final PostList list = Matcher.resolve(this.shard, this.request, scheme);
         final MatchState state = new MatchState(this.shard, list);
         final long start = System.nanoTime();
-        DocId docid = list.next().docId();
-        while (!docid.equals(DocId.NONE) && !this.stop(state, start)) {
-            this.consider(docid, state);
-            docid = list.next().docId();
+        state.advance();
+        while (!state.list().atEnd() && !this.stop(state, start)) {
+            this.consider(state.list().docId(), state);
+            state.advance();
         }
         this.order(state.found());
         state.rank();

@@ -7,71 +7,56 @@
  */
 package io.github.andreoss.search4j.core.api;
 
-import io.github.andreoss.search4j.core.api.query.Query;
-import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.backend.list.DocStats;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import io.github.andreoss.search4j.core.backend.list.TermWeight;
+import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 
 /**
- * Boolean weight: every matching document has weight one.
- *
- * <p>This weight scheme ignores term frequencies and document lengths;
- * it is useful for boolean retrieval and testing.</p>
+ * Boolean weighting: every match weighs zero.
  *
  * @since 0.1.0
  */
-@SuppressWarnings({
-    "PMD.UncommentedEmptyConstructor",
-    "PMD.UncommentedEmptyMethodBody"
-})
 public final class BoolWeight implements Weight {
 
     /**
-     * Creates a Boolean weight.
+     * Name of the scheme.
+     */
+    private final String label;
+
+    /**
+     * Creates the scheme.
      */
     public BoolWeight() {
+        this.label = "bool";
     }
 
     @Override
-    public void init(
-        final ShardStatistics database, final Query query, final int terms
-    ) {
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermStats stats, final DocStats doc
-    ) {
-        return 1.0;
-    }
-
-    @Override
-    public Weight copy() {
-        return new BoolWeight();
+    public String name() {
+        return this.label;
     }
 
     @Override
     public byte[] serialise() {
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.write(1);
-        return out.toByteArray();
+        return new byte[0];
     }
 
     @Override
-    public String toString() {
-        return "BoolWeight()";
+    public Weight unserialise(final byte[] data) {
+        WeightBytes.of(this.name(), data).end();
+        return new BoolWeight();
     }
 
-    /**
-     * Deserialises a Boolean weight from an input stream.
-     *
-     * @param source Stream positioned after the type byte
-     * @return The weight
-     * @throws IOException when the stream is malformed
-     */
-    static BoolWeight deserialise(final InputStream source) throws IOException {
+    @Override
+    public Weight create(final String params) {
+        if (!params.isEmpty()) {
+            throw new InvalidArgumentError(
+                "No parameters are required for BoolWeight"
+            );
+        }
         return new BoolWeight();
+    }
+
+    @Override
+    public TermWeight term(final WeightStats stats, final double factor) {
+        return new FixedPart(0.0);
     }
 }

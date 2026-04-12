@@ -7,135 +7,116 @@
  */
 package io.github.andreoss.search4j.core.api;
 
-import io.github.andreoss.search4j.core.api.query.Query;
-import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.backend.list.DocStats;
-import io.github.andreoss.search4j.core.ser.Varints;
-import io.github.andreoss.search4j.core.types.TermCount;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import io.github.andreoss.search4j.core.backend.list.TermWeight;
+import io.github.andreoss.search4j.core.matcher.ExtraWeight;
 
 /**
- * BM25 weight scheme.
- *
- * <p>The BM25 weight uses the probabilistic relevance framework with
- * term frequency saturation and document length normalisation.</p>
+ * BM25 weighting from the probabilistic relevance framework.
  *
  * @since 0.1.0
  */
 public final class BM25Weight implements Weight {
 
     /**
-     * Term frequency saturation parameter.
+     * Name of the scheme.
      */
-    private double sat;
+    private static final String NAME = "bm25";
 
     /**
-     * Document length normalisation parameter.
+     * Scheme parameters.
      */
-    private double norm;
+    private final Bm25Params tuning;
 
     /**
-     * Average document length of the database.
-     */
-    private TermCount avglen;
-
-    /**
-     * Number of documents in the database.
-     */
-    private TermCount docs;
-
-    /**
-     * Creates a BM25 weight with the default parameters.
+     * Creates the scheme with the default parameters.
      */
     public BM25Weight() {
-        this(1.2, 0.75);
+        this(Bm25Params.DEFAULT);
     }
 
     /**
-     * Creates a BM25 weight with the given parameters.
+     * Creates the scheme.
      *
-     * @param sat Term frequency saturation parameter
-     * @param norm Document length normalisation parameter
+     * @param tuning Scheme parameters
      */
-    public BM25Weight(final double sat, final double norm) {
-        this.sat = sat;
-        this.norm = norm;
+    public BM25Weight(final Bm25Params tuning) {
+        this.tuning = tuning;
     }
 
     @Override
-    public void init(
-        final ShardStatistics database, final Query query, final int terms
-    ) {
-        this.docs = database.docCount();
-        if (this.docs.value() > 0) {
-            this.avglen = new TermCount(
-                (int) (database.totalLength().value() / this.docs.value())
-            );
-        } else {
-            this.avglen = TermCount.ZERO;
-        }
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermStats stats, final DocStats doc
-    ) {
-        final TermCount wqf = stats.wqf();
-        final TermCount wdf = stats.wdf();
-        final TermCount doclen = doc.length();
-        double weight = 0.0;
-        if (this.avglen != null && this.avglen.value() > 0
-            && this.docs != null && this.docs.value() > 0) {
-            final double idf = WeightNorms.idf(this.docs, wdf);
-            final double part = WeightNorms.bmNorm(
-                wdf, doclen, new Bm25Norm(this.avglen, this.sat, this.norm)
-            );
-            weight = idf * part * wqf.value();
-        }
-        return weight;
-    }
-
-    @Override
-    public Weight copy() {
-        final BM25Weight copy = new BM25Weight(this.sat, this.norm);
-        copy.avglen = this.avglen;
-        copy.docs = this.docs;
-        return copy;
+    public String name() {
+        return BM25Weight.NAME;
     }
 
     @Override
     public byte[] serialise() {
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write(3);
-            Varints.encode(out, (long) (this.sat * 1000));
-            Varints.encode(out, (long) (this.norm * 1000));
-        } catch (final IOException ex) {
-            throw new AssertionError(ex);
-        }
-        return out.toByteArray();
+        return this.tuning.bytes();
     }
 
     @Override
-    public String toString() {
-        return String.format(
-            "BM25Weight(k1=%.3f, b=%.3f)", this.sat, this.norm
+    public Weight unserialise(final byte[] data) {
+        final WeightBytes input = WeightBytes.of(BM25Weight.NAME, data);
+        final Bm25Params read = Bm25Params.read(input);
+        input.end();
+        return new BM25Weight(read);
+    }
+
+    @Override
+    public Weight create(final String params) {
+        Weight result = new BM25Weight();
+        if (!params.isEmpty()) {
+            final WeightParams input = new WeightParams(BM25Weight.NAME, params);
+            final Bm25Params parsed = Bm25Params.parse(input);
+            input.end("Extra data after parameter 5");
+            result = new BM25Weight(parsed);
+        }
+        return result;
+    }
+
+    @Override
+    public TermWeight term(final WeightStats stats, final double factor) {
+        final CollectionStats coll = stats.collection();
+        final TermStats term = stats.term();
+        final long freq = Integer.toUnsignedLong(term.freq().value());
+        final long rset = Integer.toUnsignedLong(coll.rset().value());
+        final long size = Integer.toUnsignedLong(coll.size().value());
+        double ratio = (size - freq + 0.5) / (freq + 0.5);
+        if (rset != 0L) {
+            final long rel = Integer.toUnsignedLong(term.relFreq().value());
+            final long missed = rset - rel;
+            ratio = (rel + 0.5) * (size - missed - freq + 0.5)
+                / ((missed + 0.5) * (freq - rel + 0.5));
+        }
+        if (ratio < 2.0) {
+            ratio = ratio * 0.5 + 1.0;
+        }
+        return new Bm25Part(
+            this.tuning,
+            this.tuning.query(Math.log(ratio) * factor, term.wqf().value())
+                * (this.tuning.termsat() + 1.0),
+            1.0, 0.0, this.tuning.lengths(coll),
+            term.wdfMax(), coll.bounds().docMin()
         );
     }
 
+    @Override
+    public ExtraWeight extra(final WeightStats stats) {
+        return Bm25Extra.prepare(this.tuning, stats);
+    }
+
     /**
-     * Deserialises a BM25 weight from an input stream.
+     * Creates the traditional probabilistic scheme, a BM25 special case.
      *
-     * @param source Stream positioned after the type byte
-     * @return The weight
-     * @throws IOException when the stream is malformed
+     * @param params Saturation parameter, empty for one
+     * @return The scheme
      */
-    static BM25Weight deserialise(final InputStream source) throws IOException {
-        final BM25Weight weight = new BM25Weight();
-        weight.sat = Varints.decode(source) / 1000.0;
-        weight.norm = Varints.decode(source) / 1000.0;
-        return weight;
+    static Weight trad(final String params) {
+        double sat = 1.0;
+        if (!params.isEmpty()) {
+            final WeightParams input = new WeightParams("trad", params);
+            sat = input.number("Parameter is invalid");
+            input.end("Extra data after parameter");
+        }
+        return new BM25Weight(new Bm25Params(sat, 0.0, 0.0, 1.0, 0.0));
     }
 }

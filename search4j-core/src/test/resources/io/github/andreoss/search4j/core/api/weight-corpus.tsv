@@ -1,0 +1,12 @@
+main	1	alpha:3 beta:1 every:1
+main	2	alpha:1 gamma:2 every:2 heavy:5
+main	3	beta:4 gamma:1 delta:1 every:1
+main	4	alpha:2 delta:3 every:1 heavy:7
+main	5	every:1
+main	6	gamma:5 epsilon:2 every:3 heavy:4
+main	7	alpha:1 beta:1 gamma:1 delta:1 epsilon:1 every:1 rare:1
+main	8	beta:2 heavy:9 every:1
+main	9	delta:6 every:2 zeta:1
+main	10	alpha:4 gamma:3 every:1 heavy:3 epsilon:1
+tiny	1	alpha:2 beta:1
+tiny	2	alpha:1 gamma:3

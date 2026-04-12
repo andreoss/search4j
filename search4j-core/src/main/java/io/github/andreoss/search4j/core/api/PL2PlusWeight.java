@@ -7,130 +7,82 @@
  */
 package io.github.andreoss.search4j.core.api;
 
-import io.github.andreoss.search4j.core.api.query.Query;
-import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.backend.list.DocStats;
-import io.github.andreoss.search4j.core.ser.Varints;
-import io.github.andreoss.search4j.core.types.TermCount;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import io.github.andreoss.search4j.core.backend.list.TermWeight;
 
 /**
- * PL2+ weight scheme: PL2 with parameter for term frequency saturation.
- *
- * <p>PL2+ adds a parameter to control the saturation of the term frequency
- * normalisation, providing more flexibility than standard PL2.</p>
+ * PL2+ weighting: PL2 with a lower bound on the normalised frequency.
  *
  * @since 0.1.0
  */
 public final class PL2PlusWeight implements Weight {
 
     /**
-     * After-effect parameter.
+     * Name of the scheme.
      */
-    private double coef;
+    private static final String NAME = "pl2+";
 
     /**
-     * Constant added to the score.
+     * Document length normalisation parameter, above zero.
      */
-    private double delta;
+    private final Positive coef;
 
     /**
-     * Average document length of the database.
+     * Lower bound frequency, above zero.
      */
-    private TermCount avglen;
+    private final Positive delta;
 
     /**
-     * Number of documents in the database.
-     */
-    private TermCount docs;
-
-    /**
-     * Creates a PL2+ weight with default parameters (coef=1.0, delta=1.0).
+     * Creates the scheme with the default parameters one and 0.8.
      */
     public PL2PlusWeight() {
-        this(1.0, 1.0);
+        this(1.0, 0.8);
     }
 
     /**
-     * Creates a PL2+ weight with specified parameters.
+     * Creates the scheme.
      *
-     * @param coef Laplace after-effect parameter
-     * @param delta Saturation parameter
+     * @param coef Document length normalisation parameter, above zero
+     * @param delta Lower bound frequency, above zero
      */
     public PL2PlusWeight(final double coef, final double delta) {
-        this.coef = coef;
-        this.delta = delta;
+        this.coef = new Positive("c", coef);
+        this.delta = new Positive("delta", delta);
     }
 
     @Override
-    public void init(
-        final ShardStatistics database, final Query query, final int terms
-    ) {
-        this.docs = database.docCount();
-        if (this.docs.value() > 0) {
-            this.avglen = new TermCount((int) (database.totalLength().value() / this.docs.value()));
-        } else {
-            this.avglen = TermCount.ZERO;
-        }
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermStats stats, final DocStats doc
-    ) {
-        final TermCount wqf = stats.wqf();
-        final TermCount wdf = stats.wdf();
-        final TermCount doclen = doc.length();
-        double weight = 0.0;
-        if (this.avglen != null && this.avglen.value() > 0
-            && this.docs != null && this.docs.value() > 0) {
-            final double idf = WeightNorms.idf(this.docs, wdf);
-            final double part = WeightNorms.wdfPl(wdf, doclen, this.avglen);
-            final double tfn = part / (part + this.coef) * (this.coef / (this.coef + this.delta));
-            weight = idf * tfn * wqf.value();
-        }
-        return weight;
-    }
-
-    @Override
-    public Weight copy() {
-        final PL2PlusWeight copy = new PL2PlusWeight(this.coef, this.delta);
-        copy.avglen = this.avglen;
-        copy.docs = this.docs;
-        return copy;
+    public String name() {
+        return PL2PlusWeight.NAME;
     }
 
     @Override
     public byte[] serialise() {
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write(6);
-            Varints.encode(out, (long) (this.coef * 1000));
-            Varints.encode(out, (long) (this.delta * 1000));
-        } catch (final IOException ex) {
-            throw new AssertionError(ex);
-        }
-        return out.toByteArray();
+        return WeightBytes.doubles(this.coef.value(), this.delta.value());
     }
 
     @Override
-    public String toString() {
-        return String.format("PL2PlusWeight(c=%.3f, delta=%.3f)", this.coef, this.delta);
+    public Weight unserialise(final byte[] data) {
+        final WeightBytes input = WeightBytes.of(PL2PlusWeight.NAME, data);
+        final double first = input.number();
+        final double second = input.number();
+        input.end();
+        return new PL2PlusWeight(first, second);
     }
 
-    /**
-     * Deserialises a PL2+ weight from an input stream.
-     *
-     * @param source Stream positioned after the type byte
-     * @return The weight
-     * @throws IOException when the stream is malformed
-     */
-    static PL2PlusWeight deserialise(final InputStream source) throws IOException {
-        final PL2PlusWeight weight = new PL2PlusWeight();
-        weight.coef = Varints.decode(source) / 1000.0;
-        weight.delta = Varints.decode(source) / 1000.0;
-        return weight;
+    @Override
+    public Weight create(final String params) {
+        Weight result = new PL2PlusWeight();
+        if (!params.isEmpty()) {
+            final WeightParams input = new WeightParams(PL2PlusWeight.NAME, params);
+            final double first = input.number("Parameter 1 (c) is invalid");
+            final double second = input.number("Parameter 2 (delta) is invalid");
+            input.end("Extra data after parameter 2");
+            result = new PL2PlusWeight(first, second);
+        }
+        return result;
+    }
+
+    @Override
+    public TermWeight term(final WeightStats stats, final double factor) {
+        return Pl2PlusPart.prepare(stats, factor, this.coef.value(), this.delta.value());
     }
 }

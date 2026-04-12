@@ -7,7 +7,6 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
-import io.github.andreoss.search4j.core.backend.TermFrequencies;
 import io.github.andreoss.search4j.core.backend.list.LeafPostList;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
@@ -40,16 +39,7 @@ final class InMemoryPostList extends LeafPostList {
      * @param term Non-empty term listed
      */
     InMemoryPostList(final Store store, final String term) {
-        this(
-            store,
-            term,
-            new Postings(
-                new Seek<>(store.postings(term), DocId.NONE, item -> true),
-                new TermFrequencies(
-                    store.frequency(term), store.collection(term)
-                )
-            )
-        );
+        this(store, term, Postings.open(store, term));
     }
 
     /**
@@ -129,7 +119,7 @@ final class InMemoryPostList extends LeafPostList {
 
     @Override
     public TermCount wdfUpperBound() {
-        return this.opened.freqs().collection();
+        return this.opened.bound();
     }
 
     @Override

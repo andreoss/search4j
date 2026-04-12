@@ -143,20 +143,23 @@ public final class Registry {
     }
 
     private static Map<String, Supplier<Weight>> defaults() {
-        final Map<String, Supplier<Weight>> map = new HashMap<>(16);
+        final Map<String, Supplier<Weight>> map = new HashMap<>(32);
         map.put("bool", BoolWeight::new);
         map.put("coord", CoordWeight::new);
         map.put("bm25", BM25Weight::new);
-        map.put("bm25plus", BM25PlusWeight::new);
+        map.put("bm25+", BM25PlusWeight::new);
         map.put("pl2", PL2Weight::new);
-        map.put("pl2plus", PL2PlusWeight::new);
+        map.put("pl2+", PL2PlusWeight::new);
         map.put("ineb2", IneB2Weight::new);
         map.put("ifb2", IfB2Weight::new);
         map.put("inl2", InL2Weight::new);
         map.put("dph", DphWeight::new);
         map.put("dlh", DlhWeight::new);
         map.put("bb2", BB2Weight::new);
-        map.put("lm", LmWeight::new);
+        map.put("lmjm", LmjmWeight::new);
+        map.put("lmdirichlet", LmDirichletWeight::new);
+        map.put("lmabsdiscount", LmAbsDiscountWeight::new);
+        map.put("lm2stage", Lm2StageWeight::new);
         map.put("tfidf", TfidfWeight::new);
         map.put("dice", DiceWeight::new);
         return map;

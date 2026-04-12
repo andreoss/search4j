@@ -66,23 +66,29 @@ public final class Matcher {
         if (query.empty()) {
             result = EmptyPostList.INSTANCE;
         } else {
-            result = Matcher.resolveNode(
-                shard, query.node(), weight, () -> {
-                }
+            final Runnable recalc = () -> {
+            };
+            final Scheme scheme = Scheme.of(weight, shard, query);
+            final PostList tree = Matcher.resolveNode(
+                shard, query.node(), scheme, recalc
             );
+            final ExtraWeight extra = scheme.extra();
+            if (extra.maxExtra() == 0.0) {
+                result = tree;
+            } else {
+                result = new ExtraWeightPostList(tree, extra, recalc);
+            }
         }
         return result;
     }
 
     private static PostList resolveNode(
-        final Shard shard, final Node node, final Weight weight,
+        final Shard shard, final Node node, final Scheme weight,
         final Runnable recalc
     ) {
         final PostList result;
         switch (node.type()) {
-            case LEAF_TERM -> result = Matcher.leaf(
-                shard, node.term(), weight
-            );
+            case LEAF_TERM -> result = Matcher.leaf(shard, node, weight);
             case LEAF_MATCH_ALL -> result = shard.openPostList("");
             case LEAF_MATCH_NOTHING -> result = EmptyPostList.INSTANCE;
             case AND, OR, AND_NOT, XOR, AND_MAYBE -> result = Matcher.branch(
@@ -104,13 +110,16 @@ public final class Matcher {
     }
 
     private static PostList leaf(
-        final Shard shard, final String term, final Weight weight
+        final Shard shard, final Node node, final Scheme weight
     ) {
+        final String term = node.term();
         final Optional<LeafPostList> leaf =
             shard.openLeafPostList(term, false);
         final PostList result;
         if (leaf.isPresent()) {
-            leaf.get().weighting(new LeafTermWeight(term, weight));
+            leaf.get().weighting(
+                weight.term(leaf.get(), shard.frequencies(term), node.wqf())
+            );
             result = leaf.get();
         } else {
             result = EmptyPostList.INSTANCE;
@@ -141,7 +150,7 @@ public final class Matcher {
     }
 
     private static PostList branch(
-        final Shard shard, final Node node, final Weight weight,
+        final Shard shard, final Node node, final Scheme weight,
         final Runnable recalc
     ) {
         final int count = node.subqueryCount();
@@ -157,7 +166,7 @@ public final class Matcher {
     }
 
     private static PostList scale(
-        final Shard shard, final ScaleNode node, final Weight weight,
+        final Shard shard, final ScaleNode node, final Scheme weight,
         final Runnable recalc
     ) {
         return new ExtraWeightPostList(

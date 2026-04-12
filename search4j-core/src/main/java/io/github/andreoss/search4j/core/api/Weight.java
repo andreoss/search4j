@@ -7,16 +7,13 @@
  */
 package io.github.andreoss.search4j.core.api;
 
-import io.github.andreoss.search4j.core.api.query.Query;
-import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.backend.list.DocStats;
+import io.github.andreoss.search4j.core.backend.list.TermWeight;
+import io.github.andreoss.search4j.core.error.InvalidArgumentError;
+import io.github.andreoss.search4j.core.matcher.ExtraWeight;
 
 /**
- * A weighting scheme: computes term weight contributions for scoring.
- *
- * <p>A Weight instance is created per query by the scheme's factory
- * method; it receives the query tree and database statistics and can
- * produce per-term weights for any term in the query.</p>
+ * A weighting scheme: immutable parameters from which term and
+ * term-independent weights are prepared for each search.
  *
  * @since 0.1.0
  */
@@ -24,45 +21,82 @@ import io.github.andreoss.search4j.core.backend.list.DocStats;
 public interface Weight {
 
     /**
-     * Initialises the weight for a query.
+     * Name the scheme is registered and serialised under.
      *
-     * @param database Database statistics
-     * @param query The query tree
-     * @param terms Number of distinct terms in the query
+     * @return Scheme name
      */
-    void init(ShardStatistics database, Query query, int terms);
+    String name();
 
     /**
-     * Weight contribution of a term for a document.
+     * Serialises the parameters of the scheme.
      *
-     * @param term Term text
-     * @param stats Within-query and within-document frequencies
-     * @param doc Length statistics of the document
-     * @return Weight contribution, non-negative
-     */
-    double weight(String term, TermStats stats, DocStats doc);
-
-    /**
-     * Creates an uninitialised copy for a parallel or nested query.
-     *
-     * @return Fresh weight instance
-     */
-    Weight copy();
-
-    /**
-     * Serialises the weight to the reference wire format.
-     *
-     * @return Bytes of the weight
+     * @return Parameter bytes
      */
     byte[] serialise();
 
     /**
-     * Unserialises a weight written in the reference wire format.
+     * Creates a scheme of this kind from serialised parameters.
      *
-     * @param data Bytes of exactly one weight
-     * @return The weight
+     * @param data Parameter bytes of exactly one scheme
+     * @return The scheme
      */
-    static Weight deserialise(final byte[] data) {
-        return WeightInternal.deserialise(data);
+    Weight unserialise(byte[] data);
+
+    /**
+     * Creates a scheme of this kind from a parameter string.
+     *
+     * @param params Space separated parameters, empty for the defaults
+     * @return The scheme
+     */
+    Weight create(String params);
+
+    /**
+     * Prepares the weight of one query term.
+     *
+     * @param stats Collection and term statistics
+     * @param factor Scale factor of the term, above zero
+     * @return Term weight
+     */
+    TermWeight term(WeightStats stats, double factor);
+
+    /**
+     * Prepares the term-independent weight of a document.
+     *
+     * @param stats Collection statistics with {@link TermStats#EXTRA}
+     * @return Extra weight, zero for schemes without one
+     */
+    default ExtraWeight extra(final WeightStats stats) {
+        return new NoExtra();
+    }
+
+    /**
+     * Creates a scheme from its name followed by its parameters.
+     *
+     * @param spec Scheme name, optionally a space and parameters
+     * @param registry Registry of the schemes
+     * @return The scheme
+     */
+    static Weight create(final String spec, final Registry registry) {
+        final int space = spec.indexOf(' ');
+        final String scheme;
+        final String params;
+        if (space < 0) {
+            scheme = spec;
+            params = "";
+        } else {
+            scheme = spec.substring(0, space);
+            params = spec.substring(space + 1);
+        }
+        final Weight weight;
+        if (registry.hasWeightingScheme(scheme)) {
+            weight = registry.getWeightingScheme(scheme).create(params);
+        } else if ("trad".equals(scheme)) {
+            weight = BM25Weight.trad(params);
+        } else {
+            throw new InvalidArgumentError(
+                String.format("Unknown weighting scheme: %s", scheme)
+            );
+        }
+        return weight;
     }
 }

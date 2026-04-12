@@ -1,0 +1,18 @@
+q01	main	1	-	TERM	alpha
+q02	main	1	-	TERM	heavy
+q03	main	1	-	TERM	every
+q04	main	1	-	TERM	rare
+q05	main	1	-	TERM	alpha:3
+q06	main	1	-	OR	alpha beta gamma
+q07	main	1	-	AND	alpha gamma
+q08	main	1	-	AND_NOT	alpha beta
+q09	main	1	-	AND_MAYBE	delta heavy
+q10	main	0	-	SCALE:2.5	alpha
+q11	main	0	3,7	TERM	beta
+q12	main	1	-	TERM	missing
+q13	tiny	1	-	OR	alpha gamma
+q14	tiny	1	-	TERM	alpha
+q15	main	1	-	OR	delta heavy every zeta
+q16	main	1	-	XOR	alpha beta
+q17	main	1	-	OR	alpha:2 beta gamma delta epsilon zeta heavy:2
+q18	main	0	2,4,6	OR	heavy gamma

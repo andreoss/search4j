@@ -7,123 +7,82 @@
  */
 package io.github.andreoss.search4j.core.api;
 
-import io.github.andreoss.search4j.core.api.query.Query;
-import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.backend.list.DocStats;
-import io.github.andreoss.search4j.core.ser.Varints;
-import io.github.andreoss.search4j.core.types.TermCount;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import io.github.andreoss.search4j.core.backend.list.TermWeight;
 
 /**
- * IneB2 weight scheme: Inverse Expected Document Frequency (B2 variant).
- *
- * <p>IneB2 uses the inverse expected document frequency with the B2
- * after-effect normalisation.</p>
+ * IneB2 weighting from the divergence from randomness framework:
+ * expected inverse document frequency, Bernoulli after-effect, second normalisation.
  *
  * @since 0.1.0
  */
 public final class IneB2Weight implements Weight {
 
     /**
-     * After-effect parameter.
+     * Name of the scheme.
      */
-    private double coef;
+    private static final String NAME = "ineb2";
 
     /**
-     * Average document length of the database.
+     * Document length normalisation parameter, above zero.
      */
-    private TermCount avglen;
+    private final Positive coef;
 
     /**
-     * Number of documents in the database.
-     */
-    private TermCount docs;
-
-    /**
-     * Creates an IneB2 weight with default parameter (coef=1.0).
+     * Creates the scheme with the default parameter one.
      */
     public IneB2Weight() {
         this(1.0);
     }
 
     /**
-     * Creates an IneB2 weight with specified parameter.
+     * Creates the scheme.
      *
-     * @param coef After-effect parameter
+     * @param coef Document length normalisation parameter, above zero
      */
     public IneB2Weight(final double coef) {
-        this.coef = coef;
+        this.coef = new Positive("c", coef);
     }
 
     @Override
-    public void init(
-        final ShardStatistics database, final Query query, final int terms
-    ) {
-        this.docs = database.docCount();
-        if (this.docs.value() > 0) {
-            this.avglen = new TermCount((int) (database.totalLength().value() / this.docs.value()));
-        } else {
-            this.avglen = TermCount.ZERO;
-        }
-    }
-
-    @Override
-    public double weight(
-        final String term, final TermStats stats, final DocStats doc
-    ) {
-        final TermCount wqf = stats.wqf();
-        final TermCount wdf = stats.wdf();
-        final TermCount doclen = doc.length();
-        double weight = 0.0;
-        if (this.avglen != null && this.avglen.value() > 0
-            && this.docs != null && this.docs.value() > 0) {
-            final double idf = Math.log(
-                (this.docs.value() + 1.0) / (wdf.value() + 0.5)
-            ) / Math.log(2.0);
-            final double part = WeightNorms.wdfPl(wdf, doclen, this.avglen);
-            final double tfn = part / (part + this.coef) * (this.coef / (this.coef + 1.0));
-            weight = idf * tfn * wqf.value();
-        }
-        return weight;
-    }
-
-    @Override
-    public Weight copy() {
-        final IneB2Weight copy = new IneB2Weight(this.coef);
-        copy.avglen = this.avglen;
-        copy.docs = this.docs;
-        return copy;
+    public String name() {
+        return IneB2Weight.NAME;
     }
 
     @Override
     public byte[] serialise() {
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write(7);
-            Varints.encode(out, (long) (this.coef * 1000));
-        } catch (final IOException ex) {
-            throw new AssertionError(ex);
-        }
-        return out.toByteArray();
+        return WeightBytes.doubles(this.coef.value());
     }
 
     @Override
-    public String toString() {
-        return String.format("IneB2Weight(c=%.3f)", this.coef);
+    public Weight unserialise(final byte[] data) {
+        return new IneB2Weight(WeightBytes.single(IneB2Weight.NAME, data));
     }
 
-    /**
-     * Deserialises an IneB2 weight from an input stream.
-     *
-     * @param source Stream positioned after the type byte
-     * @return The weight
-     * @throws IOException when the stream is malformed
-     */
-    static IneB2Weight deserialise(final InputStream source) throws IOException {
-        final IneB2Weight weight = new IneB2Weight();
-        weight.coef = Varints.decode(source) / 1000.0;
-        return weight;
+    @Override
+    public Weight create(final String params) {
+        return new IneB2Weight(WeightParams.single(IneB2Weight.NAME, params, 1.0));
+    }
+
+    @Override
+    public TermWeight term(final WeightStats stats, final double factor) {
+        final TermWeight part;
+        if (stats.term().wdfMax().value() == 0) {
+            part = new FixedPart(0.0);
+        } else {
+            final double upper = EffectPart.highest(stats, this.coef.value());
+            final double size = WeightMath.unsigned(stats.collection().size().value());
+            final double coll = WeightMath.unsigned(stats.term().collFreq().value());
+            final double freq = WeightMath.unsigned(stats.term().freq().value());
+            final double wqf = stats.term().wqf().value();
+            final double idf = WeightMath.logTwo(
+                (size + 1.0) / (size * (1.0 - Math.exp(-(coll / size))) + 0.5)
+            );
+            part = new EffectPart(
+                this.coef.value() * stats.collection().average(), (coll + 1.0) / freq,
+                wqf * idf * factor,
+                (coll + 1.0) / (freq + freq / upper) * idf * wqf * factor
+            );
+        }
+        return part;
     }
 }

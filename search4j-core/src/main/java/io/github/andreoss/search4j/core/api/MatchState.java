@@ -31,7 +31,7 @@ final class MatchState {
     /**
      * Postings of the query.
      */
-    private final PostList list;
+    private PostList list;
 
     /**
      * Matches kept so far.
@@ -82,6 +82,13 @@ final class MatchState {
 
     PostList list() {
         return this.list;
+    }
+
+    /**
+     * Moves to the next document, adopting the list to carry on with.
+     */
+    void advance() {
+        this.list = this.list.next();
     }
 
     List<MSet.Item> found() {
