@@ -240,10 +240,10 @@ final class QueryParserTokeniserTest {
         final List<QueryParserToken> found =
             QueryParserTokeniserTest.tokens("hello ~5 world");
         Assertions.assertEquals(
-            List.of(QueryOp.NEAR, "5"),
+            List.of(QueryOp.NEAR, 5),
             List.of(
                 ((QueryParserToken.Operator) found.get(1)).op(),
-                ((QueryParserToken.Term) found.get(2)).text()
+                ((QueryParserToken.Operator) found.get(1)).parameter()
             ),
             "Near operator and its distance"
         );

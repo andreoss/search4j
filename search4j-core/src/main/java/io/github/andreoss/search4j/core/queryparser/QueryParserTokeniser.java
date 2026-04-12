@@ -99,12 +99,12 @@ public final class QueryParserTokeniser {
             case '{' -> this.range(QueryParserToken.Range.Bounds.EXCLUSIVE);
             case '(' -> this.group(new QueryParserToken.GroupStart(this.pos));
             case ')' -> this.group(new QueryParserToken.GroupEnd(this.pos));
-            case QueryParserTokeniser.PLUS -> this
-                .operator(QueryOp.AND, QueryParserTokeniser.PLUS);
-            case QueryParserTokeniser.MINUS -> this
-                .operator(QueryOp.AND_NOT, QueryParserTokeniser.MINUS);
-            case QueryParserTokeniser.TILDE -> this
-                .operator(QueryOp.NEAR, QueryParserTokeniser.TILDE);
+            case QueryParserTokeniser.PLUS -> QueryParserTokeniser
+                .operator(this, QueryOp.AND, QueryParserTokeniser.PLUS);
+            case QueryParserTokeniser.MINUS -> QueryParserTokeniser
+                .operator(this, QueryOp.AND_NOT, QueryParserTokeniser.MINUS);
+            case QueryParserTokeniser.TILDE -> QueryParserTokeniser
+                .operator(this, QueryOp.NEAR, QueryParserTokeniser.TILDE);
             default -> {
                 if (QueryParserTokeniser.word(chr)) {
                     this.term();
@@ -218,16 +218,24 @@ public final class QueryParserTokeniser {
         return result;
     }
 
-    private void operator(final QueryOp oper, final char chr) {
-        final int start = this.pos;
-        this.pos = this.pos + 1;
-        this.tokens.add(new QueryParserToken.Operator(oper, start));
+    private static void operator(
+        final QueryParserTokeniser tokeniser, final QueryOp oper,
+        final char chr
+    ) {
+        final int start = tokeniser.pos;
+        tokeniser.pos = tokeniser.pos + 1;
+        final int parameter;
         if (chr == QueryParserTokeniser.TILDE) {
-            this.distance(start);
+            parameter = tokeniser.distance();
+        } else {
+            parameter = 0;
         }
+        tokeniser.tokens.add(
+            new QueryParserToken.Operator(oper, start, parameter)
+        );
     }
 
-    private void distance(final int start) {
+    private int distance() {
         final int from = this.pos;
         while (
             this.pos < this.input.length()
@@ -235,10 +243,13 @@ public final class QueryParserTokeniser {
         ) {
             this.pos = this.pos + 1;
         }
+        final int value;
         if (this.pos > from) {
-            final String text = this.input.substring(from, this.pos);
-            this.tokens.add(new QueryParserToken.Term(text, start));
+            value = Integer.parseInt(this.input.substring(from, this.pos));
+        } else {
+            value = 0;
         }
+        return value;
     }
 
     private void term() {
@@ -250,16 +261,70 @@ public final class QueryParserTokeniser {
             this.pos = this.pos + 1;
         }
         final String word = this.input.substring(start, this.pos);
-        if (this.pos < this.input.length() && this.input.charAt(this.pos) == ':') {
+        this.dispatch(word, start);
+    }
+
+    private void dispatch(final String word, final int start) {
+        if (this.positionalSlash(word)) {
+            this.slashWindow(word, start);
+        } else if (QueryParserTokeniser.positional(word)) {
+            this.tokens.add(
+                new QueryParserToken.Operator(
+                    QueryParserTokeniser.operator(word), start
+                )
+            );
+        } else if (this.fieldDelimiter()) {
             this.pos = this.pos + 1;
             this.field(word, start);
-        } else if (word.indexOf('*') >= 0 || word.indexOf('?') >= 0) {
+        } else if (QueryParserTokeniser.wildcard(word)) {
             this.tokens.add(new QueryParserToken.Wildcard(word, start));
         } else {
-            this.tokens.add(
-                QueryParserTokeniser.wordToken(word, start)
-            );
+            this.tokens.add(QueryParserTokeniser.wordToken(word, start));
         }
+    }
+
+    private boolean positionalSlash(final String word) {
+        return this.pos < this.input.length()
+            && this.input.charAt(this.pos) == '/'
+            && QueryParserTokeniser.positional(word);
+    }
+
+    private void slashWindow(final String word, final int start) {
+        this.pos = this.pos + 1;
+        final int parameter = this.distance();
+        if (parameter == 0
+            || this.pos < this.input.length()
+                && !Character.isWhitespace(this.input.charAt(this.pos))) {
+            throw new IllegalArgumentException("Invalid positional distance");
+        }
+        this.tokens.add(
+            new QueryParserToken.Operator(
+                QueryParserTokeniser.operator(word), start, parameter
+            )
+        );
+    }
+
+    private boolean fieldDelimiter() {
+        return this.pos < this.input.length()
+            && this.input.charAt(this.pos) == ':';
+    }
+
+    private static boolean wildcard(final String word) {
+        return word.indexOf('*') >= 0 || word.indexOf('?') >= 0;
+    }
+
+    private static boolean positional(final String word) {
+        return "NEAR".equals(word) || "ADJ".equals(word);
+    }
+
+    private static QueryOp operator(final String word) {
+        final QueryOp result;
+        if ("NEAR".equals(word)) {
+            result = QueryOp.NEAR;
+        } else {
+            result = QueryOp.PHRASE;
+        }
+        return result;
     }
 
     private static QueryParserToken wordToken(final String word, final int start) {

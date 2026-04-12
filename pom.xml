@@ -46,6 +46,8 @@
     <pitest.version>1.30.1</pitest.version>
     <pitest-junit5.version>1.2.3</pitest-junit5.version>
     <junit.version>6.1.3</junit.version>
+    <jmh.version>1.37</jmh.version>
+    <exec.version>3.5.0</exec.version>
     <compiler.version>3.16.0</compiler.version>
     <surefire.version>3.6.1</surefire.version>
     <resources.version>3.5.0</resources.version>
@@ -55,6 +57,7 @@
     <clean.version>3.5.0</clean.version>
     <antrun.version>3.2.0</antrun.version>
     <tool.tmpdir>${project.build.directory}/tmp</tool.tmpdir>
+    <jmh.result>${project.build.directory}/jmh-result.json</jmh.result>
   </properties>
 
   <modules>
@@ -108,6 +111,16 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>
           <version>${clean.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>${exec.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.9.0</version>
         </plugin>
       </plugins>
     </pluginManagement>

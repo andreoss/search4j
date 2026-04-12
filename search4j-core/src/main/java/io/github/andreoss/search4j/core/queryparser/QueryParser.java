@@ -11,6 +11,7 @@ import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.api.query.Wildcard;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.QueryOp;
+import io.github.andreoss.search4j.core.types.TermPos;
 import io.github.andreoss.search4j.core.types.ValueNo;
 import java.util.ArrayList;
 import java.util.List;
@@ -210,13 +211,49 @@ public final class QueryParser {
 
     private Query near() {
         Query query = this.term();
-        while (this.matches(QueryOp.NEAR)) {
+        while (this.matches(QueryOp.NEAR) || this.matches(QueryOp.PHRASE)) {
+            final QueryParserToken.Operator operator =
+                (QueryParserToken.Operator) this.peek();
             this.step();
-            final int window = this.window();
             final Query right = this.term();
-            query = Query.of(QueryOp.NEAR, List.of(query, right), window);
+            final int window;
+            if (operator.parameter() == 0) {
+                window = 11;
+            } else {
+                window = operator.parameter() + 1;
+            }
+            final Query positional;
+            if (query.type() == QueryOp.LEAF_TERM
+                && right.type() == QueryOp.LEAF_TERM) {
+                positional = Query.of(
+                    operator.op(),
+                    List.of(
+                        QueryParser.position(query, 1),
+                        QueryParser.position(right, 2)
+                    ),
+                    window
+                );
+            } else {
+                positional = Query.of(
+                    operator.op(), List.of(query, right), window
+                );
+            }
+            query = positional;
         }
         return query;
+    }
+
+    private static Query position(final Query query, final int position) {
+        final Query result;
+        if (query.type() == QueryOp.LEAF_TERM) {
+            result = Query.term(
+                query.node().term(), query.wqf(),
+                new TermPos(position)
+            );
+        } else {
+            result = query;
+        }
+        return result;
     }
 
     private Query term() {
@@ -318,27 +355,6 @@ public final class QueryParser {
             );
         }
         return query;
-    }
-
-    private int window() {
-        int window = 0;
-        final QueryParserToken token = this.peek();
-        if (token.type() == QueryParserToken.Type.TERM) {
-            final String text = ((QueryParserToken.Term) token).text();
-            if (QueryParser.distance(text)) {
-                window = Integer.parseInt(text);
-                this.step();
-            }
-        }
-        return window;
-    }
-
-    private static boolean distance(final String text) {
-        boolean digits = !text.isEmpty();
-        for (int idx = 0; idx < text.length() && digits; idx = idx + 1) {
-            digits = Character.isDigit(text.charAt(idx));
-        }
-        return digits;
     }
 
     private QueryParserToken peek() {

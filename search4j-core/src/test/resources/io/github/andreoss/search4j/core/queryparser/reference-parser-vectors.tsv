@@ -1,0 +1,6 @@
+hello NEAR/3 world	Query((hello@1 NEAR 4 world@2))
+hello ADJ/3 world	Query((hello@1 PHRASE 4 world@2))
+hello NEAR world	Query((hello@1 NEAR 11 world@2))
+hello ADJ world	Query((hello@1 PHRASE 11 world@2))
+a NEAR/3 b	Query((a@1 NEAR 4 b@2))
+a ADJ/1 b	Query((a@1 PHRASE 2 b@2))

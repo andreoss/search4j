@@ -125,11 +125,23 @@ public sealed interface QueryParserToken permits
     /**
      * An operator token.
      *
-     * @param op Operator
+     * @param op Query operator
      * @param position Offset of the operator in the query
+     * @param parameter Positional operator window, zero for default
      * @since 0.1.0
      */
-    record Operator(QueryOp op, int position) implements QueryParserToken {
+    record Operator(QueryOp op, int position, int parameter)
+        implements QueryParserToken {
+
+        /**
+         * Creates a token without an explicit parameter.
+         *
+         * @param oper Query operator
+         * @param position Offset of the operator in the query
+         */
+        public Operator(final QueryOp oper, final int position) {
+            this(oper, position, 0);
+        }
 
         @Override
         public Type type() {
