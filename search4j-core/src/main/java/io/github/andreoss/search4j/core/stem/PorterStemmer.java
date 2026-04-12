@@ -97,29 +97,30 @@ final class PorterStemmer implements Stemmer {
         if (word.endsWith("sses")) {
             result = PorterStemmer.replace(word, "sses", "ss");
         } else if (word.endsWith("ied")) {
-            result = PorterStemmer.shortly(word, "ied", "i", "ie");
+            result = PorterStemmer.shortIe(word);
         } else if (word.endsWith("ies")) {
             result = PorterStemmer.replace(word, "ies", "i");
         } else if (word.endsWith("ss")) {
             result = word;
         } else if (word.endsWith("s")) {
             final String stem = PorterStemmer.replace(word, "s", "");
-            result = PorterStemmer.hasVowel(stem) ? stem : word;
+            if (PorterStemmer.hasVowel(stem)) {
+                result = stem;
+            } else {
+                result = word;
+            }
         } else {
             result = word;
         }
         return result;
     }
 
-    private static String shortly(
-        final String word, final String suffix, final String shortForm,
-        final String longForm
-    ) {
+    private static String shortIe(final String word) {
         final String result;
-        if (word.length() == suffix.length() + 1) {
-            result = PorterStemmer.replace(word, suffix, longForm);
+        if (word.length() == 4) {
+            result = PorterStemmer.replace(word, "ied", "ie");
         } else {
-            result = PorterStemmer.replace(word, suffix, shortForm);
+            result = PorterStemmer.replace(word, "ied", "i");
         }
         return result;
     }
