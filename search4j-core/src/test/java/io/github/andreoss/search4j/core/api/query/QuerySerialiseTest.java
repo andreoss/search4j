@@ -143,6 +143,26 @@ final class QuerySerialiseTest {
     }
 
     @Test
+    void describesWindowsAboveTheSignedRangeUnsigned() {
+        Assertions.assertEquals(
+            List.of(
+                "Query((a NEAR 4294967295 b))",
+                "Query((a PHRASE 2147483648 b))",
+                "Query((a ELITE_SET 2147483648 b))"
+            ),
+            List.of(
+                Query.deserialise(HexFormat.of().parseHex("f2ffffffff0f51615162"))
+                    .description(),
+                Query.deserialise(HexFormat.of().parseHex("fa808080800851615162"))
+                    .description(),
+                Query.deserialise(HexFormat.of().parseHex("ea808080800851615162"))
+                    .description()
+            ),
+            "A window or set size is an unsigned 32-bit count"
+        );
+    }
+
+    @Test
     void appliesTheSimplificationsOfTheBranches() {
         Assertions.assertEquals(
             List.of(
@@ -429,6 +449,21 @@ final class QuerySerialiseTest {
             Arguments.of(
                 "phrase", Query.terms(QueryOp.PHRASE, List.of("a", "b", "c"), 5),
                 "fb05516151625163"
+            ),
+            Arguments.of(
+                "widest near window",
+                Query.of(QueryOp.NEAR, List.of(alpha, beta), -1),
+                "f2ffffffff0f51615162"
+            ),
+            Arguments.of(
+                "phrase window above the signed range",
+                Query.of(QueryOp.PHRASE, List.of(alpha, beta), Integer.MIN_VALUE),
+                "fa808080800851615162"
+            ),
+            Arguments.of(
+                "elite set above the signed range",
+                Query.of(QueryOp.ELITE_SET, List.of(alpha, beta), Integer.MIN_VALUE),
+                "ea808080800851615162"
             ),
             Arguments.of(
                 "single synonym", Query.of(QueryOp.SYNONYM, List.of(alpha.and(beta))),

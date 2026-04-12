@@ -74,7 +74,7 @@ final class Branch {
      */
     static Branch of(final QueryOp type, final int parameter) {
         if (
-            parameter > 0 && type != QueryOp.NEAR && type != QueryOp.PHRASE
+            parameter != 0 && type != QueryOp.NEAR && type != QueryOp.PHRASE
                 && type != QueryOp.ELITE_SET
         ) {
             throw new InvalidArgumentError(
@@ -212,14 +212,12 @@ final class Branch {
 
     private int sized() {
         final int size;
-        if (this.parameter > 0) {
-            size = this.parameter;
-        } else if (Branch.positional(this.type)) {
+        if (this.parameter == 0 && Branch.positional(this.type)) {
             size = this.subqueries.size();
-        } else if (this.type == QueryOp.ELITE_SET) {
+        } else if (this.parameter == 0 && this.type == QueryOp.ELITE_SET) {
             size = 10;
         } else {
-            size = 0;
+            size = this.parameter;
         }
         return size;
     }

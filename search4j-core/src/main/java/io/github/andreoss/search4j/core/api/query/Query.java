@@ -282,7 +282,7 @@ public final class Query {
      * @param type Operator taking subqueries
      * @param subqueries Subqueries; none gives a match-nothing query
      * @param parameter Window of a positional operator or size of an elite
-     *  set, zero for the default
+     *  set as an unsigned count, zero for the default
      * @return Combined query
      */
     public static Query of(
@@ -298,7 +298,7 @@ public final class Query {
      * @param type Operator taking subqueries
      * @param subqueries Subqueries; none gives a match-nothing query
      * @param parameter Window of a positional operator or size of an elite
-     *  set, zero for the default
+     *  set as an unsigned count, zero for the default
      * @return Combined query
      */
     public static Query of(
@@ -339,7 +339,7 @@ public final class Query {
      * @param type Operator taking subqueries
      * @param terms Terms; none gives a match-nothing query
      * @param parameter Window of a positional operator or size of an elite
-     *  set, zero for the default
+     *  set as an unsigned count, zero for the default
      * @return Combined query
      */
     public static Query terms(

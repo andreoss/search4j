@@ -49,8 +49,8 @@ public record BranchNode(QueryOp type, List<Query> subqueries, int parameter)
         } else {
             final StringBuilder separator = new StringBuilder(16)
                 .append(' ').append(this.type.name()).append(' ');
-            if (this.parameter > 0) {
-                separator.append(this.parameter).append(' ');
+            if (this.parameter != 0) {
+                separator.append(Integer.toUnsignedString(this.parameter)).append(' ');
             }
             text = this.subqueries.stream()
                 .map(sub -> sub.node().describe())

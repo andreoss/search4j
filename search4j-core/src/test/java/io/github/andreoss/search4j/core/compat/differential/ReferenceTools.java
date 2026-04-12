@@ -8,6 +8,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,13 +17,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Starts the command-line tools of the held reference build. The tool
  * directory and library path come from an unversioned configuration file,
  * so no committed source names them; the tools are unavailable when the
- * file is absent.
+ * file is absent. Every tool gets its whole input and a closed input
+ * stream, and is destroyed when it outlives a bounded wait.
  *
  * @since 0.1.0
  */
@@ -32,6 +38,11 @@ final class ReferenceTools {
      */
     private static final Path CONFIG = Path
         .of("..", "scratch", "native-tools.properties");
+
+    /**
+     * Seconds a tool may run.
+     */
+    private static final long LIMIT = 60L;
 
     /**
      * Configuration with the tool directory, library path and tool names,
@@ -69,46 +80,60 @@ final class ReferenceTools {
         final String tool,
         final List<String> args
     ) throws IOException {
-        final Properties setup = ReferenceTools.SETTINGS.orElseThrow(
-            () -> new IOException("reference tools not held")
-        );
-        final List<String> cmd = new ArrayList<>(args.size() + 1);
-        cmd.add(ReferenceTools.binary(setup, tool));
-        cmd.addAll(args);
-        final ProcessBuilder maker = new ProcessBuilder(cmd);
-        maker.redirectErrorStream(true);
-        maker.environment().put(
-            "LD_LIBRARY_PATH",
-            setup.getProperty("library.path", "")
-        );
-        final Process proc = maker.start();
-        final List<String> out = ReferenceTools.read(proc);
-        final int code = ReferenceTools.exit(proc, tool, cmd);
-        if (code != 0) {
+        final Outcome outcome = ReferenceTools.launch(tool, args, List.of());
+        if (outcome.code() != 0) {
             throw new IOException(
                 String.format(
-                    "tool %s failed with exit code %d: %s", tool, code, cmd
+                    "tool %s failed with exit code %d: %s",
+                    tool, outcome.code(), args
                 )
             );
         }
-        return out;
+        return outcome.lines();
     }
 
     /**
-     * Runs a conversational tool: the script is written to its input and
-     * the report read back. A failing exit status is not reported, because
-     * the tool exits nonzero when the last command is an unknown table.
+     * Runs one tool and returns its output lines whatever its exit status,
+     * for tools that report rejected input through it.
+     *
+     * @param tool Property key suffix naming the tool
+     * @param args Tool arguments
+     * @return Output lines
+     * @throws IOException When the tool cannot run or times out
+     */
+    static List<String> capture(
+        final String tool,
+        final List<String> args
+    ) throws IOException {
+        return ReferenceTools.launch(tool, args, List.of()).lines();
+    }
+
+    /**
+     * Runs a conversational tool: the script and a final quit command are
+     * written to its input, which is then closed, and the report read
+     * back. A failing exit status is not reported, because the tool exits
+     * nonzero when the last command is an unknown table.
      *
      * @param tool Property key suffix naming the tool
      * @param args Tool arguments
      * @param script Commands, one per line
      * @return Output lines
-     * @throws IOException When the tool cannot run
+     * @throws IOException When the tool cannot run or times out
      */
     static List<String> talk(
         final String tool,
         final List<String> args,
         final List<String> script
+    ) throws IOException {
+        final List<String> input = new ArrayList<>(script);
+        input.add("quit");
+        return ReferenceTools.launch(tool, args, input).lines();
+    }
+
+    private static Outcome launch(
+        final String tool,
+        final List<String> args,
+        final List<String> input
     ) throws IOException {
         final Properties setup = ReferenceTools.SETTINGS.orElseThrow(
             () -> new IOException("reference tools not held")
@@ -123,50 +148,44 @@ final class ReferenceTools {
             setup.getProperty("library.path", "")
         );
         final Process proc = maker.start();
-        final List<String> out = ReferenceTools.reply(proc, script);
-        ReferenceTools.exit(proc, tool, cmd);
-        return out;
+        final CompletableFuture<List<String>> output =
+            CompletableFuture.supplyAsync(() -> ReferenceTools.drain(proc));
+        ReferenceTools.feed(proc, input);
+        return new Outcome(
+            ReferenceTools.exit(proc, tool, cmd),
+            ReferenceTools.collect(output, tool)
+        );
     }
 
-    private static List<String> reply(final Process proc,
-        final List<String> script) throws IOException {
-        try (
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(
-                    proc.getInputStream(), StandardCharsets.UTF_8
-                )
-            )
-        ) {
-            final List<String> out = new ArrayList<>(32);
-            String line = reader.readLine();
-            while (line != null && !line.endsWith("? ")) {
-                out.add(line);
-                line = reader.readLine();
+    private static void feed(final Process proc, final List<String> input)
+        throws IOException {
+        final StringBuilder text = new StringBuilder(16);
+        for (final String line : input) {
+            text.append(line).append('\n');
+        }
+        try (OutputStream sink = proc.getOutputStream()) {
+            sink.write(text.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (final IOException exp) {
+            if (proc.isAlive()) {
+                proc.destroyForcibly();
+                throw exp;
             }
-            if (line != null) {
-                out.add(line);
-            }
-            try {
-                final String breaker = System.lineSeparator();
-                final StringBuilder text = new StringBuilder(16);
-                for (final String command : script) {
-                    text.append(command).append(breaker);
-                }
-                text.append("quit").append(breaker);
-                proc.getOutputStream().write(
-                    text.toString().getBytes(StandardCharsets.UTF_8)
-                );
-                proc.getOutputStream().flush();
-                proc.getOutputStream().close();
-            } catch (final IOException exp) {
-                proc.getOutputStream().close();
-            }
-            line = reader.readLine();
-            while (line != null) {
-                out.add(line);
-                line = reader.readLine();
-            }
-            return out;
+        }
+    }
+
+    private static List<String> collect(
+        final CompletableFuture<List<String>> output,
+        final String tool
+    ) throws IOException {
+        try {
+            return output.get(ReferenceTools.LIMIT, TimeUnit.SECONDS);
+        } catch (final InterruptedException exp) {
+            Thread.currentThread().interrupt();
+            throw new IOException("interrupted while reading the tool", exp);
+        } catch (final ExecutionException | TimeoutException exp) {
+            throw new IOException(
+                String.format("output of tool %s unreadable", tool), exp
+            );
         }
     }
 
@@ -174,7 +193,7 @@ final class ReferenceTools {
         final List<String> cmd) throws IOException {
         final int code;
         try {
-            if (!proc.waitFor(60L, TimeUnit.SECONDS)) {
+            if (!proc.waitFor(ReferenceTools.LIMIT, TimeUnit.SECONDS)) {
                 proc.destroyForcibly();
                 throw new IOException(
                     String.format("tool %s timed out: %s", tool, cmd)
@@ -182,6 +201,7 @@ final class ReferenceTools {
             }
             code = proc.exitValue();
         } catch (final InterruptedException exp) {
+            proc.destroyForcibly();
             Thread.currentThread().interrupt();
             throw new IOException(
                 "interrupted while waiting for the tool", exp
@@ -243,7 +263,7 @@ final class ReferenceTools {
         return true;
     }
 
-    private static List<String> read(final Process proc) throws IOException {
+    private static List<String> drain(final Process proc) {
         final List<String> out = new ArrayList<>(16);
         try (
             InputStream stream = proc.getInputStream();
@@ -256,7 +276,19 @@ final class ReferenceTools {
                 out.add(line);
                 line = reader.readLine();
             }
+        } catch (final IOException exp) {
+            throw new UncheckedIOException(exp);
         }
         return out;
+    }
+
+    /**
+     * Exit status and output of one tool run.
+     *
+     * @param code Exit status
+     * @param lines Output lines
+     * @since 0.1.0
+     */
+    private record Outcome(int code, List<String> lines) {
     }
 }

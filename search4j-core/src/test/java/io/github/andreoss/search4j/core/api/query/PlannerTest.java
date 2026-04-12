@@ -180,6 +180,10 @@ final class PlannerTest {
                 "(OR(a:1, b:1, c:1) ELITE 1 of 1-3)", 1.0
             ),
             Arguments.of(
+                Query.of(QueryOp.ELITE_SET, List.of(alpha, beta, gamma), -1),
+                "OR(a:1, b:1, c:1)", 1.0
+            ),
+            Arguments.of(
                 Query.of(QueryOp.SYNONYM, alpha, beta.or(gamma)),
                 "SYNONYM:1(BOOL_OR(a:0, b:0, c:0))", 1.0
             ),
@@ -225,6 +229,10 @@ final class PlannerTest {
             Arguments.of(
                 Query.of(QueryOp.PHRASE, alpha, beta).andNot(gamma),
                 "(AND(a:1, b:1) NOT c:0 PHRASE 0-2 window 2)", 1.0
+            ),
+            Arguments.of(
+                Query.of(QueryOp.NEAR, List.of(alpha, beta), Integer.MIN_VALUE),
+                "(AND(a:1, b:1) NEAR 0-2 window 2147483648)", 1.0
             )
         );
     }

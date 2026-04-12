@@ -70,7 +70,7 @@ final class OrDraft {
      */
     void elite(final int size, final int begin) {
         final int end = this.members.size();
-        if (size < end - begin) {
+        if (Integer.compareUnsigned(size, end - begin) < 0) {
             this.elites.add(new OrPlan.Elite(size, begin, end));
         }
     }

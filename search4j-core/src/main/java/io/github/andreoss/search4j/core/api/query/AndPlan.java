@@ -100,7 +100,8 @@ record AndPlan(List<Plan> members, boolean all, OrPlan excluded,
          */
         String describe() {
             return String.format(
-                " %s %d-%d window %d", this.type, this.begin, this.end, this.size
+                " %s %d-%d window %s", this.type, this.begin, this.end,
+                Integer.toUnsignedString(this.size)
             );
         }
     }

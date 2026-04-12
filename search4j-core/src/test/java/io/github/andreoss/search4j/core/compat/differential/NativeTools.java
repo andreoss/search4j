@@ -38,6 +38,11 @@ final class NativeTools {
     private static final String COUNT = "number of documents";
 
     /**
+     * Label before a query description printed by the reference parser.
+     */
+    private static final String PARSED = "Parsed Query: ";
+
+    /**
      * Utility class, no instances.
      */
     private NativeTools() {
@@ -56,19 +61,31 @@ final class NativeTools {
      * Parses a query with the reference parser and no database.
      *
      * @param query Query text
-     * @param flags Parser flag name
-     * @param stemmer Stemmer language name
-     * @return Query description printed by the reference parser
-     * @throws IOException When the tool fails
+     * @param options Flag names separated by commas, stemmer language,
+     *  stemming strategy and default operator, in this order
+     * @return Query description, or the error the reference parser printed
+     * @throws IOException When the tool cannot run
      */
-    static List<String> parse(
+    static String parse(
         final String query,
-        final String flags,
-        final String stemmer
+        final String... options
     ) throws IOException {
-        return ReferenceTools.run(
-            "quest", List.of("--flags", flags, "--stemmer", stemmer, query)
+        final List<String> out = ReferenceTools.capture(
+            "quest",
+            List.of(
+                "--flags", options[0], "--stemmer", options[1],
+                "--stem-strategy", options[2], "--default-op", options[3],
+                "--", query
+            )
         );
+        if (out.isEmpty()) {
+            throw new IOException(String.format("no output for %s", query));
+        }
+        String line = out.get(0);
+        if (line.startsWith(NativeTools.PARSED)) {
+            line = line.substring(NativeTools.PARSED.length());
+        }
+        return line;
     }
 
     /**

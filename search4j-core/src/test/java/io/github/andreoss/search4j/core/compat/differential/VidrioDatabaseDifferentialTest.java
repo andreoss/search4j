@@ -11,11 +11,9 @@ import io.github.andreoss.search4j.core.api.Enquire;
 import io.github.andreoss.search4j.core.api.WritableDatabase;
 import io.github.andreoss.search4j.core.backend.vidrio.BlockSize;
 import io.github.andreoss.search4j.core.queryparser.QueryParser;
-import io.github.andreoss.search4j.core.queryparser.QueryParserTokeniser;
 import io.github.andreoss.search4j.core.termgen.Stemmer;
 import io.github.andreoss.search4j.core.termgen.TermGenerator;
 import io.github.andreoss.search4j.core.types.DatabaseAction;
-import io.github.andreoss.search4j.core.types.QueryOp;
 import io.github.andreoss.search4j.core.types.StemStrategy;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.TermPos;
@@ -172,12 +170,7 @@ final class VidrioDatabaseDifferentialTest {
         final List<Long> found;
         try (Database han = DatabaseFactory.open(dbs)) {
             final Enquire enquire = han.enquire();
-            enquire.setQuery(
-                new QueryParser(
-                    new QueryParserTokeniser("alpha").tokenise(),
-                    QueryOp.AND
-                ).parse()
-            );
+            enquire.setQuery(new QueryParser().parse("alpha"));
             found = enquire.getMSet(0, 10).toList().stream()
                 .map(match -> (long) match.docId().value())
                 .collect(Collectors.toList());

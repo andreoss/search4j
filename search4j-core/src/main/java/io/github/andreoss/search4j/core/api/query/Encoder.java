@@ -181,7 +181,7 @@ final class Encoder {
             this.uint(count - 8);
         }
         if (code >= 13) {
-            this.uint(node.parameter());
+            this.uint(Integer.toUnsignedLong(node.parameter()));
         }
         for (final Query sub : node.subqueries()) {
             this.node(sub.node());

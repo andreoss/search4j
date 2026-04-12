@@ -93,7 +93,7 @@ final class Decoder {
             parameter = this.cursor.uint(32);
         }
         final Branch branch = Branch.of(
-            Decoder.operator(code), Decoder.small(parameter)
+            Decoder.operator(code), (int) parameter
         );
         long left = count;
         while (left > 0L) {
