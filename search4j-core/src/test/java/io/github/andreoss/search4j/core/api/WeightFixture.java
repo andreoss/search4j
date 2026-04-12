@@ -13,9 +13,12 @@ import io.github.andreoss.search4j.core.backend.inmemory.InMemoryShard;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.QueryOp;
 import io.github.andreoss.search4j.core.types.TermCount;
+import io.github.andreoss.search4j.core.types.ValueNo;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 /**
@@ -49,6 +52,33 @@ final class WeightFixture {
         final Enquire enquire = new EnquireImpl(WeightFixture.shard(query[1]));
         enquire.setQuery(WeightFixture.build(query[4], query[5]), weight);
         return enquire.getMSet(0, 1000);
+    }
+
+    static InMemoryShard valued(final String corpus) {
+        final Map<Integer, DocumentInternal> docs = new TreeMap<>();
+        try {
+            for (final String[] row : WeightVectors.rows("weight-corpus.tsv")) {
+                if (row[0].equals(corpus)) {
+                    docs.put(
+                        Integer.parseInt(row[1]), WeightFixture.document(row[2])
+                    );
+                }
+            }
+            for (final String[] row : WeightVectors.rows("matcher-values.tsv")) {
+                if (row[0].equals(corpus)) {
+                    docs.get(Integer.parseInt(row[1])).addValue(
+                        new ValueNo(Long.parseLong(row[2])), row[3]
+                    );
+                }
+            }
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+        final InMemoryShard shard = new InMemoryShard();
+        for (final Map.Entry<Integer, DocumentInternal> doc : docs.entrySet()) {
+            shard.replaceDocument(DocId.of(doc.getKey()), doc.getValue());
+        }
+        return shard;
     }
 
     private static String[] query(final String name) {

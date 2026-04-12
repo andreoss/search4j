@@ -10,8 +10,8 @@ package io.github.andreoss.search4j.core.api;
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.Shard;
 import io.github.andreoss.search4j.core.backend.list.PostList;
-import io.github.andreoss.search4j.core.matcher.MatchEstimate;
 import io.github.andreoss.search4j.core.matcher.MatchEstimates;
+import io.github.andreoss.search4j.core.matcher.MatchTree;
 import io.github.andreoss.search4j.core.matcher.Matcher;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
@@ -185,9 +185,9 @@ public final class EnquireImpl implements Enquire {
         if (this.request == null) {
             estimate = TermCount.ZERO;
         } else {
-            estimate = MatchEstimate.from(
-                Matcher.resolve(this.shard, this.request)
-            ).resolve(
+            estimate = Matcher.build(
+                this.shard, this.request, new BoolWeight()
+            ).estimate().resolve(
                 this.shard.docCount(), DocId.of(1), this.shard.lastDocId()
             ).max();
         }
@@ -296,8 +296,8 @@ public final class EnquireImpl implements Enquire {
         } else {
             scheme = this.chosen;
         }
-        final PostList list = Matcher.resolve(this.shard, this.request, scheme);
-        final MatchState state = new MatchState(this.shard, list);
+        final MatchTree tree = Matcher.build(this.shard, this.request, scheme);
+        final MatchState state = new MatchState(this.shard, tree.list());
         final long start = System.nanoTime();
         state.advance();
         while (!state.list().atEnd() && !this.stop(state, start)) {
@@ -306,7 +306,7 @@ public final class EnquireImpl implements Enquire {
         }
         this.order(state.found());
         state.rank();
-        final MatchEstimates max = MatchEstimate.from(list).resolve(
+        final MatchEstimates max = tree.estimate().resolve(
             this.shard.docCount(), DocId.of(1), this.shard.lastDocId()
         );
         return new MSetImpl(state.found(), max.max(), max.max());

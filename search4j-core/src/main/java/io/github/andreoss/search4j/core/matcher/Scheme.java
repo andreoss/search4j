@@ -51,27 +51,24 @@ record Scheme(Weight weight, CollectionStats collection) {
         );
     }
 
+    static TermStats stats(
+        final LeafPostList leaf, final TermFrequencies freqs, final TermCount wqf
+    ) {
+        return new TermStats(
+            freqs.termFrequency(), TermCount.ZERO, freqs.collection(),
+            wqf, leaf.wdfUpperBound()
+        );
+    }
+
     /**
      * Prepares the weight of a term.
      *
-     * @param leaf Posting list of the term
-     * @param freqs Frequencies of the term
-     * @param wqf Within-query frequency of the term
+     * @param stats Statistics of the term
+     * @param factor Scale factor of the term
      * @return Term weight
      */
-    TermWeight term(
-        final LeafPostList leaf, final TermFrequencies freqs, final TermCount wqf
-    ) {
-        return this.weight.term(
-            new WeightStats(
-                this.collection,
-                new TermStats(
-                    freqs.termFrequency(), TermCount.ZERO, freqs.collection(),
-                    wqf, leaf.wdfUpperBound()
-                )
-            ),
-            1.0
-        );
+    TermWeight term(final TermStats stats, final double factor) {
+        return this.weight.term(new WeightStats(this.collection, stats), factor);
     }
 
     /**

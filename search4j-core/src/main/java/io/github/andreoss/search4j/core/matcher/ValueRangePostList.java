@@ -49,20 +49,26 @@ public final class ValueRangePostList implements PostList {
     private ValueList values;
 
     /**
+     * Static bounds and estimate of the matches.
+     */
+    private final MatchEstimates bounds;
+
+    /**
      * Creates a range over a prepared slot and bounds.
      *
      * @param shard Shard whose values are read
      * @param range Slot and inclusive bounds
      */
     public ValueRangePostList(final Shard shard, final ValueRange range) {
-        if (shard == null) {
-            throw new InvalidArgumentError("A shard is required");
-        }
-        if (range == null) {
-            throw new InvalidArgumentError("A range is required");
-        }
+        this(shard, range, ValueRangePostList.estimated(shard, range));
+    }
+
+    ValueRangePostList(
+        final Shard shard, final ValueRange range, final MatchEstimates bounds
+    ) {
         this.shard = shard;
         this.range = range;
+        this.bounds = bounds;
         this.values = null;
     }
 
@@ -133,7 +139,7 @@ public final class ValueRangePostList implements PostList {
 
     @Override
     public TermCount termFrequency() {
-        return this.shard.valueStats(this.range.slot()).frequency();
+        return this.bounds.est();
     }
 
     @Override
@@ -164,6 +170,24 @@ public final class ValueRangePostList implements PostList {
     @Override
     public String description() {
         return this.range.describe();
+    }
+
+    MatchEstimates estimates() {
+        return this.bounds;
+    }
+
+    private static MatchEstimates estimated(
+        final Shard shard, final ValueRange range
+    ) {
+        if (shard == null) {
+            throw new InvalidArgumentError("A shard is required");
+        }
+        if (range == null) {
+            throw new InvalidArgumentError("A range is required");
+        }
+        return RangeEstimate.of(
+            shard.valueStats(range.slot()), range.lower(), range.upper()
+        );
     }
 
     private void begin() {

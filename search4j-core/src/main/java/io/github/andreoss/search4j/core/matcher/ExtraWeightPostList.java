@@ -78,6 +78,10 @@ public final class ExtraWeightPostList extends WrapperPostList {
         );
     }
 
+    MatchEstimate matchEstimate() {
+        return MatchEstimate.from(this.wrapped());
+    }
+
     @Override
     PostList move(final double least) {
         final PostList wrapped = this.wrapped();

@@ -7,6 +7,7 @@
  */
 package io.github.andreoss.search4j.core.backend.inmemory;
 
+import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.LeafPostList;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
@@ -86,6 +87,11 @@ final class InMemoryPostList extends LeafPostList {
     @Override
     public String description() {
         return String.format("InMemoryPostList(%s)", this.term());
+    }
+
+    @Override
+    public DocRange docIdRange(final DocRange whole) {
+        return this.opened.range();
     }
 
     @Override

@@ -176,6 +176,10 @@ public final class ValueGePostList implements PostList {
         );
     }
 
+    MatchEstimates estimates() {
+        return this.range().estimates();
+    }
+
     private ValueRangePostList range() {
         if (this.range == null) {
             this.range = ValueRangePostList.atLeast(
