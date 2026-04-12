@@ -147,11 +147,12 @@ final class ReferenceTools {
                 out.add(line);
             }
             try {
+                final String breaker = System.lineSeparator();
                 final StringBuilder text = new StringBuilder(16);
                 for (final String command : script) {
-                    text.append(command).append('\n');
+                    text.append(command).append(breaker);
                 }
-                text.append("quit\n");
+                text.append("quit").append(breaker);
                 proc.getOutputStream().write(
                     text.toString().getBytes(StandardCharsets.UTF_8)
                 );

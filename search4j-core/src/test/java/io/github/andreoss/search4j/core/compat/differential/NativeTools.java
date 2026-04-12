@@ -345,11 +345,11 @@ final class NativeTools {
     }
 
     private static String slug(final String title) {
-        final String[] words = NativeTools.SPACES.split(title);
+        final List<String> words = NativeTools.words(title);
         final StringBuilder out = new StringBuilder(title.length());
-        out.append(words[0]);
-        for (int idx = 1; idx < words.length; ++idx) {
-            final String word = words[idx];
+        out.append(words.get(0));
+        for (int idx = 1; idx < words.size(); ++idx) {
+            final String word = words.get(idx);
             out.append(Character.toUpperCase(word.charAt(0)))
                 .append(word.substring(1));
         }
@@ -357,15 +357,18 @@ final class NativeTools {
     }
 
     private static void slots(final String text, final Map<String, String> map) {
-        for (final String slot : NativeTools.SPACES.split(text.trim())) {
+        for (final String slot : NativeTools.words(text)) {
             final int pos = slot.indexOf(':');
             if (pos > 0) {
                 map.put(
-                    slot.substring(0, pos).trim(),
-                    slot.substring(pos + 1).trim()
+                    slot.substring(0, pos), slot.substring(pos + 1)
                 );
             }
         }
+    }
+
+    private static List<String> words(final String text) {
+        return new ArrayList<>(List.of(NativeTools.SPACES.split(text.trim())));
     }
 
     private static List<String> delve(
