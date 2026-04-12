@@ -96,14 +96,30 @@ final class PorterStemmer implements Stemmer {
         final String result;
         if (word.endsWith("sses")) {
             result = PorterStemmer.replace(word, "sses", "ss");
+        } else if (word.endsWith("ied")) {
+            result = PorterStemmer.shortly(word, "ied", "i", "ie");
         } else if (word.endsWith("ies")) {
             result = PorterStemmer.replace(word, "ies", "i");
         } else if (word.endsWith("ss")) {
             result = word;
         } else if (word.endsWith("s")) {
-            result = PorterStemmer.replace(word, "s", "");
+            final String stem = PorterStemmer.replace(word, "s", "");
+            result = PorterStemmer.hasVowel(stem) ? stem : word;
         } else {
             result = word;
+        }
+        return result;
+    }
+
+    private static String shortly(
+        final String word, final String suffix, final String shortForm,
+        final String longForm
+    ) {
+        final String result;
+        if (word.length() == suffix.length() + 1) {
+            result = PorterStemmer.replace(word, suffix, longForm);
+        } else {
+            result = PorterStemmer.replace(word, suffix, shortForm);
         }
         return result;
     }
@@ -116,12 +132,14 @@ final class PorterStemmer implements Stemmer {
                 result = PorterStemmer.concat(stem, "ee");
             }
         } else if (word.endsWith("ed")
-            && PorterStemmer.vowelIn(PorterStemmer.replace(word, "ed", ""))) {
+            && PorterStemmer.hasVowel(PorterStemmer.replace(word, "ed", ""))) {
             result = PorterStemmer.post(
                 PorterStemmer.replace(word, "ed", "")
             );
         } else if (word.endsWith("ing")
-            && PorterStemmer.vowelIn(PorterStemmer.replace(word, "ing", ""))) {
+            && PorterStemmer.hasVowel(
+                PorterStemmer.replace(word, "ing", "")
+            )) {
             result = PorterStemmer.post(
                 PorterStemmer.replace(word, "ing", "")
             );
@@ -259,6 +277,15 @@ final class PorterStemmer implements Stemmer {
         boolean found = false;
         for (int idx = 0; idx < word.length() && !found; idx = idx + 1) {
             found = !PorterStemmer.consonant(word, idx);
+        }
+        return found;
+    }
+
+    private static boolean hasVowel(final String word) {
+        boolean found = PorterStemmer.vowelIn(word);
+        if (!found && word.length() > 1) {
+            final String ending = word.substring(word.length() - 2);
+            found = "ying".endsWith(ending) || "uing".endsWith(ending);
         }
         return found;
     }
