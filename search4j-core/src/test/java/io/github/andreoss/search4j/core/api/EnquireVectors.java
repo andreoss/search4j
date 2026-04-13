@@ -113,6 +113,34 @@ final class EnquireVectors {
         return this.failures;
     }
 
+    List<String> checkOptions() throws IOException {
+        this.load();
+        final Map<String, List<String[]>> fixed = new HashMap<>(128);
+        final Map<String, String[]> heads = EnquireVectors.bounds(
+            "enquire-option-corrected-vectors.tsv", fixed
+        );
+        final Map<String, List<String[]>> items = new HashMap<>(65_536);
+        for (final Map.Entry<String, String[]> entry
+            : EnquireVectors.bounds("enquire-option-vectors.tsv", items)
+                .entrySet()) {
+            this.searches = this.searches + 1;
+            if (heads.containsKey(entry.getKey())) {
+                this.skipped.add(entry.getKey());
+            } else {
+                this.compare(
+                    entry.getValue(), items.getOrDefault(entry.getKey(), List.of())
+                );
+            }
+        }
+        for (final Map.Entry<String, String[]> entry : heads.entrySet()) {
+            this.corrected.add(entry.getKey());
+            this.compare(
+                entry.getValue(), fixed.getOrDefault(entry.getKey(), List.of())
+            );
+        }
+        return this.failures;
+    }
+
     int searches() {
         return this.searches;
     }
@@ -194,11 +222,10 @@ final class EnquireVectors {
 
     private MSet search(final String spec, final String name, final String setting) {
         final String[] parts = EnquireVectors.COMMA.split(setting, -1);
-        final Enquire enquire = new EnquireImpl(
-            this.shards.computeIfAbsent(
-                this.queries.get(name)[1], WeightFixture::valued
-            )
+        final InMemoryShard shard = this.shards.computeIfAbsent(
+            this.queries.get(name)[1], WeightFixture::valued
         );
+        final Enquire enquire = new EnquireImpl(shard);
         enquire.setQuery(MatcherVectors.parse(this.queries.get(name)[2]));
         enquire.setWeightingScheme(Weight.create(spec, new Registry()));
         enquire.setCutoff(Integer.parseInt(parts[3]), Double.parseDouble(parts[4]));
@@ -207,6 +234,17 @@ final class EnquireVectors {
             enquire.setSortByValue(
                 new ValueNo(sort.charAt(1) - '0'), sort.length() == 2
             );
+        }
+        if (parts.length > 6) {
+            enquire.setDocIdOrder("A".equals(parts[6]));
+            if (!"-".equals(parts[7])) {
+                final ValueNo slot = new ValueNo(Integer.parseInt(parts[7]));
+                enquire.setKeyMaker(
+                    docid -> shard.openDocument(docid, false)
+                        .flatMap(document -> document.value(slot)).orElse("")
+                );
+                enquire.setCollapseMax(Integer.parseInt(parts[8]));
+            }
         }
         return enquire.getMSet(
             Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),

@@ -8,85 +8,79 @@
 package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.types.TermCount;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 /**
- * One expansion pass over the terms of the matching documents.
+ * Selection of the best expansion terms offered in ascending term order:
+ * terms weighing no more than the worst kept one are left out, so of equal
+ * weights the earlier term is kept.
  *
  * @since 0.1.0
  */
 final class ExpandRun {
 
     /**
-     * Document frequencies collected in the matching set.
+     * Order of the terms, worst first: lower weight, then earlier term.
      */
-    private final Map<String, TermCount> dfreqs;
+    private static final Comparator<ESet.Item> WORST = Comparator
+        .comparingDouble(ESet.Item::weight).thenComparing(ESet.Item::term);
 
     /**
-     * Number of matching documents.
+     * Maximum number of terms kept.
      */
-    private final int matching;
+    private final int max;
 
     /**
-     * Expansion weight scheme.
+     * Terms kept, worst first.
      */
-    private final ExpandWeight weight;
+    private final Queue<ESet.Item> kept;
 
     /**
-     * Filter of expansion terms, null for none.
+     * Weight a term must exceed to be kept.
      */
-    private ExpandDecider chooser;
+    private double least;
 
     /**
-     * Terms produced so far.
-     */
-    private List<ESet.Item> items;
-
-    /**
-     * Creates an expansion pass.
+     * Creates a selection.
      *
-     * @param dfreqs Document frequencies collected in the matching set
-     * @param matching Number of matching documents
-     * @param weight Expansion weight scheme
+     * @param max Maximum number of terms kept
      */
-    ExpandRun(
-        final Map<String, TermCount> dfreqs, final int matching,
-        final ExpandWeight weight
-    ) {
-        this.dfreqs = dfreqs;
-        this.matching = matching;
-        this.weight = weight;
+    ExpandRun(final int max) {
+        this.max = max;
+        this.kept = new PriorityQueue<>(ExpandRun.WORST);
     }
 
-    void chooser(final ExpandDecider filter) {
-        this.chooser = filter;
+    /**
+     * Offers a term.
+     *
+     * @param term Term
+     * @param freq Frequency of the term in the relevant documents
+     * @param weight Expansion weight of the term
+     */
+    void offer(final String term, final TermCount freq, final double weight) {
+        if (weight > this.least) {
+            this.kept.add(new ESetItemImpl(term, freq, weight));
+            if (this.kept.size() > this.max) {
+                this.kept.poll();
+            }
+            if (this.kept.size() == this.max) {
+                this.least = this.kept.peek().weight();
+            }
+        }
     }
 
-    void items(final List<ESet.Item> found) {
-        this.items = found;
-    }
-
+    /**
+     * Kept terms, best first.
+     *
+     * @return Terms with their weights
+     */
     List<ESet.Item> items() {
-        return this.items;
-    }
-
-    void add(final String term, final TermCount freq) {
-        if (this.chooser == null || this.chooser.decide(term, freq)) {
-            this.store(term, freq);
-        }
-    }
-
-    private void store(final String term, final TermCount freq) {
-        final double score = this.weight.weight(
-            term,
-            new ExpandStats(
-                freq, this.dfreqs.getOrDefault(term, TermCount.ZERO),
-                new TermCount(this.matching)
-            )
-        );
-        if (score > 0.0) {
-            this.items.add(new ESetItemImpl(term, freq, score));
-        }
+        final List<ESet.Item> result = new ArrayList<>(this.kept);
+        result.sort(ExpandRun.WORST.reversed());
+        return result;
     }
 }

@@ -9,99 +9,95 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
-import io.github.andreoss.search4j.core.ser.Varints;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
- * Probe expansion weight: the probe model of the divergence from
- * randomness framework.
+ * Probabilistic expansion weight: the relevance weight of a term from its
+ * frequency in the relevant documents and in the database, multiplied by
+ * the shares of the relevant documents indexed by it.
  *
- * <p>The weight is based on the information gain of a term in the matching
- * documents.</p>
+ * <p>A document contributes a share that grows with the frequency of the
+ * term and shrinks with the length of the document, tuned by a parameter
+ * k; with k zero every document contributes one.</p>
  *
  * @since 0.1.0
  */
-@SuppressWarnings({
-    "PMD.UncommentedEmptyConstructor",
-    "PMD.UncommentedEmptyMethodBody"
-})
 public final class ProbeWeight implements ExpandWeight {
 
     /**
-     * Number of documents matching the expanded query.
+     * Type byte of the serialised form.
      */
-    private int matches;
+    static final int TYPE = 2;
 
     /**
-     * Creates a Probe expansion weight.
+     * Parameter k of the document shares.
+     */
+    private final double param;
+
+    /**
+     * Statistics of the database expanded over, set by initialisation.
+     */
+    private ShardStatistics database;
+
+    /**
+     * Creates a probabilistic expansion weight with k one.
      */
     public ProbeWeight() {
+        this(1.0);
+    }
+
+    /**
+     * Creates a probabilistic expansion weight.
+     *
+     * @param param Parameter k of the document shares, zero or more
+     */
+    public ProbeWeight(final double param) {
+        this.param = param;
     }
 
     @Override
     public void init(
-        final ShardStatistics database, final Query query, final int terms
+        final ShardStatistics stats, final Query query, final int terms
     ) {
-    }
-
-    /**
-     * Sets the number of matching documents.
-     *
-     * @param docs Number of matching documents
-     */
-    public void setMatchingDocs(final int docs) {
-        this.matches = docs;
+        this.database = stats;
     }
 
     @Override
     public double weight(final String term, final ExpandStats stats) {
-        double weight = 0.0;
-        final double tfr = stats.freq().value();
-        final double dfr = stats.dfreq().value();
-        final double den = tfr - dfr + 0.5;
-        if (tfr > 0.0 && dfr > 0.0 && stats.docs().value() > 0 && den > 0.0) {
-            weight = Math.log((dfr + 0.5) / den) / Math.log(2.0);
-        }
-        return weight;
+        final double relevant = stats.dfreq().value();
+        final double termfreq = this.database.frequencies(term).termFrequency().value();
+        final double without = stats.docs().value() - relevant;
+        return stats.multiplier() * Math.log(
+            (relevant + 0.5)
+                * (this.database.docCount().value() - termfreq - without + 0.5)
+                / ((termfreq - relevant + 0.5) * (without + 0.5))
+        );
+    }
+
+    @Override
+    public double share(
+        final TermCount wdf, final TermCount length, final double average
+    ) {
+        return (this.param + 1.0) * wdf.value()
+            / (this.param * length.value() / average + wdf.value());
     }
 
     @Override
     public ExpandWeight copy() {
-        final ProbeWeight copy = new ProbeWeight();
-        copy.matches = this.matches;
-        return copy;
+        return new ProbeWeight(this.param);
     }
 
     @Override
     public byte[] serialise() {
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write(2);
-            Varints.encode(out, this.matches);
-        } catch (final IOException ex) {
-            throw new AssertionError(ex);
-        }
-        return out.toByteArray();
+        final byte[] value = WeightBytes.doubles(this.param);
+        final byte[] out = new byte[value.length + 1];
+        out[0] = (byte) ProbeWeight.TYPE;
+        System.arraycopy(value, 0, out, 1, value.length);
+        return out;
     }
 
     @Override
     public String toString() {
-        return String.format("ProbeWeight()");
-    }
-
-    /**
-     * Deserialises a Probe expansion weight from an input stream.
-     *
-     * @param source Stream positioned after the type byte
-     * @return The weight
-     * @throws IOException when the stream is malformed
-     */
-    static ProbeWeight deserialise(final InputStream source)
-        throws IOException {
-        final ProbeWeight weight = new ProbeWeight();
-        weight.matches = Varints.decode(source);
-        return weight;
+        return String.format("ProbeWeight(%s)", this.param);
     }
 }

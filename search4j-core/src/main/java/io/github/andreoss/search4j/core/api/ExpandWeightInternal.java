@@ -27,7 +27,9 @@ public final class ExpandWeightInternal {
     }
 
     /**
-     * Deserialises an expansion weight from an input stream.
+     * Deserialises an expansion weight from an input stream: a type byte,
+     * then, for the probabilistic weight, its parameter k as a
+     * little-endian double.
      *
      * @param source Stream positioned at the start of a weight
      * @return The weight
@@ -39,8 +41,12 @@ public final class ExpandWeightInternal {
                 throw new SerialisationError("Empty weight stream");
             }
             return switch (type) {
-                case 1 -> Bo1EWeight.deserialise(source);
-                case 2 -> ProbeWeight.deserialise(source);
+                case Bo1EWeight.TYPE -> new Bo1EWeight();
+                case ProbeWeight.TYPE -> new ProbeWeight(
+                    WeightBytes.single(
+                        "probabilistic expansion", source.readNBytes(Double.BYTES)
+                    )
+                );
                 default -> throw new SerialisationError(
                     String.format("Unknown expand weight type: %d", type)
                 );
@@ -59,6 +65,11 @@ public final class ExpandWeightInternal {
      * @return The weight
      */
     static ExpandWeight deserialise(final byte[] data) {
-        return deserialise(new ByteArrayInputStream(data));
+        final ByteArrayInputStream source = new ByteArrayInputStream(data);
+        final ExpandWeight result = ExpandWeightInternal.deserialise(source);
+        if (source.available() > 0) {
+            throw new SerialisationError("Extra data after the expand weight");
+        }
+        return result;
     }
 }

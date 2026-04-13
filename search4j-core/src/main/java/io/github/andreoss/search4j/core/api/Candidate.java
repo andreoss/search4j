@@ -11,7 +11,8 @@ import io.github.andreoss.search4j.core.types.DocId;
 
 /**
  * A document considered for a match set: its identifier, its weight once
- * calculated, and its sort key when sorting by value.
+ * calculated, its sort key when sorting by value, and its collapse key when
+ * collapsing.
  *
  * @since 0.4.0
  */
@@ -33,6 +34,11 @@ final class Candidate {
     private String sortkey;
 
     /**
+     * Collapse key of the document, empty when not collapsing.
+     */
+    private String collapse;
+
+    /**
      * Creates a candidate.
      *
      * @param docid Document identifier
@@ -42,6 +48,7 @@ final class Candidate {
         this.docid = docid;
         this.score = score;
         this.sortkey = "";
+        this.collapse = "";
     }
 
     DocId docId() {
@@ -62,5 +69,13 @@ final class Candidate {
 
     void key(final String value) {
         this.sortkey = value;
+    }
+
+    String group() {
+        return this.collapse;
+    }
+
+    void group(final String value) {
+        this.collapse = value;
     }
 }

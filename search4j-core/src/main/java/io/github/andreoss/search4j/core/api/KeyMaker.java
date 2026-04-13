@@ -13,8 +13,8 @@ import io.github.andreoss.search4j.core.types.DocId;
  * A key maker: extracts a collapse key from a document.
  *
  * <p>A key maker is used for collapsing: documents with the same key
- * are grouped and only the highest-weighted document from each group
- * is returned.</p>
+ * are grouped and only the best of each group, up to the collapse
+ * maximum, are returned.</p>
  *
  * @since 0.1.0
  */

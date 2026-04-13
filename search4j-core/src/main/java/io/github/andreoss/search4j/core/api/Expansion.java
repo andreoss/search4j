@@ -9,131 +9,108 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.Shard;
-import io.github.andreoss.search4j.core.backend.list.PostList;
-import io.github.andreoss.search4j.core.matcher.Matcher;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
- * Query expansion: terms of the first matching documents, weighted by an
- * expansion scheme.
+ * Query expansion: terms of the relevant documents other than those of the
+ * query, weighted by an expansion scheme.
  *
  * @since 0.4.0
  */
 final class Expansion {
 
     /**
-     * Database the query runs over.
+     * Database the documents belong to.
      */
     private final Shard shard;
 
     /**
-     * Query whose matches are expanded.
+     * Query whose terms are left out.
      */
     private final Query request;
 
     /**
-     * Weighting scheme of the query.
+     * Relevant documents.
      */
-    private final Weight scheme;
-
-    /**
-     * Filter of the matching documents.
-     */
-    private final Predicate<DocId> accepts;
+    private final List<DocId> relevant;
 
     /**
      * Creates an expansion.
      *
-     * @param shard Database the query runs over
-     * @param request Query whose matches are expanded
-     * @param scheme Weighting scheme of the query
-     * @param accepts Filter of the matching documents
+     * @param shard Database the documents belong to
+     * @param request Query whose terms are left out
+     * @param relevant Relevant documents
      */
-    Expansion(
-        final Shard shard, final Query request, final Weight scheme,
-        final Predicate<DocId> accepts
-    ) {
+    Expansion(final Shard shard, final Query request, final List<DocId> relevant) {
         this.shard = shard;
         this.request = request;
-        this.scheme = scheme;
-        this.accepts = accepts;
+        this.relevant = relevant;
     }
 
     /**
      * Weighted expansion terms, best first.
      *
-     * @param max Maximum number of terms, zero for all
-     * @param weight Expansion scheme, null for the default
+     * @param max Maximum number of terms, zero for none
+     * @param weight Expansion scheme
      * @param chooser Filter of the terms, null for none
      * @return Terms with their weights
      */
     List<ESet.Item> items(
         final int max, final ExpandWeight weight, final ExpandDecider chooser
     ) {
-        final Map<String, TermCount> freqs = new HashMap<>(8);
-        final Map<String, TermCount> docs = new HashMap<>(8);
-        final int matching = this.collect(freqs, docs);
-        final ExpandWeight expand;
-        if (weight == null) {
-            expand = new Bo1EWeight();
-        } else {
-            expand = weight;
-        }
-        expand.init(this.shard, this.request, freqs.size());
-        final List<ESet.Item> items = new ArrayList<>(freqs.size());
-        final ExpandRun run = new ExpandRun(docs, matching, expand);
-        run.chooser(chooser);
-        run.items(items);
-        for (final Map.Entry<String, TermCount> entry : freqs.entrySet()) {
-            run.add(entry.getKey(), entry.getValue());
-        }
-        items.sort(
-            Comparator.comparingDouble(ESet.Item::weight).reversed()
-        );
-        if (max > 0 && items.size() > max) {
-            items.subList(max, items.size()).clear();
-        }
-        return items;
-    }
-
-    private int collect(
-        final Map<String, TermCount> freqs, final Map<String, TermCount> docs
-    ) {
-        final PostList list = Matcher.resolve(this.shard, this.request, this.scheme);
-        DocId docid = list.next().docId();
-        int matching = 0;
-        while (!docid.equals(DocId.NONE) && matching < 100) {
-            if (this.accepts.test(docid)) {
-                matching = matching + 1;
-                this.terms(docid, freqs, docs);
-            }
-            docid = list.next().docId();
-        }
-        return matching;
-    }
-
-    private void terms(
-        final DocId docid, final Map<String, TermCount> freqs,
-        final Map<String, TermCount> docs
-    ) {
-        final Document document = this.shard
-            .openDocument(docid, false).orElse(null);
-        if (document != null) {
-            final TermIterator terms = document.termList();
-            while (terms.hasNext()) {
-                final String term = terms.next();
-                if (!term.isEmpty()) {
-                    freqs.merge(term, terms.wdf(), TermCount::plus);
-                    docs.merge(term, new TermCount(1), TermCount::plus);
+        final ExpandRun run = new ExpandRun(max);
+        if (max > 0 && !this.relevant.isEmpty()) {
+            final Map<String, double[]> stats = this.collect(weight);
+            weight.init(this.shard, this.request, stats.size());
+            final Set<String> asked = new HashSet<>(this.request.uniqueTerms());
+            final TermCount docs = new TermCount(this.relevant.size());
+            for (final Map.Entry<String, double[]> entry : stats.entrySet()) {
+                final String term = entry.getKey();
+                final double[] values = entry.getValue();
+                final TermCount freq = new TermCount((int) values[0]);
+                if (!asked.contains(term)
+                    && (chooser == null || chooser.decide(term, freq))) {
+                    run.offer(
+                        term, freq,
+                        weight.weight(
+                            term,
+                            new ExpandStats(
+                                freq, new TermCount((int) values[1]), docs, values[2]
+                            )
+                        )
+                    );
                 }
             }
         }
+        return run.items();
+    }
+
+    private Map<String, double[]> collect(final ExpandWeight weight) {
+        final Map<String, double[]> stats = new TreeMap<>();
+        final double average = this.shard.totalLength().value()
+            / (double) this.shard.docCount().value();
+        for (final DocId docid : this.relevant) {
+            final TermCount length = this.shard.docLength(docid);
+            final TermIterator terms = this.shard.openDocument(docid, false)
+                .orElseThrow().termList();
+            while (terms.hasNext()) {
+                final String term = terms.next();
+                TermCount wdf = terms.wdf();
+                if (wdf.value() == 0) {
+                    wdf = TermCount.ONE;
+                }
+                final double[] values = stats.computeIfAbsent(term, key -> new double[3]);
+                values[0] = values[0] + wdf.value();
+                values[1] = values[1] + 1.0;
+                values[2] = values[2] + weight.share(wdf, length, average);
+            }
+        }
+        return stats;
     }
 }

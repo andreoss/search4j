@@ -113,10 +113,11 @@ public interface Enquire {
     void setTimeLimit(Duration limit);
 
     /**
-     * Sets the document ordering of the match set.
+     * Sets the order of document identifiers among equally ranked matches;
+     * the primary order and the weights are unchanged.
      *
-     * @param order True for ascending document identifier order, false for
-     *  descending weight order
+     * @param order True for ascending document identifiers, the default,
+     *  false for descending
      */
     void setDocIdOrder(boolean order);
 
@@ -144,7 +145,8 @@ public interface Enquire {
     void setMatchSpy(MatchSpy spy);
 
     /**
-     * Sets a key maker for collapsing.
+     * Sets a key maker for collapsing: of the matches sharing a non-empty
+     * key, only the best up to the collapse maximum are kept.
      *
      * @param maker Key maker for grouping results; null to clear
      */
@@ -158,16 +160,21 @@ public interface Enquire {
     void setCollapseMax(int max);
 
     /**
-     * Sets the collapse key for a group.
+     * Sets one collapse key for every match, used instead of the key maker
+     * while a key maker is set.
      *
      * @param key Key to use for collapsing; empty to clear
      */
     void setCollapseKey(String key);
 
     /**
-     * Generates an expansion set from the query.
+     * Generates an expansion set from the query with the probabilistic
+     * expansion scheme.
      *
-     * @param max Maximum number of terms to return
+     * <p>The relevant documents are the best hundred matches of the query
+     * under the current settings; terms of the query are left out.</p>
+     *
+     * @param max Maximum number of terms to return, zero for none
      * @return Expansion set
      */
     ESet getESet(int max);
@@ -175,7 +182,7 @@ public interface Enquire {
     /**
      * Generates an expansion set with a custom expansion weight.
      *
-     * @param max Maximum number of terms to return
+     * @param max Maximum number of terms to return, zero for none
      * @param weight Expansion weight scheme to use
      * @return Expansion set
      */
@@ -184,7 +191,7 @@ public interface Enquire {
     /**
      * Generates an expansion set with a custom expansion weight and decider.
      *
-     * @param max Maximum number of terms to return
+     * @param max Maximum number of terms to return, zero for none
      * @param weight Expansion weight scheme to use
      * @param chooser Filter for expansion terms
      * @return Expansion set

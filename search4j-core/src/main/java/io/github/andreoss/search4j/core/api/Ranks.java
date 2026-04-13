@@ -11,14 +11,14 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Orders indices of kept matches so that the worst match comes first.
+ * Orders positions of kept matches by the matches at them, better first.
  *
- * @since 0.4.0
+ * @since 0.5.4
  */
-final class WorstFirst implements Comparator<Integer> {
+final class Ranks implements Comparator<Integer> {
 
     /**
-     * Kept matches the indices point into.
+     * Kept matches the positions point into.
      */
     private final List<Candidate> results;
 
@@ -30,16 +30,16 @@ final class WorstFirst implements Comparator<Integer> {
     /**
      * Creates the order.
      *
-     * @param results Kept matches the indices point into
+     * @param results Kept matches the positions point into
      * @param order Order of the matches, better first
      */
-    WorstFirst(final List<Candidate> results, final Comparator<Candidate> order) {
+    Ranks(final List<Candidate> results, final Comparator<Candidate> order) {
         this.results = results;
         this.order = order;
     }
 
     @Override
     public int compare(final Integer left, final Integer right) {
-        return this.order.compare(this.results.get(right), this.results.get(left));
+        return this.order.compare(this.results.get(left), this.results.get(right));
     }
 }

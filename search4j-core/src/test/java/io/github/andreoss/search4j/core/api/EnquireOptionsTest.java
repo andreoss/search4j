@@ -150,12 +150,25 @@ final class EnquireOptionsTest {
     }
 
     @Test
-    void ordersByDocumentWhenAsked() {
+    void ordersEqualMatchesByDescendingDocumentWhenAsked() {
         final Enquire enquire = EnquireOptionsTest.enquire(EnquireOptionsTest.WIDE);
-        enquire.setDocIdOrder(true);
+        enquire.setWeightingScheme(new BoolWeight());
+        enquire.setDocIdOrder(false);
         Assertions.assertEquals(
-            "2 3 4", EnquireOptionsTest.ids(enquire.getMSet(1, 3)),
-            "Ascending documents from the second"
+            "9 8 7", EnquireOptionsTest.ids(enquire.getMSet(1, 3)),
+            "Descending documents from the second"
+        );
+    }
+
+    @Test
+    void weighsMatchesUnderAscendingDocumentOrder() {
+        final Enquire plain = EnquireOptionsTest.enquire(EnquireOptionsTest.WIDE);
+        final Enquire ordered = EnquireOptionsTest.enquire(EnquireOptionsTest.WIDE);
+        ordered.setDocIdOrder(true);
+        Assertions.assertEquals(
+            EnquireOptionsTest.pairs(plain.getMSet(0, 10)),
+            EnquireOptionsTest.pairs(ordered.getMSet(0, 10)),
+            "Weights and relevance order kept"
         );
     }
 
@@ -212,13 +225,13 @@ final class EnquireOptionsTest {
     }
 
     @Test
-    void collapsesAdjacentKeys() {
+    void keepsBestMatchesPerKey() {
         final Enquire enquire = EnquireOptionsTest.enquire(EnquireOptionsTest.WIDE);
         enquire.setKeyMaker(docid -> Integer.toString((docid.value() - 1) / 3));
         enquire.setCollapseMax(2);
         Assertions.assertEquals(
-            "7 10 4 1", EnquireOptionsTest.ids(enquire.getMSet(0, 10)),
-            "One match from each run of keys"
+            "7 9 10 3 6 4 1", EnquireOptionsTest.ids(enquire.getMSet(0, 10)),
+            "Two best matches of each key"
         );
     }
 
@@ -229,8 +242,8 @@ final class EnquireOptionsTest {
         enquire.setCollapseKey("same");
         enquire.setCollapseMax(3);
         Assertions.assertEquals(
-            "1 2", EnquireOptionsTest.ids(enquire.getMSet(0, 10)),
-            "The first match and its successor only"
+            "7 3 6", EnquireOptionsTest.ids(enquire.getMSet(0, 10)),
+            "The three best matches only"
         );
     }
 
@@ -275,13 +288,48 @@ final class EnquireOptionsTest {
 
     @Test
     void expandsMatchingDocuments() {
-        final Enquire enquire = EnquireOptionsTest.enquire("(AND alpha heavy)");
-        final List<ESet.Item> items = enquire.getESet(3).toList();
-        Assertions.assertTrue(
-            items.size() == 3
-                && items.get(0).weight() >= items.get(1).weight()
-                && items.get(1).weight() >= items.get(2).weight(),
-            "Three expansion terms, best first"
+        final List<String> terms = new ArrayList<>(3);
+        for (final ESet.Item item
+            : EnquireOptionsTest.enquire("(OR alpha heavy)").getESet(3)) {
+            terms.add(item.term());
+        }
+        Assertions.assertEquals(
+            List.of("every", "epsilon", "gamma"), terms,
+            "Three best expansion terms other than the query terms"
+        );
+    }
+
+    @Test
+    void expandsWithTheProbabilisticSchemeByDefault() {
+        final Enquire enquire = EnquireOptionsTest.enquire(EnquireOptionsTest.WIDE);
+        Assertions.assertEquals(
+            EnquireOptionsTest.terms(enquire.getESet(10, new ProbeWeight())),
+            EnquireOptionsTest.terms(enquire.getESet(10)),
+            "Default expansion scheme"
+        );
+    }
+
+    @Test
+    void expandsNothingWhenNoTermIsWanted() {
+        Assertions.assertEquals(
+            0,
+            EnquireOptionsTest.enquire(EnquireOptionsTest.WIDE).getESet(0)
+                .toList().size(),
+            "No terms for a maximum of zero"
+        );
+    }
+
+    @Test
+    void expandsOnlyTermsTheDeciderAccepts() {
+        Assertions.assertEquals(
+            String.format("every:%s", 7.0 * Math.log(3.75 / 1.75)),
+            EnquireOptionsTest.terms(
+                EnquireOptionsTest.enquire("(OR alpha heavy)").getESet(
+                    10, new ProbeWeight(0.0),
+                    (term, freq) -> term.startsWith("e") && freq.value() > 5
+                )
+            ),
+            "Terms starting with e and frequent in the relevant documents"
         );
     }
 
@@ -313,6 +361,14 @@ final class EnquireOptionsTest {
             ids.add(Integer.toString(item.docId().value()));
         }
         return String.join(" ", ids);
+    }
+
+    private static String terms(final ESet found) {
+        final List<String> terms = new ArrayList<>(8);
+        for (final ESet.Item item : found) {
+            terms.add(String.format("%s:%s", item.term(), item.weight()));
+        }
+        return String.join(" ", terms);
     }
 
     private static String pairs(final MSet found) {

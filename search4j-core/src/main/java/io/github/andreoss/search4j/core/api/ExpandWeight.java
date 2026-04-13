@@ -9,6 +9,7 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.api.query.Query;
 import io.github.andreoss.search4j.core.backend.ShardStatistics;
+import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
  * An expansion weight scheme: computes term weights for query expansion.
@@ -36,9 +37,22 @@ public interface ExpandWeight {
      *
      * @param term Term text
      * @param stats Term and matching statistics
-     * @return Expansion weight, non-negative
+     * @return Expansion weight, terms weighing zero or less left out
      */
     double weight(String term, ExpandStats stats);
+
+    /**
+     * Share a relevant document indexed by a term contributes to the
+     * multiplier of the term.
+     *
+     * @param wdf Within-document frequency of the term, at least one
+     * @param length Length of the document
+     * @param average Average document length of the database
+     * @return Share of the document, one unless the scheme weighs it
+     */
+    default double share(final TermCount wdf, final TermCount length, final double average) {
+        return 1.0;
+    }
 
     /**
      * Creates an uninitialised copy for a parallel or nested query.
@@ -48,14 +62,14 @@ public interface ExpandWeight {
     ExpandWeight copy();
 
     /**
-     * Serialises the expansion weight to the reference wire format.
+     * Serialises the expansion weight: a type byte, then its parameters.
      *
      * @return Bytes of the weight
      */
     byte[] serialise();
 
     /**
-     * Unserialises an expansion weight written in the reference wire format.
+     * Unserialises an expansion weight written by {@link #serialise()}.
      *
      * @param data Bytes of exactly one weight
      * @return The weight
