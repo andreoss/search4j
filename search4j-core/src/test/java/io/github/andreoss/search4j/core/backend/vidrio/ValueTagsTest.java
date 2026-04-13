@@ -141,8 +141,8 @@ final class ValueTagsTest {
 
     @Test
     void refusesDamagedStats() {
-        final List<String> seen = new ArrayList<>(5);
-        for (final String tag : List.of("", "06", "0603", "ffffffff0f00", "ffffffffff0f00")) {
+        final List<String> seen = new ArrayList<>(4);
+        for (final String tag : List.of("", "06", "0603", "ffffffffff0f00")) {
             seen.add(
                 Assertions.assertThrows(
                     DatabaseCorruptError.class,
@@ -154,11 +154,19 @@ final class ValueTagsTest {
         Assertions.assertEquals(
             List.of(
                 "Value frequency out of data", "Value lower bound out of data",
-                "Value lower bound out of data", "Value frequency out of range",
-                "Value frequency overflowed"
+                "Value lower bound out of data", "Value frequency overflowed"
             ),
             seen,
             "Empty, missing bound, truncated bound, frequency out of range"
+        );
+    }
+
+    @Test
+    void readsFrequencyAboveTheSignedRange() {
+        Assertions.assertEquals(
+            new ValueStats(TermCount.MAX, "a", "a"),
+            ValueTagsTest.stats("ffffffff0f0161"),
+            "Unsigned 32-bit value frequency"
         );
     }
 

@@ -123,7 +123,7 @@ public final class VidrioReader
 
     @Override
     public TermCount docCount() {
-        return new TermCount((int) this.version.stats().docs());
+        return new TermCount(this.version.stats().docs());
     }
 
     @Override
@@ -186,12 +186,12 @@ public final class VidrioReader
 
     @Override
     public TermCount docLengthLowerBound() {
-        return new TermCount((int) this.version.stats().lower());
+        return new TermCount(this.version.stats().lower());
     }
 
     @Override
     public TermCount docLengthUpperBound() {
-        return new TermCount((int) this.version.stats().upper());
+        return new TermCount(this.version.stats().upper());
     }
 
     @Override
@@ -199,12 +199,10 @@ public final class VidrioReader
         TermCount result = TermCount.ZERO;
         if (VidrioReader.storable(term)) {
             result = new TermCount(
-                Math.toIntExact(
-                    Math.min(
-                        this.parts.postings().get().stats(term).wdfUpperBound()
-                            .value(),
-                        this.version.stats().wdf()
-                    )
+                Math.min(
+                    this.parts.postings().get().stats(term).wdfUpperBound()
+                        .value(),
+                    this.version.stats().wdf()
                 )
             );
         }
@@ -213,7 +211,7 @@ public final class VidrioReader
 
     @Override
     public TermCount uniqueTermsLowerBound() {
-        return new TermCount((int) this.version.stats().uniqueTermsLowerBound());
+        return new TermCount(this.version.stats().uniqueTermsLowerBound());
     }
 
     @Override

@@ -15,6 +15,8 @@ import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.error.DocNotFoundError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -79,14 +81,15 @@ public final class PostingTable implements TermFrequencySource {
         if (tag.isPresent()) {
             final ByteReader reader = ByteReader.over(tag.get());
             final FirstHeader head = FirstHeader.read(reader);
-            final int total = head.freqs().collection().value();
-            TermCount bound = head.freqs().collection();
-            if (total != 0 && head.freqs().termFrequency().value() != 1) {
+            final TermCount total = head.freqs().collection();
+            TermCount bound = total;
+            if (total.value() != 0L
+                && head.freqs().termFrequency().value() != 1L) {
                 ChunkHeader.read(reader, head.first());
-                final int first = PostingFields.count(
+                final TermCount first = PostingFields.count(
                     reader, "Within-document frequency"
-                ).value();
-                bound = new TermCount(Math.max(total - first, first));
+                );
+                bound = Collections.max(List.of(total.minus(first), first));
             }
             result = new TermStats(head.freqs(), bound);
         }

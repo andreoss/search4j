@@ -350,8 +350,10 @@ final class EnquireOptionsTest {
 
     private static List<Integer> counts(final MSet found) {
         return List.of(
-            found.toList().size(), found.matchesLowerBound().value(),
-            found.matchesEstimated().value(), found.matchesUpperBound().value()
+            found.toList().size(),
+            Math.toIntExact(found.matchesLowerBound().value()),
+            Math.toIntExact(found.matchesEstimated().value()),
+            Math.toIntExact(found.matchesUpperBound().value())
         );
     }
 

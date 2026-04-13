@@ -188,9 +188,9 @@ final class MatcherVectors {
             this.same(
                 String.join("\t", row[4], row[5], row[6]),
                 String.join(
-                    "\t", Integer.toString(found.min().value()),
-                    Integer.toString(found.est().value()),
-                    Integer.toString(found.max().value())
+                    "\t", Long.toString(found.min().value()),
+                    Long.toString(found.est().value()),
+                    Long.toString(found.max().value())
                 ),
                 row
             );
@@ -201,7 +201,7 @@ final class MatcherVectors {
 
     private void bounded(final String... row) {
         final InMemoryShard shard = this.shard(row[2]);
-        final int size = shard.docCount().value();
+        final int size = Math.toIntExact(shard.docCount().value());
         int max = 1000;
         if (row[3].startsWith("K")) {
             max = 2;
@@ -216,9 +216,9 @@ final class MatcherVectors {
         this.same(
             String.join("\t", row[4], row[5], row[6]),
             String.join(
-                "\t", Integer.toString(found.matchesLowerBound().value()),
-                Integer.toString(found.matchesEstimated().value()),
-                Integer.toString(found.matchesUpperBound().value())
+                "\t", Long.toString(found.matchesLowerBound().value()),
+                Long.toString(found.matchesEstimated().value()),
+                Long.toString(found.matchesUpperBound().value())
             ),
             row
         );

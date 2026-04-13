@@ -226,10 +226,10 @@ final class EnquireVectors {
         this.same(
             String.join("\t", head[4], head[5], head[6], head[7]),
             String.join(
-                "\t", Integer.toString(found.size().value()),
-                Integer.toString(found.matchesLowerBound().value()),
-                Integer.toString(found.matchesEstimated().value()),
-                Integer.toString(found.matchesUpperBound().value())
+                "\t", Long.toString(found.size().value()),
+                Long.toString(found.matchesLowerBound().value()),
+                Long.toString(found.matchesEstimated().value()),
+                Long.toString(found.matchesUpperBound().value())
             ),
             head
         );
@@ -248,7 +248,7 @@ final class EnquireVectors {
                 if (row.length > 7) {
                     this.same(
                         row[7],
-                        Integer.toString(list.get(rank).collapseCount().value()),
+                        Long.toString(list.get(rank).collapseCount().value()),
                         row
                     );
                 }
@@ -262,9 +262,9 @@ final class EnquireVectors {
         this.same(
             String.join("\t", head[4], head[5], head[6]),
             String.join(
-                "\t", Integer.toString(found.uncollapsedMatchesLowerBound().value()),
-                Integer.toString(found.uncollapsedMatchesEstimated().value()),
-                Integer.toString(found.uncollapsedMatchesUpperBound().value())
+                "\t", Long.toString(found.uncollapsedMatchesLowerBound().value()),
+                Long.toString(found.uncollapsedMatchesEstimated().value()),
+                Long.toString(found.uncollapsedMatchesUpperBound().value())
             ),
             head
         );
@@ -275,8 +275,8 @@ final class EnquireVectors {
             if (rank < list.size()) {
                 final MSet.Item item = list.get(rank);
                 actual = String.join(
-                    "\t", Integer.toString(item.docId().value()),
-                    Integer.toString(item.collapseCount().value()), item.collapseKey()
+                    "\t", Long.toString(item.docId().value()),
+                    Long.toString(item.collapseCount().value()), item.collapseKey()
                 );
             }
             this.same(String.join("\t", row[5], row[6], row[7]), actual, row);

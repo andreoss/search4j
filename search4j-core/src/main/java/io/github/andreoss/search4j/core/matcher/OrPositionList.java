@@ -71,7 +71,7 @@ public final class OrPositionList implements PositionList {
         for (final PositionList list : this.lists) {
             total += list.approxSize().value();
         }
-        return new TermCount((int) Math.min(total, Integer.MAX_VALUE));
+        return TermCount.wrap(total);
     }
 
     @Override

@@ -223,12 +223,12 @@ final class BooleanPostListFixtureFake implements PostList {
         return this;
     }
 
-    BooleanPostListFixtureFake freq(final int value) {
+    BooleanPostListFixtureFake freq(final long value) {
         this.wdf = new TermCount(value);
         return this;
     }
 
-    BooleanPostListFixtureFake wdf(final int value) {
+    BooleanPostListFixtureFake wdf(final long value) {
         return this.freq(value);
     }
 

@@ -80,10 +80,9 @@ final class PostingWriter {
                 new FirstHeader(
                     new TermFrequencies(
                         PostingWriter.count(docs, "Term frequency"),
-                        PostingWriter.count(
+                        TermCount.wrap(
                             head.freqs().collection().value()
-                                + changes.collectionDelta(),
-                            "Collection frequency"
+                                + changes.collectionDelta()
                         )
                     ),
                     head.first()
@@ -219,11 +218,11 @@ final class PostingWriter {
     }
 
     private static TermCount count(final long value, final String what) {
-        if (value < 0L || value > Integer.MAX_VALUE) {
+        if (value < 0L || value > TermCount.MAX.value()) {
             throw new InvariantError(
                 String.format("%s out of range: %d", what, value)
             );
         }
-        return new TermCount((int) value);
+        return new TermCount(value);
     }
 }

@@ -26,7 +26,7 @@ import io.github.andreoss.search4j.core.types.TermCount;
  */
 record DiscountPart(
     double scale, double mult, double delta, double query, double offset,
-    int wdfmax, int docmin
+    long wdfmax, long docmin
 ) implements TermWeight, ExtraWeight {
 
     @Override
@@ -40,9 +40,9 @@ record DiscountPart(
     @Override
     public double maxPart() {
         double ratio = (this.wdfmax - this.delta) * this.mult;
-        if (Integer.compareUnsigned(this.docmin, this.wdfmax) > 0) {
+        if (this.docmin > this.wdfmax) {
             ratio = ratio
-                * (Integer.divideUnsigned(this.docmin - 1, this.wdfmax) + 1);
+                * ((this.docmin - 1L) / this.wdfmax + 1L);
         }
         return this.scale * Math.log(1.0 + ratio);
     }

@@ -10,35 +10,43 @@ package io.github.andreoss.search4j.core.types;
 import java.util.Objects;
 
 /**
- * Count of terms, as in a within-document frequency or a database frequency.
+ * Count of terms or documents, as in a within-document frequency, a
+ * document length, a collection frequency or a document count.
  *
- * <p>Counts are non-negative and fit a 32-bit signed integer.</p>
+ * <p>Counts are unsigned 32-bit numbers, from 0 to {@code 4294967295},
+ * carried in a {@code long}. Document counts share this type although
+ * document identifiers bound them below {@code 2^31}.</p>
  *
  * @param value The underlying number
  * @since 0.1.0
  */
 @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
-public record TermCount(int value) implements Comparable<TermCount> {
+public record TermCount(long value) implements Comparable<TermCount> {
 
     /**
      * Count of zero terms.
      */
-    public static final TermCount ZERO = new TermCount(0);
+    public static final TermCount ZERO = new TermCount(0L);
 
     /**
      * Count of one term.
      */
-    public static final TermCount ONE = new TermCount(1);
+    public static final TermCount ONE = new TermCount(1L);
+
+    /**
+     * Largest count, the unsigned 32-bit maximum.
+     */
+    public static final TermCount MAX = new TermCount(0xFFFF_FFFFL);
 
     /**
      * Creates a term count.
      *
-     * @param value A non-negative count
+     * @param value A count from 0 to the unsigned 32-bit maximum
      */
     public TermCount {
-        if (value < 0) {
+        if (value < 0L || value > 0xFFFF_FFFFL) {
             throw new IllegalArgumentException(
-                String.format("TermCount must not be negative: %d", value)
+                String.format("TermCount out of the 32-bit range: %d", value)
             );
         }
     }
@@ -46,7 +54,7 @@ public record TermCount(int value) implements Comparable<TermCount> {
     /**
      * Creates a term count from its decimal text.
      *
-     * @param text Decimal digits without leading zeros, at most 2147483647
+     * @param text Decimal digits without leading zeros, at most 4294967295
      * @return Count carrying the parsed number
      */
     public static TermCount parse(final String text) {
@@ -56,36 +64,49 @@ public record TermCount(int value) implements Comparable<TermCount> {
                 String.format("TermCount is not decimal digits: %s", text)
             );
         }
-        final long number = Long.parseLong(text);
-        if (number > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException(
-                String.format("TermCount exceeds the 32-bit range: %s", text)
-            );
-        }
-        return new TermCount((int) number);
+        return new TermCount(Long.parseLong(text));
     }
 
     /**
-     * Adds another count.
+     * Creates a term count from the low 32 bits of a number, as unsigned
+     * 32-bit arithmetic keeps a sum or difference of counts.
+     *
+     * @param number Any number, such as a sum or difference of counts
+     * @return Count of the number modulo two to the thirty-second
+     */
+    public static TermCount wrap(final long number) {
+        return new TermCount(number & 0xFFFF_FFFFL);
+    }
+
+    /**
+     * Adds another count in unsigned 32-bit arithmetic, wrapping past the
+     * maximum as the reference does.
      *
      * @param other Count to add
-     * @return Sum of both counts
+     * @return Sum of both counts, modulo two to the thirty-second
      */
     public TermCount plus(final TermCount other) {
-        final long sum = (long) this.value + other.value;
-        if (sum > Integer.MAX_VALUE) {
-            throw new IllegalStateException("TermCount overflow");
-        }
-        return new TermCount((int) sum);
+        return TermCount.wrap(this.value + other.value);
+    }
+
+    /**
+     * Subtracts another count in unsigned 32-bit arithmetic, wrapping below
+     * zero as the reference does.
+     *
+     * @param other Count to subtract
+     * @return Difference, modulo two to the thirty-second
+     */
+    public TermCount minus(final TermCount other) {
+        return TermCount.wrap(this.value - other.value);
     }
 
     @Override
     public int compareTo(final TermCount other) {
-        return Integer.compare(this.value, other.value);
+        return Long.compare(this.value, other.value);
     }
 
     @Override
     public String toString() {
-        return Integer.toString(this.value);
+        return Long.toString(this.value);
     }
 }

@@ -10,7 +10,6 @@
 package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.backend.ValueStats;
-import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.ser.Varints;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.io.ByteArrayOutputStream;
@@ -58,9 +57,6 @@ final class ValueStatsTag {
     static ValueStats decode(final byte[] tag) {
         final ByteReader reader = ByteReader.over(tag);
         final long freq = reader.narrow("Value frequency");
-        if (freq > Integer.MAX_VALUE) {
-            throw new DatabaseCorruptError("Value frequency out of range");
-        }
         String lower = new String(
             reader.string("Value lower bound"), StandardCharsets.UTF_8
         );
@@ -74,6 +70,6 @@ final class ValueStatsTag {
         } else {
             upper = new String(rest, StandardCharsets.UTF_8);
         }
-        return new ValueStats(new TermCount((int) freq), lower, upper);
+        return new ValueStats(new TermCount(freq), lower, upper);
     }
 }

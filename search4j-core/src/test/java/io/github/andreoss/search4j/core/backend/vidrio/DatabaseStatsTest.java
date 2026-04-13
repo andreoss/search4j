@@ -135,14 +135,17 @@ final class DatabaseStatsTest {
     }
 
     @Test
-    void rejectsLengthGapOverflow() {
-        final ByteReader reader = ByteReader.over(
-            HexFormat.of().parseHex("000000ffffffff0f01000000")
+    void wrapsLengthGapAsTheReference() {
+        final DatabaseStats stats = DatabaseStats.parse(
+            ByteReader.over(HexFormat.of().parseHex("000000ffffffff0f01000000")),
+            false
         );
-        Assertions.assertThrows(
-            DatabaseCorruptError.class,
-            () -> DatabaseStats.parse(reader, false),
-            "Length upper bound above 32 bits"
+        Assertions.assertEquals(
+            List.of(0L, DatabaseStatsTest.NARROW, "000000ffffffff0f01000000"),
+            List.of(
+                stats.upper(), stats.wdf(), HexFormat.of().formatHex(stats.bytes())
+            ),
+            "Length upper bound modulo two to the 32, stored back unchanged"
         );
     }
 
@@ -160,17 +163,21 @@ final class DatabaseStatsTest {
 
     @Test
     void rejectsEncodingOutOfOrder() {
-        Assertions.assertAll(
-            () -> Assertions.assertThrows(
-                InvariantError.class,
-                () -> new DatabaseStats(2L, 1L, 0L, 0L, 0L, 0L, 0L, 0L).bytes(),
-                "Last docid below the count"
+        Assertions.assertThrows(
+            InvariantError.class,
+            () -> new DatabaseStats(2L, 1L, 0L, 0L, 0L, 0L, 0L, 0L).bytes(),
+            "Last docid below the count"
+        );
+    }
+
+    @Test
+    void encodesWdfBoundAboveLengthBoundAsTheReference() {
+        Assertions.assertEquals(
+            "00000002ffffffff0f000000",
+            HexFormat.of().formatHex(
+                new DatabaseStats(0L, 0L, 0L, 0L, 1L, 2L, 0L, 0L).bytes()
             ),
-            () -> Assertions.assertThrows(
-                InvariantError.class,
-                () -> new DatabaseStats(0L, 0L, 0L, 0L, 1L, 2L, 0L, 0L).bytes(),
-                "Wdf bound above the length bound"
-            )
+            "Difference of the bounds modulo two to the 32"
         );
     }
 

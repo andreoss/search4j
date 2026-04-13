@@ -31,16 +31,10 @@ final class PostingFields {
      *
      * @param reader Reader at the count
      * @param what Field name for the error
-     * @return Count, a corrupt-data error above the range
+     * @return Count, a corrupt-data error above the unsigned 32-bit range
      */
     static TermCount count(final ByteReader reader, final String what) {
-        final long value = reader.narrow(what);
-        if (value > Integer.MAX_VALUE) {
-            throw new DatabaseCorruptError(
-                String.format("%s too large: %d", what, value)
-            );
-        }
-        return new TermCount((int) value);
+        return new TermCount(reader.narrow(what));
     }
 
     /**

@@ -23,7 +23,7 @@ import io.github.andreoss.search4j.core.types.TermCount;
  * @since 0.1.0
  */
 record Bb2Part(
-    double length, double coll, int size, double effect, Stirling stirling,
+    double length, double coll, long size, double effect, Stirling stirling,
     double upper
 ) implements TermWeight {
 
@@ -55,7 +55,7 @@ record Bb2Part(
             }
             final double effect = stats.term().wqf().value() * factor
                 * (coll + 1.0) / WeightMath.unsigned(stats.term().freq().value());
-            final int size = stats.collection().size().value();
+            final long size = stats.collection().size().value();
             final Stirling stirling = Stirling.prepare(size, coll);
             double bound = effect / (lower + 1.0) * stirling.bound(lower, upper);
             if (bound < 0.0) {

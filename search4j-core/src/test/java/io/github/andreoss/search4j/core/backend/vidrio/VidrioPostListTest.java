@@ -106,7 +106,7 @@ final class VidrioPostListTest {
         expected.add(new TermCount(112));
         for (int doc = 1; doc <= 112; ++doc) {
             expected.add(doc);
-            expected.add(1);
+            expected.add(1L);
         }
         Assertions.assertEquals(expected, seen, "Every document, wdf 1");
     }

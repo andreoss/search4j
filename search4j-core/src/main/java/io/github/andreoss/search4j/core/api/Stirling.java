@@ -28,10 +28,10 @@ record Stirling(
      * @param coll Collection frequency of the term
      * @return The constants
      */
-    static Stirling prepare(final int size, final double coll) {
+    static Stirling prepare(final long size, final double coll) {
         double docs = 2.0;
-        if (Integer.compareUnsigned(size, 2) > 0) {
-            docs = WeightMath.unsigned(size);
+        if (size > 2L) {
+            docs = size;
         }
         return new Stirling(
             -1.0 / Math.log(2.0) - WeightMath.logTwo(docs - 1.0), coll, docs,
@@ -59,10 +59,10 @@ record Stirling(
      * @param count Number of documents
      * @return Information content
      */
-    double weight(final double norm, final int count) {
+    double weight(final double norm, final long count) {
         double less = 0.0;
-        if (Integer.compareUnsigned(count, 2) > 0) {
-            less = WeightMath.unsigned(count - 2);
+        if (count > 2L) {
+            less = count - 2L;
         }
         final double rest = this.coll - norm;
         return this.base

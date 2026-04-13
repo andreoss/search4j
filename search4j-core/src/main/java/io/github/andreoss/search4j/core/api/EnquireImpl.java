@@ -298,7 +298,7 @@ public final class EnquireImpl implements Enquire {
     }
 
     private MSet search(final int first, final int max, final int atleast) {
-        final int docs = this.shard.docCount().value();
+        final int docs = Math.toIntExact(this.shard.docCount().value());
         final int from = Math.min(first, docs);
         final int count = Math.min(max, docs - from);
         final int check = Math.max(Math.min(atleast, docs), from + count);
@@ -370,7 +370,7 @@ public final class EnquireImpl implements Enquire {
 
     private boolean vet(final MatchCursor cursor, final Collector collector) {
         final double least = collector.least();
-        boolean result = least <= 0.0 || cursor.weight() >= least;
+        boolean result = least <= 0.0 || Collector.reaches(cursor.weight(), least);
         if (result) {
             result = this.filter.decide(cursor.docId());
             collector.decide(result);
@@ -390,7 +390,7 @@ public final class EnquireImpl implements Enquire {
         }
         final Candidate item = new Candidate(cursor.docId(), weight);
         boolean more = true;
-        if ((!weighed || weight >= least)
+        if ((!weighed || Collector.reaches(weight, least))
             && this.unranked(cursor, collector, sort, item)) {
             if (sort == Ordering.VALUE && !weighed) {
                 item.weight(cursor.weight());

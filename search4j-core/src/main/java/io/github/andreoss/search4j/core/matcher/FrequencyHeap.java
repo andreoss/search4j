@@ -113,7 +113,6 @@ final class FrequencyHeap {
     }
 
     private static boolean before(final PostList left, final PostList right) {
-        return Integer.toUnsignedLong(left.termFrequency().value())
-            > Integer.toUnsignedLong(right.termFrequency().value());
+        return left.termFrequency().compareTo(right.termFrequency()) > 0;
     }
 }

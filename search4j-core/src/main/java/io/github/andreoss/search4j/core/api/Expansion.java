@@ -73,7 +73,7 @@ final class Expansion {
             for (final Map.Entry<String, double[]> entry : stats.entrySet()) {
                 final String term = entry.getKey();
                 final double[] values = entry.getValue();
-                final TermCount freq = new TermCount((int) values[0]);
+                final TermCount freq = TermCount.wrap((long) values[0]);
                 if (!asked.contains(term)
                     && (chooser == null || chooser.decide(term, freq))) {
                     run.offer(
@@ -81,7 +81,7 @@ final class Expansion {
                         weight.weight(
                             term,
                             new ExpandStats(
-                                freq, new TermCount((int) values[1]), docs, values[2]
+                                freq, new TermCount((long) values[1]), docs, values[2]
                             )
                         )
                     );

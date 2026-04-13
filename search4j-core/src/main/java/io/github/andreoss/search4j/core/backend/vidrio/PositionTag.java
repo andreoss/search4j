@@ -120,7 +120,7 @@ final class PositionTag {
             reader.decodeInterpolative((int) size - 1, first, last.value());
             return new VidrioPositionList(
                 reader, new TermPos((int) first), last,
-                new TermCount((int) size)
+                new TermCount(size)
             );
         } catch (final SerialisationError ex) {
             final DatabaseCorruptError error =

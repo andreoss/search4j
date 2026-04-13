@@ -94,7 +94,7 @@ public final class LmDirichletWeight implements Weight {
         final double query = WeightMath.unsigned(coll.query().value());
         double scale = factor * stats.term().wqf().value();
         double mult = 0.0;
-        final int freq = stats.term().collFreq().value();
+        final long freq = stats.term().collFreq().value();
         if (scale != 0.0 && freq == 0) {
             scale = 0.0;
         } else if (scale != 0.0) {

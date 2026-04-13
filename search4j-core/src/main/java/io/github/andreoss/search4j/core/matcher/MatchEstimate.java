@@ -505,7 +505,7 @@ public final class MatchEstimate {
     }
 
     private static TermCount count(final long value) {
-        return new TermCount((int) Math.min(Integer.MAX_VALUE, value));
+        return TermCount.wrap(value);
     }
 
     private static DocId max(final DocId left, final DocId right) {

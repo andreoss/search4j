@@ -93,7 +93,7 @@ public final class Lm2StageWeight implements Weight {
         final CollectionStats coll = stats.collection();
         final double query = WeightMath.unsigned(coll.query().value());
         final double longest = WeightMath.unsigned(coll.bounds().docMax().value());
-        final int freq = stats.term().collFreq().value();
+        final long freq = stats.term().collFreq().value();
         double scale = 0.0;
         double mult = 0.0;
         if (freq != 0) {

@@ -224,8 +224,8 @@ public final class ValueRangePostList implements PostList {
             max = max - this.rejected;
         }
         return new MatchEstimates(
-            new TermCount((int) min), new TermCount((int) est),
-            new TermCount((int) max), lower, fixed.last()
+            new TermCount(min), new TermCount(est),
+            new TermCount(max), lower, fixed.last()
         );
     }
 

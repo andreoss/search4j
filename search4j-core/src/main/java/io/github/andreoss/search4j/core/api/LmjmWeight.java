@@ -70,7 +70,7 @@ public final class LmjmWeight implements Weight {
 
     @Override
     public TermWeight term(final WeightStats stats, final double factor) {
-        final int coll = stats.term().collFreq().value();
+        final long coll = stats.term().collFreq().value();
         double scale = 0.0;
         double mult = 0.0;
         if (coll != 0) {
@@ -85,7 +85,7 @@ public final class LmjmWeight implements Weight {
         );
     }
 
-    private double smoothing(final int query) {
+    private double smoothing(final long query) {
         double smooth = this.lambda;
         if (smooth <= 0.0 || smooth >= 1.0) {
             if (query <= 2) {
@@ -108,7 +108,7 @@ public final class LmjmWeight implements Weight {
      * @param docmin Lower bound on the document length
      * @since 0.1.0
      */
-    private record Part(double scale, double mult, int wdfmax, int docmin)
+    private record Part(double scale, double mult, long wdfmax, long docmin)
         implements TermWeight {
 
         @Override

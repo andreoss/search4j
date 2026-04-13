@@ -72,6 +72,38 @@ final class TermListReaderTest {
     }
 
     @Test
+    void readsFrequenciesAboveTheSignedRange() {
+        final Map<String, TermCount> terms = new LinkedHashMap<>();
+        terms.put("a", TermCount.parse("3000000000"));
+        terms.put("b", TermCount.MAX);
+        terms.put("c", new TermCount(5));
+        final byte[] tag = TermListTag.encode(terms);
+        final TermListReader reader = TermListReader.parse(tag);
+        final List<String> seen = new ArrayList<>(terms.size());
+        while (reader.advance()) {
+            seen.add(
+                String.format(
+                    "%s:%s",
+                    new String(reader.term(), StandardCharsets.UTF_8),
+                    reader.wdf()
+                )
+            );
+        }
+        Assertions.assertEquals(
+            List.of(
+                "84bcc1960b03016180bcc1960b000162ffffffff0f0c0163",
+                List.of("a:3000000000", "b:4294967295", "c:5"),
+                TermCount.parse("3000000004"), new TermCount(3)
+            ),
+            List.of(
+                HexFormat.of().formatHex(tag), seen, reader.length(),
+                reader.size()
+            ),
+            "Unsigned wdfs, the length modulo two to the 32"
+        );
+    }
+
+    @Test
     void rejectsDamagedTags() {
         final Map<String, String> cases = new LinkedHashMap<>();
         cases.put("80", "Document length out of data");
@@ -88,8 +120,7 @@ final class TermListReaderTest {
         cases.put("0301016180", "Within-document frequency out of data");
         cases.put("03010161ffffffff7f", "Within-document frequency overflowed");
         cases.put(
-            "03010161ffffffff0f",
-            "Within-document frequency too large: 4294967295"
+            "03010161ffffffff1f", "Within-document frequency overflowed"
         );
         cases.put("030201610202", "Term length out of data");
         cases.put(

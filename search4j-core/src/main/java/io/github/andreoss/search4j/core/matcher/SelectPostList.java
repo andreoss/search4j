@@ -182,7 +182,7 @@ public abstract class SelectPostList implements PostList {
      * @return Conservative frequency estimate
      */
     protected final TermCount minimumWdf() {
-        int minimum = Integer.MAX_VALUE;
+        long minimum = TermCount.MAX.value();
         for (final PostList term : this.terms) {
             minimum = Math.min(minimum, term.wdf().value());
         }

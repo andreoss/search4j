@@ -168,7 +168,7 @@ public final class Indexer {
             }
         }
         this.termlist(doc, fresh);
-        final TermCount after = Indexer.length(length);
+        final TermCount after = TermCount.wrap(length);
         if (!after.equals(before)) {
             this.session.inverter().lengths().set(doc, after, false);
         }
@@ -256,14 +256,5 @@ public final class Indexer {
             result = iter.next();
         }
         return result;
-    }
-
-    private static TermCount length(final long value) {
-        if (value < 0L || value > Integer.MAX_VALUE) {
-            throw new RangeError(
-                String.format("Document length out of range: %d", value)
-            );
-        }
-        return new TermCount((int) value);
     }
 }

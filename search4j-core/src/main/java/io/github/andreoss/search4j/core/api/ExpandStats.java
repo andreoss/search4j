@@ -35,6 +35,6 @@ public record ExpandStats(
      * @param docs Number of relevant documents
      */
     public ExpandStats(final TermCount freq, final TermCount dfreq, final TermCount docs) {
-        this(freq, dfreq, docs, dfreq.value());
+        this(freq, dfreq, docs, (double) dfreq.value());
     }
 }

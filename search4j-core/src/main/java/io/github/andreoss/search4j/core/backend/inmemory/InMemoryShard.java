@@ -128,7 +128,7 @@ public final class InMemoryShard implements Shard {
     @Override
     public TermCount docLengthUpperBound() {
         return new TermCount(
-            Math.toIntExact(Math.min(this.store.total(), Integer.MAX_VALUE))
+            Math.min(this.store.total(), TermCount.MAX.value())
         );
     }
 

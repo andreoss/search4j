@@ -16,6 +16,8 @@ import io.github.andreoss.search4j.core.error.InvalidOperationError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Walk over the chunks of one posting list through a table cursor.
@@ -113,9 +115,9 @@ final class ChunkWalker {
             final Loaded loaded = ChunkWalker.load(head.first(), reader);
             TermCount bound = TermCount.ZERO;
             if (term.length > 0) {
-                final int wdf = loaded.postings().wdf().value();
-                bound = new TermCount(
-                    Math.max(head.freqs().collection().value() - wdf, wdf)
+                final TermCount wdf = loaded.postings().wdf();
+                bound = Collections.max(
+                    List.of(head.freqs().collection().minus(wdf), wdf)
                 );
             }
             walker = new ChunkWalker(

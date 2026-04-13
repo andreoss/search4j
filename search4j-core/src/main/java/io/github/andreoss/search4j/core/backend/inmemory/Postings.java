@@ -11,6 +11,8 @@ import io.github.andreoss.search4j.core.backend.TermFrequencies;
 import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
+import java.util.Collections;
+import java.util.List;
 import java.util.NavigableMap;
 
 /**
@@ -43,8 +45,8 @@ record Postings(
         DocRange range = new DocRange(DocId.of(1), DocId.NONE);
         if (!list.isEmpty()) {
             range = new DocRange(list.firstKey(), list.lastKey());
-            final int head = list.firstEntry().getValue().wdf().value();
-            bound = new TermCount(Math.max(head, coll.value() - head));
+            final TermCount head = list.firstEntry().getValue().wdf();
+            bound = Collections.max(List.of(head, coll.minus(head)));
         }
         return new Postings(
             new Seek<>(list, DocId.NONE, item -> true),

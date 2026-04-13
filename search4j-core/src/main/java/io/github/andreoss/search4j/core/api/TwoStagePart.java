@@ -25,14 +25,14 @@ import io.github.andreoss.search4j.core.types.TermCount;
  * @since 0.1.0
  */
 record TwoStagePart(
-    TwoStage stage, double scale, double mult, double offset, int wdfmax,
-    int docmin
+    TwoStage stage, double scale, double mult, double offset, long wdfmax,
+    long docmin
 ) implements TermWeight, ExtraWeight {
 
     @Override
     public double sumPart(final TermCount wdf, final DocStats doc) {
         return this.scale * Math.log(
-            1.0 + wdf.value() / this.stage.smoothed(doc.length().value())
+            1.0 + wdf.value() / this.stage.smoothed((double) doc.length().value())
                 * this.mult
         );
     }
@@ -41,18 +41,18 @@ record TwoStagePart(
     public double maxPart() {
         return this.scale * Math.log(
             1.0 + this.wdfmax
-                / this.stage.smoothed(Math.max(this.docmin, this.wdfmax))
+                / this.stage.smoothed((double) Math.max(this.docmin, this.wdfmax))
                 * this.mult
         );
     }
 
     @Override
     public double sumExtra(final DocStats doc) {
-        return this.offset + this.stage.length(doc.length().value());
+        return this.offset + this.stage.length((double) doc.length().value());
     }
 
     @Override
     public double maxExtra() {
-        return this.offset + this.stage.length(this.docmin);
+        return this.offset + this.stage.length((double) this.docmin);
     }
 }

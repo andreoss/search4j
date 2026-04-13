@@ -135,13 +135,10 @@ final class QueryDeserialiseErrorsTest {
         return Stream.of(
             Arguments.of("52c328", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("6161ffffffff0f", QueryDeserialiseErrorsTest.UNSUPPORTED),
-            Arguments.of("7161ffffffff0f00", QueryDeserialiseErrorsTest.UNSUPPORTED),
-            Arguments.of("0effffffff0f00", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0b00030d0161", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0b00400d0161", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0b00040d0161", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0b0000050161", QueryDeserialiseErrorsTest.UNSUPPORTED),
-            Arguments.of("0bffffffff0f000d0161", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0a00000dffffffff0f000161", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0a00000d02ffffffff0f0161", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0a00000002000161", QueryDeserialiseErrorsTest.UNSUPPORTED),

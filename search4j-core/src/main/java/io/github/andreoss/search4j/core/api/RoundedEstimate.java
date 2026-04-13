@@ -56,6 +56,6 @@ record RoundedEstimate(TermCount lower, TermCount estimate, TermCount upper) {
                 result = result + step;
             }
         }
-        return new TermCount((int) result);
+        return new TermCount(result);
     }
 }

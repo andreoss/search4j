@@ -149,6 +149,6 @@ final class WeightFixture {
     }
 
     private static TermCount count(final String text) {
-        return new TermCount(Integer.parseInt(text));
+        return new TermCount(Long.parseLong(text));
     }
 }

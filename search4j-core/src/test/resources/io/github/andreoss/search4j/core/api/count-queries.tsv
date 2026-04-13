@@ -1,0 +1,14 @@
+q01	big	1	-	TERM	a
+q02	big	1	-	TERM	c
+q03	big	1	-	OR	a b c
+q04	big	1	-	AND	a b
+q05	big	1	-	TERM	a:3000000000
+q06	big	1	-	OR	a:2147483648 c:4294967295 e
+q07	big	1	-	AND_MAYBE	b d:2147483648
+q08	big	1	-	SCALE:2.5	a:3000000000
+q09	big	1	-	XOR	b d
+q10	big	1	-	AND_NOT	a e
+q11	big	1	-	OR	f g h
+q13	wrap	1	-	TERM	a
+q14	wrap	1	-	OR	a b c d
+q15	wrap	1	-	OR	c:4294967295 e:2147483648

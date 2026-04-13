@@ -125,9 +125,8 @@ public final class Inverter {
                     stored.termFrequency().value() + pending.termDelta(),
                     "Term frequency"
                 ),
-                Inverter.count(
-                    stored.collection().value() + pending.collectionDelta(),
-                    "Collection frequency"
+                TermCount.wrap(
+                    stored.collection().value() + pending.collectionDelta()
                 )
             );
         }
@@ -192,11 +191,11 @@ public final class Inverter {
     }
 
     private static TermCount count(final long value, final String what) {
-        if (value < 0L || value > Integer.MAX_VALUE) {
+        if (value < 0L || value > TermCount.MAX.value()) {
             throw new InvariantError(
                 String.format("%s out of range: %d", what, value)
             );
         }
-        return new TermCount((int) value);
+        return new TermCount(value);
     }
 }

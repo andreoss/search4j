@@ -293,6 +293,7 @@ final class Store implements Stats {
             : stored.terms().entrySet()) {
             this.terms.computeIfAbsent(entry.getKey(), key -> new Term())
                 .post(docid, entry.getValue());
+            this.total += entry.getValue().wdf().value();
             if (!entry.getValue().positions().isEmpty()) {
                 this.positional = true;
             }
@@ -302,7 +303,6 @@ final class Store implements Stats {
             this.slots.computeIfAbsent(entry.getKey(), key -> new SlotStats())
                 .add(entry.getValue());
         }
-        this.total += stored.length().value();
         this.docs.put(docid, stored);
         if (docid.compareTo(this.last) > 0) {
             this.last = docid;

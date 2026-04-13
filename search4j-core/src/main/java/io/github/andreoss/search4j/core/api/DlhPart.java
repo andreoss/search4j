@@ -101,8 +101,9 @@ record DlhPart(double constant, double scale, double upper)
             final double weight = count * WeightMath.logTwo(ratio * this.constant)
                 + (len - count) * WeightMath.logTwo(rest)
                 + 0.5 * WeightMath.logTwo(2.0 * Math.PI * count * rest);
-            if (weight > 0.0) {
-                result = this.scale * weight / (count + 0.5);
+            result = this.scale * weight / (count + 0.5);
+            if (weight <= 0.0) {
+                result = 0.0;
             }
         }
         return result;

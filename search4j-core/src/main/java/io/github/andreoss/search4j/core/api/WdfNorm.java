@@ -62,7 +62,7 @@ public enum WdfNorm {
         double apply(final TermCount wdf, final DocStats doc, final Pivot pivot) {
             double result = 0.0;
             if (wdf.value() != 0) {
-                result = 1.0 + Math.log(wdf.value());
+                result = 1.0 + Math.log((double) wdf.value());
             }
             return result;
         }
@@ -77,7 +77,7 @@ public enum WdfNorm {
             double result = 0.0;
             if (wdf.value() != 0) {
                 final double normal = doc.length().value() / pivot.average();
-                result = (1.0 + Math.log(1.0 + Math.log(wdf.value())))
+                result = (1.0 + Math.log(1.0 + Math.log((double) wdf.value())))
                     * (1.0 / (1.0 - pivot.slope() + pivot.slope() * normal))
                     + pivot.delta();
             }
@@ -97,7 +97,7 @@ public enum WdfNorm {
                 if (doc.length().value() != 0 && doc.unique().value() != 0) {
                     average = (double) doc.length().value() / doc.unique().value();
                 }
-                result = (1.0 + Math.log(wdf.value())) / (1.0 + Math.log(average));
+                result = (1.0 + Math.log((double) wdf.value())) / (1.0 + Math.log(average));
             }
             return result;
         }

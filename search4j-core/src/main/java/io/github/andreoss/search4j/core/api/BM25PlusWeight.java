@@ -97,7 +97,7 @@ public final class BM25PlusWeight implements Weight {
                     WeightMath.unsigned(coll.size().value() + 1)
                         / WeightMath.unsigned(term.freq().value())
                 ) * factor,
-                term.wqf().value()
+                (double) term.wqf().value()
             );
         }
         return new Bm25Part(

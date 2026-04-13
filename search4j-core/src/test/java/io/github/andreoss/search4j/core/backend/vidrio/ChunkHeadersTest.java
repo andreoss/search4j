@@ -55,6 +55,22 @@ final class ChunkHeadersTest {
     }
 
     @Test
+    void holdsFrequenciesAboveTheSignedRange() {
+        final FirstHeader head = new FirstHeader(
+            new TermFrequencies(TermCount.parse("2147483648"), TermCount.MAX),
+            DocId.of(1)
+        );
+        Assertions.assertEquals(
+            List.of("8080808008ffffffff0f00", head),
+            List.of(
+                HexFormat.of().formatHex(head.bytes()),
+                FirstHeader.read(ByteReader.over(head.bytes()))
+            ),
+            "Unsigned varints of the reference and their decoding"
+        );
+    }
+
+    @Test
     void encodesChunkHeaderAsTheReference() {
         Assertions.assertEquals(
             List.of("3100", "30ff01"),
@@ -93,7 +109,7 @@ final class ChunkHeadersTest {
     @Test
     void rejectsHeadersOutOfRange() {
         final List<String> bad = List.of(
-            "ffffffff0f", "00ffffffff0f", "0000ffffffff0f", "000000",
+            "ffffffff1f", "00ffffffff1f", "0000ffffffff0f", "000000",
             "00000031ffffffff0f", "0000003100"
         );
         final List<Object> seen = new ArrayList<>(bad.size());
@@ -111,8 +127,8 @@ final class ChunkHeadersTest {
         }
         Assertions.assertEquals(
             List.of(
-                "Term frequency too large: 4294967295",
-                "Collection frequency too large: 4294967295",
+                "Term frequency overflowed",
+                "Collection frequency overflowed",
                 "First document out of range: 4294967296",
                 "Last chunk flag out of data",
                 "Last document out of range: 4294967296",
@@ -142,7 +158,7 @@ final class ChunkHeadersTest {
         seen.add(chunk.ended());
         seen.add(chunk.doc().value());
         Assertions.assertEquals(
-            List.of(10, 3, false, true, 11, 2, true, 13, 5, false, true, 13),
+            List.of(10, 3L, false, true, 11, 2L, true, 13, 5L, false, true, 13),
             seen,
             "Gaps one below the distance, ended after the last posting"
         );
@@ -155,7 +171,7 @@ final class ChunkHeadersTest {
         );
         final PostingChunk chunk = PostingChunk.of(DocId.of(10), reader);
         Assertions.assertEquals(
-            List.of(true, 10, 3, true, 13, 5, false, 23, 5, true),
+            List.of(true, 10, 3L, true, 13, 5L, false, 23, 5L, true),
             List.of(
                 chunk.forward(DocId.of(9)), chunk.doc().value(),
                 chunk.wdf().value(), chunk.forward(DocId.of(12)),
@@ -171,7 +187,7 @@ final class ChunkHeadersTest {
     void emptyChunkIsEnded() {
         final PostingChunk chunk = PostingChunk.none();
         Assertions.assertEquals(
-            List.of(true, false, true, 0, 0),
+            List.of(true, false, true, 0, 0L),
             List.of(
                 chunk.ended(), chunk.next(), chunk.ended(),
                 chunk.doc().value(), chunk.wdf().value()

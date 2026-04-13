@@ -94,8 +94,8 @@ final class RangeEstimate {
 
     private static MatchEstimates values(final long min, final long est, final long max) {
         return new MatchEstimates(
-            new TermCount((int) min), new TermCount((int) est),
-            new TermCount((int) max), DocId.of(1), new DocId(Integer.MAX_VALUE)
+            new TermCount(min), new TermCount(est),
+            new TermCount(max), DocId.of(1), new DocId(Integer.MAX_VALUE)
         );
     }
 }

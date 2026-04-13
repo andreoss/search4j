@@ -56,9 +56,7 @@ final class Term {
      */
     void unpost(final DocId docid, final Occurrence occurrence) {
         this.postings.remove(docid);
-        this.collection = new TermCount(
-            this.collection.value() - occurrence.wdf().value()
-        );
+        this.collection = this.collection.minus(occurrence.wdf());
     }
 
     /**

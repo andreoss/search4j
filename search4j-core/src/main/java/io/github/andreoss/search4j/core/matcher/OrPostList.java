@@ -284,10 +284,10 @@ public final class OrPostList implements PostList {
         final long rfirst = rone.first().value();
         final long rlast = rone.last().value();
         final double lcount = Math.min(
-            left.termFrequency().value(), (double) (llast - lfirst + 1L)
+            (double) left.termFrequency().value(), (double) (llast - lfirst + 1L)
         );
         final double rcount = Math.min(
-            right.termFrequency().value(), (double) (rlast - rfirst + 1L)
+            (double) right.termFrequency().value(), (double) (rlast - rfirst + 1L)
         );
         final TermCount result;
         if (llast < rfirst || rlast < lfirst) {

@@ -12,6 +12,7 @@ import io.github.andreoss.search4j.core.api.WritableDatabase;
 import io.github.andreoss.search4j.core.backend.vidrio.BlockSize;
 import io.github.andreoss.search4j.core.queryparser.QueryParser;
 import io.github.andreoss.search4j.core.types.DatabaseAction;
+import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.TermPos;
 import io.github.andreoss.search4j.core.types.ValueNo;
@@ -304,8 +305,109 @@ final class VidrioDatabaseDifferentialTest {
         }
     }
 
+    @Test
+    void keepsCountsAboveTheSignedRange(@TempDir final Path temp)
+        throws IOException {
+        Assumptions.assumeTrue(
+            NativeTools.available() && ReferenceDatabases.countsWritable(),
+            VidrioDatabaseDifferentialTest.ABSENT
+        );
+        final Path own = temp.resolve("own").resolve("counts");
+        try (WritableDatabase han = VidrioDatabaseDifferentialTest.open(own)) {
+            VidrioDatabaseDifferentialTest.largeCounts(han);
+        }
+        final Path reference = Files.createDirectories(
+            temp.resolve("reference")
+        ).resolve("counts");
+        ReferenceDatabases.writeCounts(reference);
+        for (final Path dbs : List.of(reference, own)) {
+            final Map<String, String> stats = NativeTools.stats(dbs);
+            Assertions.assertEquals(
+                List.of("6", "7", "1000000002", "4294967280"),
+                List.of(
+                    stats.get(VidrioDatabaseDifferentialTest.COUNT),
+                    stats.get(VidrioDatabaseDifferentialTest.LAST),
+                    stats.get("documentLengthLowerBound"),
+                    stats.get("documentLengthUpperBound")
+                ),
+                String.format("statistics differ from the reference on %s", dbs)
+            );
+            Assertions.assertEquals(
+                List.of(
+                    "Posting List for term 'a' (termfreq 3, collfreq 4000000006, wdf_max 3000000000):",
+                    "1 3000000000 3000000001", "2 5 2147483660",
+                    "4 1000000001 3147483652"
+                ),
+                NativeTools.postings(dbs, "a"),
+                String.format("postings differ from the reference on %s", dbs)
+            );
+            Assertions.assertEquals(
+                List.of(Optional.of(4_294_967_287L), Optional.of(2_147_483_649L)),
+                List.of(
+                    ReferenceDatabases.collectionFreq(dbs, "c"),
+                    ReferenceDatabases.collectionFreq(dbs, "f")
+                ),
+                String.format("collection frequency differs on %s", dbs)
+            );
+            Assertions.assertEquals(
+                List.of(),
+                ReferenceDatabases.integrity(dbs),
+                String.format(VidrioDatabaseDifferentialTest.REJECTED, dbs)
+            );
+        }
+    }
+
     private static boolean held() {
         return NativeTools.available() && ReferenceDatabases.writable();
+    }
+
+    private static void largeCounts(final WritableDatabase han) {
+        han.replaceDocument(
+            DocId.of(1),
+            VidrioDatabaseDifferentialTest.counted("a:3000000000", "b:1")
+        );
+        han.replaceDocument(
+            DocId.of(2),
+            VidrioDatabaseDifferentialTest.counted("a:5", "b:2147483648", "c:7")
+        );
+        han.replaceDocument(
+            DocId.of(3), VidrioDatabaseDifferentialTest.counted("c:4294967280")
+        );
+        han.replaceDocument(
+            DocId.of(4),
+            VidrioDatabaseDifferentialTest.counted("a:1000000000", "d:2")
+        );
+        han.replaceDocument(
+            DocId.of(5),
+            VidrioDatabaseDifferentialTest.counted("b:3", "e:1", "d:2147483650")
+        );
+        final Document six = VidrioDatabaseDifferentialTest.counted("e:2");
+        six.addPosting("f", new TermPos(1), TermCount.parse("2147483648"));
+        six.addPosting("f", new TermPos(2), TermCount.ONE);
+        han.replaceDocument(DocId.of(6), six);
+        han.replaceDocument(
+            DocId.of(4),
+            VidrioDatabaseDifferentialTest.counted(
+                "a:1000000001", "d:3", "g:2147483648"
+            )
+        );
+        han.replaceDocument(
+            DocId.of(7), VidrioDatabaseDifferentialTest.counted("h:4000000000")
+        );
+        han.deleteDocument(DocId.of(7));
+        han.commit();
+    }
+
+    private static Document counted(final String... terms) {
+        final Document doc = DatabaseFactory.document();
+        for (final String term : terms) {
+            final int colon = term.indexOf(':');
+            doc.addTerm(
+                term.substring(0, colon),
+                TermCount.parse(term.substring(colon + 1))
+            );
+        }
+        return doc;
     }
 
     private static List<Path> pair(

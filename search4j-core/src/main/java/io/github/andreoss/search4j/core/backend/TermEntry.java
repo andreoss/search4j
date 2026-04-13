@@ -29,7 +29,7 @@ final class TermEntry {
     /**
      * The within-document frequency.
      */
-    private int wdf;
+    private long wdf;
 
     /**
      * Whether the term was removed.
@@ -52,7 +52,7 @@ final class TermEntry {
      * @param positions Ascending positions, owned by the entry
      * @param wdf Within-document frequency
      */
-    private TermEntry(final List<TermPos> positions, final int wdf) {
+    private TermEntry(final List<TermPos> positions, final long wdf) {
         this.positions = positions;
         this.wdf = wdf;
         this.deleted = false;
@@ -70,7 +70,7 @@ final class TermEntry {
             this.wdf = delta.value();
             this.deleted = false;
         } else {
-            this.wdf = new TermCount(this.wdf).plus(delta).value();
+            this.wdf = (this.wdf + delta.value()) & TermCount.MAX.value();
         }
         return revived;
     }
@@ -83,7 +83,7 @@ final class TermEntry {
      * @return True when the term was removed
      */
     boolean decrease(final TermCount delta) {
-        this.wdf = Math.max(0, this.wdf - delta.value());
+        this.wdf = Math.max(0L, this.wdf - delta.value());
         this.deleted = this.wdf == 0 && this.positions.isEmpty();
         return this.deleted;
     }

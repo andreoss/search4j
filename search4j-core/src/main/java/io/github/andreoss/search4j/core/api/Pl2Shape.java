@@ -83,7 +83,7 @@ record Pl2Shape(double length, double first, double second) {
      */
     double bound(final WeightStats stats) {
         final LengthBounds bounds = stats.collection().bounds();
-        final int wdfmax = stats.term().wdfMax().value();
+        final long wdfmax = stats.term().wdfMax().value();
         final double lower = WeightMath.logTwo(
             1.0 + this.length / bounds.docMax().value()
         );

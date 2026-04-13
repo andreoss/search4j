@@ -27,6 +27,11 @@ final class ReferenceDatabases {
     private static final String WRITER = "write";
 
     /**
+     * Property key suffix of the reference writer of the large-count case.
+     */
+    private static final String COUNTS = "writecounts";
+
+    /**
      * Collection frequency in a posting list header.
      */
     private static final Pattern COLLECTION = Pattern
@@ -61,6 +66,30 @@ final class ReferenceDatabases {
         ReferenceTools.run(
             ReferenceDatabases.WRITER,
             List.of(scenario, dbs.toAbsolutePath().toString())
+        );
+    }
+
+    /**
+     * True when the reference writer of the case with counts at and above
+     * two to the thirty-one is configured.
+     *
+     * @return True when that database can be written
+     */
+    static boolean countsWritable() {
+        return ReferenceTools.configured(ReferenceDatabases.COUNTS);
+    }
+
+    /**
+     * Writes the database of the case with counts at and above two to the
+     * thirty-one with the reference library.
+     *
+     * @param dbs Database directory to create
+     * @throws IOException When the tool fails
+     */
+    static void writeCounts(final Path dbs) throws IOException {
+        ReferenceTools.run(
+            ReferenceDatabases.COUNTS,
+            List.of("counts", dbs.toAbsolutePath().toString())
         );
     }
 

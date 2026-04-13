@@ -104,14 +104,14 @@ public record DatabaseStats(
                     "Version record has junk at end"
                 );
             }
-            if (last + docs > DatabaseStats.NARROW
-                || upper + wdf > DatabaseStats.NARROW || total < 0L) {
+            if (last + docs > DatabaseStats.NARROW || total < 0L) {
                 throw new DatabaseCorruptError(
                     "Bad serialised DB stats (overflowed)"
                 );
             }
             stats = new DatabaseStats(
-                docs, last + docs, total, lower, upper + wdf, wdf, spelling,
+                docs, last + docs, total, lower,
+                (upper + wdf) & DatabaseStats.NARROW, wdf, spelling,
                 changeset
             );
         }
@@ -124,7 +124,7 @@ public record DatabaseStats(
      * @return Eight variable-length integers
      */
     public byte[] bytes() {
-        if (this.last < this.docs || this.upper < this.wdf) {
+        if (this.last < this.docs) {
             throw new InvariantError(
                 String.format("Statistics out of order: %s", this)
             );
@@ -134,7 +134,9 @@ public record DatabaseStats(
         out.writeBytes(Varints.pack(this.last - this.docs));
         out.writeBytes(Varints.pack(this.lower));
         out.writeBytes(Varints.pack(this.wdf));
-        out.writeBytes(Varints.pack(this.upper - this.wdf));
+        out.writeBytes(
+            Varints.pack((this.upper - this.wdf) & DatabaseStats.NARROW)
+        );
         out.writeBytes(Varints.pack(this.changeset));
         out.writeBytes(Varints.pack(this.total));
         out.writeBytes(Varints.pack(this.spelling));

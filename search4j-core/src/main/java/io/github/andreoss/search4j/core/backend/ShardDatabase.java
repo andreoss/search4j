@@ -67,9 +67,9 @@ public final class ShardDatabase implements WritableDatabase {
 
     @Override
     public DocLength averageLength() {
-        final int count = this.docCount().value();
+        final long count = this.docCount().value();
         DocLength result = DocLength.ZERO;
-        if (count > 0) {
+        if (count > 0L) {
             result = new DocLength(
                 (double) this.shard.totalLength().value() / count
             );

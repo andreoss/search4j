@@ -136,7 +136,7 @@ final class QueryTreeTest {
         );
         final Query joined = Query.of(QueryOp.OR, mixed, pointed);
         Assertions.assertEquals(
-            List.of(4, 3, 4, 3, 7, 10, 0, 0, 1, 1, 1, 0, 0, 5, 3),
+            List.of(4L, 3L, 4L, 3L, 7L, 10L, 0L, 0L, 1L, 1L, 1L, 0L, 0L, 5L, 3L),
             List.of(
                 first.length().value(), terms.length().value(),
                 mixed.length().value(), pointed.length().value(),
@@ -161,7 +161,7 @@ final class QueryTreeTest {
         final Query none = Query.terms(QueryOp.OR, List.of());
         final Query term = Query.term("x");
         Assertions.assertEquals(
-            List.of(true, true, 0, false, 1, 0, false),
+            List.of(true, true, 0L, false, 1L, 0L, false),
             List.of(
                 none.empty(), Query.of(QueryOp.AND, none, term).empty(),
                 Query.of(QueryOp.AND, none, term).length().value(),

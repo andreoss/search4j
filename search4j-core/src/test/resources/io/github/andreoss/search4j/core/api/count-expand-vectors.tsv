@@ -1,0 +1,40 @@
+X	inmemory	big	-	0	b	3.0322965947666871
+X	inmemory	big	-	1	g	2.8701690490838083
+Z	inmemory	big	-	2	3
+X	inmemory	big	bo1	0	b	37.071207743269014
+X	inmemory	big	bo1	1	g	37.071207736550939
+X	inmemory	big	bo1	2	c	29.415037512379083
+X	inmemory	big	bo1	3	d	28.415037518761256
+Z	inmemory	big	bo1	4	3
+X	inmemory	big	prob:0.5	0	b	2.5321222137735648
+X	inmemory	big	prob:0.5	1	g	2.1526267873734204
+Z	inmemory	big	prob:0.5	2	3
+X	inmemory	big	prob:2	0	g	4.3052535713834583
+X	inmemory	big	prob:2	1	b	4.0435211839899967
+Z	inmemory	big	prob:2	2	3
+X	disk	big	-	0	b	3.0322965947666871
+X	disk	big	-	1	g	2.8701690490838083
+Z	disk	big	-	2	3
+X	disk	big	bo1	0	b	37.071207743269014
+X	disk	big	bo1	1	g	37.071207736550939
+X	disk	big	bo1	2	c	29.415037512379083
+X	disk	big	bo1	3	d	28.415037518761256
+Z	disk	big	bo1	4	3
+X	disk	big	prob:0.5	0	b	2.5321222137735648
+X	disk	big	prob:0.5	1	g	2.1526267873734204
+Z	disk	big	prob:0.5	2	3
+X	disk	big	prob:2	0	g	4.3052535713834583
+X	disk	big	prob:2	1	b	4.0435211839899967
+Z	disk	big	prob:2	2	3
+Z	inmemory	wrap	-	0	2
+X	inmemory	wrap	bo1	0	b	35.253095033750014
+X	inmemory	wrap	bo1	1	c	2.0588936890535687
+Z	inmemory	wrap	bo1	2	2
+Z	inmemory	wrap	prob:0.5	0	2
+Z	inmemory	wrap	prob:2	0	2
+Z	disk	wrap	-	0	2
+X	disk	wrap	bo1	0	b	35.253095033750014
+X	disk	wrap	bo1	1	c	2.0588936890535687
+Z	disk	wrap	bo1	2	2
+Z	disk	wrap	prob:0.5	0	2
+Z	disk	wrap	prob:2	0	2

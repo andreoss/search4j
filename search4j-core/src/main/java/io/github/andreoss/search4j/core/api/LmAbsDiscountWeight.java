@@ -81,7 +81,7 @@ public final class LmAbsDiscountWeight implements Weight {
     private DiscountPart prepare(final WeightStats stats, final double factor) {
         final CollectionStats coll = stats.collection();
         final double query = WeightMath.unsigned(coll.query().value());
-        final int freq = stats.term().collFreq().value();
+        final long freq = stats.term().collFreq().value();
         double scale = 0.0;
         double mult = 0.0;
         if (freq != 0) {

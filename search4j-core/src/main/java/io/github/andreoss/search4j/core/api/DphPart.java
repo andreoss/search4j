@@ -92,8 +92,9 @@ record DphPart(double constant, double scale, double upper)
             final double weight = rest * rest / (count + 1.0)
                 * (count * (WeightMath.logTwo(ratio) + this.constant)
                 + 0.5 * WeightMath.logTwo(2.0 * Math.PI * count * (1.0 - ratio)));
-            if (weight > 0.0) {
-                result = this.scale * weight;
+            result = this.scale * weight;
+            if (weight <= 0.0) {
+                result = 0.0;
             }
         }
         return result;

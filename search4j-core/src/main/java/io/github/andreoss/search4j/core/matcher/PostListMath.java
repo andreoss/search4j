@@ -39,8 +39,8 @@ final class PostListMath {
      */
     static TermCount rounded(final double value) {
         return new TermCount(
-            (int) Math.min(
-                (long) (Math.max(0.0, value) + 0.5), Integer.MAX_VALUE
+            Math.min(
+                (long) (Math.max(0.0, value) + 0.5), TermCount.MAX.value()
             )
         );
     }

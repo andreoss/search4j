@@ -73,7 +73,7 @@ final class TermListTag {
 
     private static void append(
         final ByteArrayOutputStream out, final byte[] prev, final byte[] term,
-        final int wdf
+        final long wdf
     ) {
         if (prev.length == 0) {
             out.write(term.length);
@@ -81,13 +81,13 @@ final class TermListTag {
             out.writeBytes(Varints.pack(wdf));
         } else {
             final int reuse = TermListTag.shared(prev, term);
-            int packed = 0;
-            if (wdf < 127) {
-                packed = (wdf + 1) * (prev.length + 1) + reuse;
+            long packed = 0L;
+            if (wdf < 127L) {
+                packed = (wdf + 1L) * (prev.length + 1) + reuse;
             }
-            final boolean fits = packed > 0 && packed < TermListTag.BYTE;
+            final boolean fits = packed > 0L && packed < TermListTag.BYTE;
             if (fits) {
-                out.write(packed);
+                out.write((int) packed);
             } else {
                 out.write(reuse);
             }

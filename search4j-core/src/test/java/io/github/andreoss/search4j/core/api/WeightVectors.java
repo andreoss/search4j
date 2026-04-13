@@ -100,9 +100,22 @@ final class WeightVectors {
      * @throws IOException When the vectors cannot be read
      */
     List<String> check(final String kinds) throws IOException {
+        return this.check(kinds, "weight-vectors.tsv");
+    }
+
+    /**
+     * Replays every vector of the given kinds held in a fixture.
+     *
+     * @param kinds Letters of the kinds to replay
+     * @param name Resource name of the vectors
+     * @return Failures, empty when every vector matches
+     * @throws IOException When the vectors cannot be read
+     */
+    List<String> check(final String kinds, final String name)
+        throws IOException {
         this.register();
         final Map<String, List<String[]>> docs = new HashMap<>(64);
-        for (final String[] row : WeightVectors.rows("weight-vectors.tsv")) {
+        for (final String[] row : WeightVectors.rows(name)) {
             if (kinds.contains(row[0]) && this.specs.test(row[1])) {
                 this.replayed = this.replayed + 1;
                 if ("D".equals(row[0])) {
@@ -156,6 +169,46 @@ final class WeightVectors {
         return rows;
     }
 
+    /**
+     * Tests a computed weight against a captured one: within a relative
+     * 1e-9 when finite, the same non-finite value otherwise.
+     *
+     * @param text Captured value, as the reference prints it
+     * @param actual Computed value
+     * @return True when they agree
+     */
+    static boolean near(final String text, final double actual) {
+        final double expected = WeightVectors.number(text);
+        final boolean result;
+        if (Double.isFinite(expected)) {
+            result = Double.isFinite(actual)
+                && Math.abs(expected - actual)
+                <= 1e-9 * Math.max(Math.abs(expected), Math.abs(actual));
+        } else {
+            result = Double.compare(expected, actual) == 0;
+        }
+        return result;
+    }
+
+    /**
+     * Creates a scheme from its specification: parameters text, or a name
+     * and serialised parameters after an at sign.
+     *
+     * @param spec Specification
+     * @return The scheme
+     */
+    static Weight parse(final String spec) {
+        final Weight weight;
+        if (spec.charAt(0) == '@') {
+            final String[] parts = WeightVectors.SPACE.split(spec, -1);
+            weight = new Registry().getWeightingScheme(parts[0].substring(1))
+                .unserialise(HexFormat.of().parseHex(parts[1]));
+        } else {
+            weight = Weight.create(spec, new Registry());
+        }
+        return weight;
+    }
+
     private void register() {
         this.checks.put(
             "S",
@@ -202,10 +255,7 @@ final class WeightVectors {
     }
 
     private void close(final String text, final double actual, final String... row) {
-        final double expected = Double.parseDouble(text);
-        if (Math.abs(expected - actual)
-            > 1e-9 * Math.max(Math.abs(expected), Math.abs(actual))
-            || Double.isNaN(actual)) {
+        if (!WeightVectors.near(text, actual)) {
             this.failures.add(
                 String.format(
                     "%s expected %s got %s", String.join(" ", row), text, actual
@@ -315,18 +365,6 @@ final class WeightVectors {
         return out.toString();
     }
 
-    private static Weight parse(final String spec) {
-        final Weight weight;
-        if (spec.charAt(0) == '@') {
-            final String[] parts = WeightVectors.SPACE.split(spec, -1);
-            weight = new Registry().getWeightingScheme(parts[0].substring(1))
-                .unserialise(HexFormat.of().parseHex(parts[1]));
-        } else {
-            weight = Weight.create(spec, new Registry());
-        }
-        return weight;
-    }
-
     private static String failure(final Runnable action, final boolean message) {
         String result = "accepted";
         try {
@@ -342,7 +380,7 @@ final class WeightVectors {
 
     private static WeightStats stats(final String... row) {
         final int base = WeightVectors.STATS;
-        final int size = Integer.parseInt(row[base + 1]);
+        final long size = Long.parseLong(row[base + 1]);
         long total = Long.parseLong(row[base + 3]);
         if (total == 0L) {
             total = Math.round(Double.parseDouble(row[base + 4]) * size);
@@ -375,7 +413,21 @@ final class WeightVectors {
         );
     }
 
+    private static double number(final String text) {
+        final double result;
+        if (text.endsWith("nan")) {
+            result = Double.NaN;
+        } else if ("inf".equals(text)) {
+            result = Double.POSITIVE_INFINITY;
+        } else if ("-inf".equals(text)) {
+            result = Double.NEGATIVE_INFINITY;
+        } else {
+            result = Double.parseDouble(text);
+        }
+        return result;
+    }
+
     private static TermCount count(final String text) {
-        return new TermCount(Integer.parseInt(text));
+        return new TermCount(Long.parseLong(text));
     }
 }

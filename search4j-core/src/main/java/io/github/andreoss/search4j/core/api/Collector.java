@@ -176,6 +176,18 @@ final class Collector {
     }
 
     /**
+     * Tests whether a weight is not below a minimum, as the reference tests
+     * it: an undefined weight is never below.
+     *
+     * @param weight Weight of a match
+     * @param least Minimum weight
+     * @return False only when the weight is below the minimum
+     */
+    static boolean reaches(final double weight, final double least) {
+        return Double.isNaN(weight) || weight >= least;
+    }
+
+    /**
      * Raises the minimum weight a match needs.
      *
      * @param weight New minimum, ignored unless higher
@@ -302,7 +314,7 @@ final class Collector {
      */
     TermCount[] estimated(final boolean decided) {
         final MatchEstimates found = this.cursor.resolved();
-        int whole = found.min().value();
+        int whole = Math.toIntExact(found.min().value());
         if (decided) {
             whole = 0;
         }
@@ -336,9 +348,9 @@ final class Collector {
             Arrays.fill(bounds, exact);
         } else {
             final MatchEstimates found = this.cursor.resolved();
-            bounds[0] = found.min().value();
-            bounds[1] = found.est().value();
-            bounds[2] = found.max().value();
+            bounds[0] = Math.toIntExact(found.min().value());
+            bounds[1] = Math.toIntExact(found.est().value());
+            bounds[2] = Math.toIntExact(found.max().value());
             if (decided) {
                 this.filtered(bounds);
             }
@@ -488,7 +500,9 @@ final class Collector {
         if (weight > this.tally.best()) {
             this.tally.best(weight);
             if (this.limits.percent() != 0) {
-                this.tally.matched(this.cursor.matchingSubqueries().value());
+                this.tally.matched(
+                    Math.toIntExact(this.cursor.matchingSubqueries().value())
+                );
                 this.minimum(weight * this.limits.factor());
             }
         }
@@ -497,7 +511,7 @@ final class Collector {
     private int add(final Candidate item) {
         this.tally.count();
         int index = -1;
-        if (item.weight() >= this.tally.least()) {
+        if (Collector.reaches(item.weight(), this.tally.least())) {
             this.observe(item.weight());
             if (this.full()) {
                 index = this.enter(item);
@@ -555,9 +569,11 @@ final class Collector {
         final int before = this.results.size();
         for (int idx = 0; idx < before; idx = idx + 1) {
             final Candidate item = this.results.get(idx);
-            if (item.weight() >= this.tally.least()) {
+            if (Collector.reaches(item.weight(), this.tally.least())) {
                 this.move(idx, kept, item);
-                lowest = Math.min(lowest, item.weight());
+                if (item.weight() < lowest) {
+                    lowest = item.weight();
+                }
                 kept = kept + 1;
             }
         }

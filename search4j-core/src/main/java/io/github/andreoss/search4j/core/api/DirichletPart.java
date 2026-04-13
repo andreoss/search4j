@@ -26,7 +26,7 @@ import io.github.andreoss.search4j.core.types.TermCount;
  */
 record DirichletPart(
     double scale, double mult, double mass, double offset, double query,
-    int wdfmax, int docmin
+    long wdfmax, long docmin
 ) implements TermWeight, ExtraWeight {
 
     @Override

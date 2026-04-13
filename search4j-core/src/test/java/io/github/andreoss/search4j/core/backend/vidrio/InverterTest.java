@@ -56,15 +56,34 @@ final class InverterTest {
             () -> inverter.frequencies("apple", TermFrequencies.NONE),
             "Below zero"
         );
+    }
+
+    @Test
+    void wrapsCollectionFrequencyAsTheReference() {
         final Inverter large = new Inverter();
-        large.addPosting(DocId.of(1), "apple", new TermCount(Integer.MAX_VALUE));
-        Assertions.assertThrows(
-            InvariantError.class,
-            () -> large.frequencies(
-                "apple",
-                new TermFrequencies(new TermCount(1), new TermCount(1))
+        large.addPosting(DocId.of(2), "apple", TermCount.parse("3000000000"));
+        Assertions.assertEquals(
+            List.of(
+                new TermFrequencies(
+                    new TermCount(2), TermCount.parse("3000000001")
+                ),
+                new TermFrequencies(
+                    new TermCount(2), TermCount.parse("1705032704")
+                )
             ),
-            "Above the range"
+            List.of(
+                large.frequencies(
+                    "apple",
+                    new TermFrequencies(new TermCount(1), new TermCount(1))
+                ),
+                large.frequencies(
+                    "apple",
+                    new TermFrequencies(
+                        new TermCount(1), TermCount.parse("3000000000")
+                    )
+                )
+            ),
+            "Counts above the signed range, sums modulo two to the 32"
         );
     }
 

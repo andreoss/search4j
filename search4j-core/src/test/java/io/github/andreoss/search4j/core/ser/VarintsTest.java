@@ -7,6 +7,8 @@
  */
 package io.github.andreoss.search4j.core.ser;
 
+import java.util.HexFormat;
+import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +46,19 @@ final class VarintsTest {
             1_000_000L,
             Varints.unpack(Varints.pack(1_000_000L)),
             "Large round trip"
+        );
+    }
+
+    @Test
+    void packsUnsignedCountsAsTheReference() {
+        Assertions.assertEquals(
+            List.of("80bcc1960b", "ffffffff0f", 3_000_000_000L),
+            List.of(
+                HexFormat.of().formatHex(Varints.pack(3_000_000_000L)),
+                HexFormat.of().formatHex(Varints.pack(4_294_967_295L)),
+                Varints.unpack(HexFormat.of().parseHex("80bcc1960b"))
+            ),
+            "Bytes of wdfs above 2^31 in the reference tables"
         );
     }
 

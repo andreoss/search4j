@@ -130,7 +130,7 @@ final class Decoder {
             pos = this.cursor.uint(32);
         }
         return new TermNode(
-            text, new TermCount(Decoder.small(wqf)), new TermPos(Decoder.small(pos))
+            text, new TermCount(wqf), new TermPos(Decoder.small(pos))
         );
     }
 
@@ -170,7 +170,7 @@ final class Decoder {
             case 0x0E -> new Query(
                 new TermNode(
                     "",
-                    new TermCount(Decoder.small(this.leaf(32))),
+                    new TermCount(this.leaf(32)),
                     new TermPos(Decoder.small(this.leaf(32)))
                 )
             );
@@ -197,7 +197,7 @@ final class Decoder {
     }
 
     private TermCount maximum() {
-        final TermCount max = new TermCount(Decoder.small(this.leaf(32)));
+        final TermCount max = new TermCount(this.leaf(32));
         if (this.cursor.remaining() < 2) {
             throw new SerialisationError(Decoder.LEAF);
         }

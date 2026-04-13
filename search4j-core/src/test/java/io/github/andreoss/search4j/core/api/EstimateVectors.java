@@ -126,8 +126,8 @@ final class EstimateVectors {
                 this.same(
                     String.join("\t", row[4], row[6], row[7]),
                     String.join(
-                        "\t", Integer.toString(item.docId().value()),
-                        Integer.toString(item.collapseCount().value()), item.collapseKey()
+                        "\t", Long.toString(item.docId().value()),
+                        Long.toString(item.collapseCount().value()), item.collapseKey()
                     ),
                     row
                 );
@@ -139,7 +139,7 @@ final class EstimateVectors {
     private void rounds(final String[] head, final int lower, final int raw) {
         this.same(
             head[lower + 1],
-            Integer.toString(
+            Long.toString(
                 new RoundedEstimate(
                     EstimateVectors.count(head[lower]), EstimateVectors.count(head[raw]),
                     EstimateVectors.count(head[lower + 2])
@@ -193,13 +193,13 @@ final class EstimateVectors {
 
     private static String reported(final MSet found) {
         return String.join(
-            "\t", Integer.toString(found.size().value()),
-            Integer.toString(found.matchesLowerBound().value()),
-            Integer.toString(found.matchesEstimated().value()),
-            Integer.toString(found.matchesUpperBound().value()),
-            Integer.toString(found.uncollapsedMatchesLowerBound().value()),
-            Integer.toString(found.uncollapsedMatchesEstimated().value()),
-            Integer.toString(found.uncollapsedMatchesUpperBound().value())
+            "\t", Long.toString(found.size().value()),
+            Long.toString(found.matchesLowerBound().value()),
+            Long.toString(found.matchesEstimated().value()),
+            Long.toString(found.matchesUpperBound().value()),
+            Long.toString(found.uncollapsedMatchesLowerBound().value()),
+            Long.toString(found.uncollapsedMatchesEstimated().value()),
+            Long.toString(found.uncollapsedMatchesUpperBound().value())
         );
     }
 

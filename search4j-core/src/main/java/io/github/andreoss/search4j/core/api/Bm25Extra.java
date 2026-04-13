@@ -19,7 +19,7 @@ import io.github.andreoss.search4j.core.matcher.ExtraWeight;
  * @param docmin Lower bound on the document length
  * @since 0.1.0
  */
-record Bm25Extra(Bm25Params params, double numerator, double factor, int docmin)
+record Bm25Extra(Bm25Params params, double numerator, double factor, long docmin)
     implements ExtraWeight {
 
     /**
@@ -41,7 +41,7 @@ record Bm25Extra(Bm25Params params, double numerator, double factor, int docmin)
     @Override
     public double sumExtra(final DocStats doc) {
         return this.numerator
-            / (1.0 + this.params.normal(doc.length().value(), this.factor));
+            / (1.0 + this.params.normal((double) doc.length().value(), this.factor));
     }
 
     @Override
@@ -49,7 +49,7 @@ record Bm25Extra(Bm25Params params, double numerator, double factor, int docmin)
         double result = 0.0;
         if (this.params.correction() != 0.0) {
             result = this.numerator
-                / (1.0 + this.params.normal(this.docmin, this.factor));
+                / (1.0 + this.params.normal((double) this.docmin, this.factor));
         }
         return result;
     }

@@ -32,7 +32,7 @@ final class MatcherSchemeTest {
     @Test
     void attachesNoWeightForTheBooleanScheme() {
         Assertions.assertEquals(
-            List.of(List.of(0, false), List.of(1, true)),
+            List.of(List.of(0L, false), List.of(1L, true)),
             List.of(
                 MatcherSchemeTest.leaf(new BoolWeight()),
                 MatcherSchemeTest.leaf(new BM25Weight())

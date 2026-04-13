@@ -19,7 +19,7 @@ import io.github.andreoss.search4j.core.types.TermCount;
  * @param upper Upper bound on the weight
  * @since 0.1.0
  */
-record DicePart(double numerator, int query, double upper)
+record DicePart(double numerator, long query, double upper)
     implements TermWeight {
 
     /**
@@ -31,8 +31,9 @@ record DicePart(double numerator, int query, double upper)
      */
     static TermWeight prepare(final WeightStats stats, final double factor) {
         final CollectionStats coll = stats.collection();
-        final double numerator = stats.term().wqf().value() * 2 * factor;
-        final int query = coll.query().value();
+        final double numerator =
+            WeightMath.unsigned(stats.term().wqf().value() * 2L) * factor;
+        final long query = coll.query().value();
         return new DicePart(
             numerator, query,
             numerator / WeightMath.unsigned(

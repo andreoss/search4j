@@ -415,21 +415,35 @@ final class PostingWriterTest {
     }
 
     @Test
-    void rejectsCollectionFrequencyBelowZero() {
+    void wrapsCollectionFrequencyAsTheReference() {
         final Corpus corpus = Corpus.of(14L, BlockSize.MIN, 1);
-        corpus.add(DocId.of(1), Map.of(PostingWriterTest.TERM, new TermCount(2)));
-        corpus.commit(1L);
-        final PostingWriter writer = new PostingWriter(corpus.writer());
-        final PostingChanges changes = new PostingChanges();
-        changes.update(DocId.of(1), new TermCount(9), new TermCount(1));
+        final TermCount wdf = TermCount.parse("3000000000");
+        corpus.add(DocId.of(1), Map.of(PostingWriterTest.TERM, wdf));
+        corpus.add(DocId.of(2), Map.of(PostingWriterTest.TERM, wdf));
+        final List<Object> seen = new ArrayList<>(3);
+        try (VidrioTable table = corpus.table(corpus.commit(1L))) {
+            seen.add(Readback.postings(table, PostingWriterTest.TERM));
+            seen.add(PostingTable.of(table).stats(PostingWriterTest.TERM));
+            seen.add(
+                HexFormat.of().formatHex(
+                    table.get(PostListKeys.first(PostListKeys.bytes("a")))
+                        .orElseThrow()
+                )
+            );
+        }
         Assertions.assertEquals(
-            "Collection frequency out of range: -6",
-            Assertions.assertThrows(
-                InvariantError.class,
-                () -> writer.merge(PostingWriterTest.TERM, changes),
-                "Wrong old frequency"
-            ).getMessage(),
-            "Message"
+            List.of(
+                List.of("1:3000000000", "2:3000000000"),
+                new TermStats(
+                    new TermFrequencies(
+                        new TermCount(2), TermCount.parse("1705032704")
+                    ),
+                    wdf
+                ),
+                "0280f882ad0600310180bcc1960b0080bcc1960b"
+            ),
+            seen,
+            "Wdf above the signed range, collection frequency modulo 2^32"
         );
     }
 

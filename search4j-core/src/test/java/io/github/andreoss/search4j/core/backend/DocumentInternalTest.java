@@ -304,6 +304,30 @@ final class DocumentInternalTest {
     }
 
     @Test
+    void removePostingKeepsWdfAboveTheSignedRange() {
+        final DocumentInternal doc = new DocumentInternal();
+        doc.addTerm("a", TermCount.parse("3000000000"));
+        doc.addPosting("a", new TermPos(1), TermCount.ZERO);
+        doc.removePosting("a", new TermPos(1), new TermCount(1));
+        Assertions.assertEquals(
+            List.of(TermCount.parse("2999999999"), new TermCount(1)),
+            List.of(DocumentInternalTest.wdf(doc), doc.termCount()),
+            "Unsigned wdf decreased by one, term kept"
+        );
+    }
+
+    @Test
+    void addTermWrapsWdfAsTheReference() {
+        final DocumentInternal doc = new DocumentInternal();
+        doc.addTerm("a", TermCount.parse("3000000000"));
+        doc.addTerm("a", TermCount.parse("3000000000"));
+        Assertions.assertEquals(
+            TermCount.parse("1705032704"), DocumentInternalTest.wdf(doc),
+            "Sum of increments modulo two to the 32"
+        );
+    }
+
+    @Test
     void removePostingSaturatesWdf() {
         final DocumentInternal doc = new DocumentInternal();
         doc.addPosting("a", new TermPos(1), new TermCount(1));

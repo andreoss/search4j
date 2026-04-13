@@ -111,7 +111,7 @@ public final class VidrioAllTermsList implements AllTermsList {
     @Override
     public TermCount approxSize() {
         return new TermCount(
-            Math.toIntExact(Math.min(this.entries.value(), Integer.MAX_VALUE))
+            Math.min(this.entries.value(), TermCount.MAX.value())
         );
     }
 

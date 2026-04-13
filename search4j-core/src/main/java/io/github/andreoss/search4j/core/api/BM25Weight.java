@@ -77,12 +77,12 @@ public final class BM25Weight implements Weight {
     public TermWeight term(final WeightStats stats, final double factor) {
         final CollectionStats coll = stats.collection();
         final TermStats term = stats.term();
-        final long freq = Integer.toUnsignedLong(term.freq().value());
-        final long rset = Integer.toUnsignedLong(coll.rset().value());
-        final long size = Integer.toUnsignedLong(coll.size().value());
+        final long freq = term.freq().value();
+        final long rset = coll.rset().value();
+        final long size = coll.size().value();
         double ratio = (size - freq + 0.5) / (freq + 0.5);
         if (rset != 0L) {
-            final long rel = Integer.toUnsignedLong(term.relFreq().value());
+            final long rel = term.relFreq().value();
             final long missed = rset - rel;
             ratio = (rel + 0.5) * (size - missed - freq + 0.5)
                 / ((missed + 0.5) * (freq - rel + 0.5));
@@ -92,7 +92,7 @@ public final class BM25Weight implements Weight {
         }
         return new Bm25Part(
             this.tuning,
-            this.tuning.query(Math.log(ratio) * factor, term.wqf().value())
+            this.tuning.query(Math.log(ratio) * factor, (double) term.wqf().value())
                 * (this.tuning.termsat() + 1.0),
             1.0, 0.0, this.tuning.lengths(coll),
             term.wdfMax(), coll.bounds().docMin()

@@ -90,16 +90,16 @@ final class PendingStats {
      */
     void removed(final ValueNo slot) {
         final ValueStats current = this.current(slot);
-        final int freq = current.frequency().value();
-        if (freq == 0) {
+        final long freq = current.frequency().value();
+        if (freq == 0L) {
             throw new DatabaseCorruptError(
                 String.format("Value frequency of slot %s below zero", slot)
             );
         }
         ValueStats next = ValueStats.NONE;
-        if (freq > 1) {
+        if (freq > 1L) {
             next = new ValueStats(
-                new TermCount(freq - 1), current.lower(), current.upper()
+                new TermCount(freq - 1L), current.lower(), current.upper()
             );
         }
         this.pending.put(slot, next);

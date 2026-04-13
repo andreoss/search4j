@@ -1,0 +1,14 @@
+big	add	1	a:3000000000 b:1
+big	add	2	a:5 b:2147483648 c:7
+big	add	3	c:4294967280
+big	add	4	a:1000000000 d:2
+big	add	5	b:3 e:1 d:2147483650
+big	add	6	e:2 f@1:2147483648 f@2:1
+big	replace	4	a:1000000001 d:3 g:2147483648
+big	add	7	h:4000000000
+big	delete	7	-
+wrap	add	1	a:3000000000 b:3000000000
+wrap	add	2	a:3000000000 c:1
+wrap	add	3	c:5 b:2
+wrap	add	4	d:3000000000 d:3000000000
+wrap	replace	3	c:5 b:2 e:4294967294

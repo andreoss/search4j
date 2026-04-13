@@ -306,7 +306,7 @@ final class Optimiser {
 
     private static MatchEstimates bounds(final long min, final long est, final long max) {
         return new MatchEstimates(
-            new TermCount((int) min), new TermCount((int) est), new TermCount((int) max),
+            new TermCount(min), new TermCount(est), new TermCount(max),
             PostListMath.WHOLE.first(), new DocId(Integer.MAX_VALUE)
         );
     }

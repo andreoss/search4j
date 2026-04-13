@@ -30,13 +30,13 @@ record Bm25Part(
 
     @Override
     public double sumPart(final TermCount wdf, final DocStats doc) {
-        return this.saturated(wdf.value(), doc.length().value());
+        return this.saturated((double) wdf.value(), (double) doc.length().value());
     }
 
     @Override
     public double maxPart() {
-        final int most = this.wdfmax.value();
-        return this.saturated(most, Math.max(most, this.docmin.value()));
+        final long most = this.wdfmax.value();
+        return this.saturated((double) most, (double) Math.max(most, this.docmin.value()));
     }
 
     private double saturated(final double freq, final double len) {
