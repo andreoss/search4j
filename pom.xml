@@ -6,7 +6,7 @@
 
   <groupId>io.github.andreoss.search4j</groupId>
   <artifactId>search4j</artifactId>
-  <version>0.5.2-SNAPSHOT</version>
+  <version>0.5.3-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>search4j</name>
