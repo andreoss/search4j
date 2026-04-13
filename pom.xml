@@ -165,6 +165,8 @@
                 <outputFormat>HTML</outputFormat>
               </outputFormats>
               <timestampedReports>false</timestampedReports>
+              <threads>8</threads>
+              <timeoutConstant>30000</timeoutConstant>
               <targetClasses>
                 <param>io.github.andreoss.search4j.*</param>
               </targetClasses>
