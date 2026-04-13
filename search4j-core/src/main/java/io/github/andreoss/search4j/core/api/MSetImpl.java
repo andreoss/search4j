@@ -25,7 +25,8 @@ final class MSetImpl implements MSet {
     private final List<MSet.Item> found;
 
     /**
-     * Bounds and estimate of the number of matches.
+     * Bounds and estimate of the number of matches, after and before
+     * collapsing.
      */
     private final TermCount[] bounds;
 
@@ -34,7 +35,7 @@ final class MSetImpl implements MSet {
      *
      * @param found Matches in result order
      * @param bounds Lower bound, estimate and upper bound of the number of
-     *  matches
+     *  matches, then the same before collapsing
      */
     MSetImpl(final List<MSet.Item> found, final TermCount... bounds) {
         this.found = found;
@@ -64,6 +65,21 @@ final class MSetImpl implements MSet {
     @Override
     public TermCount matchesUpperBound() {
         return this.bounds[2];
+    }
+
+    @Override
+    public TermCount uncollapsedMatchesLowerBound() {
+        return this.bounds[3];
+    }
+
+    @Override
+    public TermCount uncollapsedMatchesEstimated() {
+        return this.bounds[4];
+    }
+
+    @Override
+    public TermCount uncollapsedMatchesUpperBound() {
+        return this.bounds[5];
     }
 
     @Override

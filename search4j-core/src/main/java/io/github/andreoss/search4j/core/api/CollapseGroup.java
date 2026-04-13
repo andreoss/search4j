@@ -33,6 +33,11 @@ final class CollapseGroup {
     private int count;
 
     /**
+     * Highest weight of a match with the key left out so far.
+     */
+    private double best;
+
+    /**
      * Creates a group whose first match is not placed yet.
      *
      * @param docid Document of the first match
@@ -109,6 +114,24 @@ final class CollapseGroup {
         }
     }
 
+    /**
+     * Number of matches with the key left out, as reported for a kept match.
+     *
+     * @param percent Whether a percentage cutoff applies
+     * @param minimum Minimum weight a match needs once matching ends
+     * @return Matches left out; under a percentage cutoff one when a match
+     *  left out reached the minimum weight, otherwise zero
+     */
+    int collapsed(final boolean percent, final double minimum) {
+        int result = this.count;
+        if (percent && this.best < minimum) {
+            result = 0;
+        } else if (percent) {
+            result = 1;
+        }
+        return result;
+    }
+
     private Collapse overflow(
         final Grouping grouping, final Candidate item, final IntConsumer evict
     ) {
@@ -122,11 +145,15 @@ final class CollapseGroup {
         final boolean present = front.docid().equals(old.docId());
         Collapse result = Collapse.REPLACE;
         if (present && grouping.order().compare(old, item) < 0) {
+            this.best = Math.max(this.best, item.weight());
             result = Collapse.REJECT;
         } else if (present) {
             evict.accept(front.index());
+            this.best = old.weight();
             this.kept.set(0, new Kept(front.index(), item.docId()));
             heap.replace();
+        } else {
+            this.best = item.weight();
         }
         return result;
     }

@@ -21,7 +21,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Checks collapsing once a percentage cutoff drops kept matches while more
- * matches are still to be counted, against results captured from the
+ * matches are still to be counted: documents, collapse counts and keys, and
+ * the bounds after and before collapsing, against results captured from the
  * reference library.
  *
  * <p>Documents 1 and 3 have no key, document 4 has key k, and document 2
@@ -39,7 +40,10 @@ final class CollapseDroppedTest {
     @Test
     void losesMatchSharingTheKeyOfADroppedMatch() {
         Assertions.assertEquals(
-            List.of("3 | 1 1 1", "3 4 | 2 2 4", "3 4 | 2 2 4"),
+            List.of(
+                "3/0/ | 1 1 1 | 4 4 4", "3/0/ 4/0/k | 2 2 4 | 2 2 4",
+                "3/0/ 4/0/k | 2 2 4 | 2 2 4"
+            ),
             List.of(
                 CollapseDroppedTest.search("k", 10, 1, 50),
                 CollapseDroppedTest.search("k", 10, 2, 50),
@@ -66,14 +70,17 @@ final class CollapseDroppedTest {
         }
         Assertions.assertEquals(
             List.of(
-                "k 0 1 0: 3 4 | 3 3 3", "k 0 1 50: 3 | 1 1 1",
-                "k 0 2 0: 3 4 | 4 4 4", "k 0 2 50: 3 | 1 1 1",
-                "k 10 1 0: 3 4 | 3 3 3", "k 10 1 50: 3 | 1 1 1",
-                "k 10 2 0: 3 4 | 4 4 4", "k 10 2 50: 3 4 | 2 2 4",
-                "j 0 1 0: 3 4 | 4 4 4", "j 0 1 50: 3 | 1 1 1",
-                "j 0 2 0: 3 4 | 4 4 4", "j 0 2 50: 3 | 1 1 1",
-                "j 10 1 0: 3 4 | 4 4 4", "j 10 1 50: 3 4 | 2 2 4",
-                "j 10 2 0: 3 4 | 4 4 4", "j 10 2 50: 3 4 | 2 2 4"
+                "k 0 1 0: 3/0/ 4/1/k | 3 3 3 | 4 4 4", "k 0 1 50: 3/0/ | 1 1 1 | 4 4 4",
+                "k 0 2 0: 3/0/ 4/0/k | 4 4 4 | 4 4 4", "k 0 2 50: 3/0/ | 1 1 1 | 4 4 4",
+                "k 10 1 0: 3/0/ 4/1/k | 3 3 3 | 4 4 4", "k 10 1 50: 3/0/ | 1 1 1 | 4 4 4",
+                "k 10 2 0: 3/0/ 4/0/k | 4 4 4 | 4 4 4",
+                "k 10 2 50: 3/0/ 4/0/k | 2 2 4 | 2 2 4",
+                "j 0 1 0: 3/0/ 4/0/k | 4 4 4 | 4 4 4", "j 0 1 50: 3/0/ | 1 1 1 | 4 4 4",
+                "j 0 2 0: 3/0/ 4/0/k | 4 4 4 | 4 4 4", "j 0 2 50: 3/0/ | 1 1 1 | 4 4 4",
+                "j 10 1 0: 3/0/ 4/0/k | 4 4 4 | 4 4 4",
+                "j 10 1 50: 3/0/ 4/0/k | 2 2 4 | 2 2 4",
+                "j 10 2 0: 3/0/ 4/0/k | 4 4 4 | 4 4 4",
+                "j 10 2 50: 3/0/ 4/0/k | 2 2 4 | 2 2 4"
             ),
             found,
             "Documents and bounds by key of document 2, minimum to check, group size and cutoff"
@@ -101,12 +108,20 @@ final class CollapseDroppedTest {
         final MSet found = enquire.getMSet(0, 2, check);
         final List<String> ids = new ArrayList<>(2);
         for (final MSet.Item item : found) {
-            ids.add(Integer.toString(item.docId().value()));
+            ids.add(
+                String.format(
+                    "%d/%d/%s", item.docId().value(), item.collapseCount().value(),
+                    item.collapseKey()
+                )
+            );
         }
         return String.format(
-            "%s | %d %d %d", String.join(" ", ids),
+            "%s | %d %d %d | %d %d %d", String.join(" ", ids),
             found.matchesLowerBound().value(), found.matchesEstimated().value(),
-            found.matchesUpperBound().value()
+            found.matchesUpperBound().value(),
+            found.uncollapsedMatchesLowerBound().value(),
+            found.uncollapsedMatchesEstimated().value(),
+            found.uncollapsedMatchesUpperBound().value()
         );
     }
 

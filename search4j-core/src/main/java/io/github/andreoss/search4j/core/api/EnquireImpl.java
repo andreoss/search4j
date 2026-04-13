@@ -288,7 +288,8 @@ public final class EnquireImpl implements Enquire {
         final MSet result;
         if (this.request == null || this.request.empty()) {
             result = new MSetImpl(
-                List.of(), TermCount.ZERO, TermCount.ZERO, TermCount.ZERO
+                List.of(), TermCount.ZERO, TermCount.ZERO, TermCount.ZERO,
+                TermCount.ZERO, TermCount.ZERO, TermCount.ZERO
             );
         } else {
             result = this.search(first, max, atleast);

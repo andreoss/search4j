@@ -20,7 +20,7 @@ import java.util.List;
  *
  * @since 0.1.0
  */
-public interface MSet extends Iterable<MSet.Item> {
+public interface MSet extends MatchCounts, Iterable<MSet.Item> {
 
     /**
      * The number of items in this match set.
@@ -35,27 +35,6 @@ public interface MSet extends Iterable<MSet.Item> {
      * @return Same as {@link #size()}
      */
     TermCount maxSize();
-
-    /**
-     * A lower bound on the number of matching documents.
-     *
-     * @return Lower bound, zero when empty
-     */
-    TermCount matchesLowerBound();
-
-    /**
-     * An estimate of the number of matching documents.
-     *
-     * @return Estimate between the bounds, zero when empty
-     */
-    TermCount matchesEstimated();
-
-    /**
-     * An upper bound on the number of matching documents.
-     *
-     * @return Upper bound, zero when empty
-     */
-    TermCount matchesUpperBound();
 
     /**
      * Returns the first item or throws when empty.
@@ -113,5 +92,29 @@ public interface MSet extends Iterable<MSet.Item> {
          * @return Document, throws when the document is missing
          */
         Document document();
+
+        /**
+         * Collapse key of the match.
+         *
+         * @return Collapse key, empty when not collapsing or when the
+         *  document has no key
+         * @since 0.7.0
+         */
+        String collapseKey();
+
+        /**
+         * Number of matches with the same collapse key left out in favour of
+         * this one or the other kept matches with the key.
+         *
+         * <p>A positive count means at least that many other documents have
+         * the key; zero means there may or may not be others. Under a
+         * percentage cutoff the count is one when a left-out match reached
+         * the minimum weight, otherwise zero.</p>
+         *
+         * @return Collapse count, zero when not collapsing or when the match
+         *  has no key
+         * @since 0.7.0
+         */
+        TermCount collapseCount();
     }
 }

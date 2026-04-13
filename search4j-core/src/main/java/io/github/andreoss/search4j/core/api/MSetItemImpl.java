@@ -9,6 +9,7 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.backend.Shard;
 import io.github.andreoss.search4j.core.types.DocId;
+import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
  * A match in a match set, tied to its document.
@@ -33,6 +34,16 @@ final class MSetItemImpl implements MSet.Item {
     private final Shard shard;
 
     /**
+     * Collapse key of the match, empty when not collapsing.
+     */
+    private final String key;
+
+    /**
+     * Number of matches with the key left out.
+     */
+    private final TermCount count;
+
+    /**
      * One-based rank of the match.
      */
     private int position;
@@ -44,15 +55,19 @@ final class MSetItemImpl implements MSet.Item {
      * @param score Weight of the match
      * @param position One-based rank
      * @param shard Database the document belongs to
+     * @param key Collapse key, empty when not collapsing
+     * @param count Number of matches with the key left out
      */
     MSetItemImpl(
         final DocId docid, final double score, final int position,
-        final Shard shard
+        final Shard shard, final String key, final TermCount count
     ) {
         this.docid = docid;
         this.score = score;
         this.position = position;
         this.shard = shard;
+        this.key = key;
+        this.count = count;
     }
 
     @Override
@@ -77,6 +92,16 @@ final class MSetItemImpl implements MSet.Item {
                 String.format("Document %s not found", this.docid)
             )
         );
+    }
+
+    @Override
+    public String collapseKey() {
+        return this.key;
+    }
+
+    @Override
+    public TermCount collapseCount() {
+        return this.count;
     }
 
     void setRank(final int rank) {

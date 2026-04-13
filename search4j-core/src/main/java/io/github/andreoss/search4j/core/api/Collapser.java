@@ -128,6 +128,18 @@ final class Collapser {
         }
     }
 
+    /**
+     * Number of matches left out with the key of a kept match.
+     *
+     * @param key Collapse key of the kept match, not empty
+     * @param percent Whether a percentage cutoff applies
+     * @param minimum Minimum weight a match needs once matching ends
+     * @return Collapse count of the kept match
+     */
+    int count(final String key, final boolean percent, final double minimum) {
+        return this.table.get(key).collapsed(percent, minimum);
+    }
+
     int evicted() {
         return this.evicted;
     }

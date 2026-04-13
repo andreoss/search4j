@@ -12,6 +12,7 @@ import io.github.andreoss.search4j.core.matcher.MatchCursor;
 import io.github.andreoss.search4j.core.matcher.MatchEstimates;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -283,7 +284,8 @@ final class Collector {
             for (final Candidate item : sorted.subList(from, sorted.size())) {
                 items.add(
                     new MSetItemImpl(
-                        item.docId(), item.weight(), from + items.size() + 1, shard
+                        item.docId(), item.weight(), from + items.size() + 1, shard,
+                        item.group(), new TermCount(this.count(item.group()))
                     )
                 );
             }
@@ -295,18 +297,23 @@ final class Collector {
      * Bounds on the number of matches before any document is checked.
      *
      * @param decided Whether a filter can reject documents
-     * @return Lower bound, estimate and upper bound
+     * @return Lower bound, estimate and upper bound, then the same before
+     *  collapsing
      */
     TermCount[] estimated(final boolean decided) {
         final MatchEstimates found = this.cursor.resolved();
-        int lower = found.min().value();
+        int whole = found.min().value();
         if (decided) {
-            lower = 0;
+            whole = 0;
         }
+        int lower = whole;
         if (this.collapsing() && lower > this.limits.collapse()) {
             lower = this.limits.collapse();
         }
-        return new TermCount[] {new TermCount(lower), found.est(), found.max()};
+        return new TermCount[] {
+            new TermCount(lower), found.est(), found.max(),
+            new TermCount(whole), found.est(), found.max(),
+        };
     }
 
     /**
@@ -315,20 +322,19 @@ final class Collector {
      * minimum to check were found.
      *
      * @param decided Whether a filter can reject documents
-     * @return Lower bound, estimate and upper bound
+     * @return Lower bound, estimate and upper bound, then the same before
+     *  collapsing
      */
     TermCount[] bounds(final boolean decided) {
-        final int[] bounds = new int[3];
+        final int[] bounds = new int[6];
         if (!this.collapsing()
             && (!this.full() || this.tally.known() < this.tally.atleast())) {
             int exact = this.tally.known();
             if (!this.full()) {
                 exact = this.results.size();
             }
-            bounds[0] = exact;
-            bounds[1] = exact;
-            bounds[2] = exact;
-        } else if (this.full()) {
+            Arrays.fill(bounds, exact);
+        } else {
             final MatchEstimates found = this.cursor.resolved();
             bounds[0] = found.min().value();
             bounds[1] = found.est().value();
@@ -336,16 +342,31 @@ final class Collector {
             if (decided) {
                 this.filtered(bounds);
             }
-            this.adjust(bounds, decided);
-        } else {
-            bounds[0] = this.results.size();
-            bounds[1] = bounds[0];
-            bounds[2] = bounds[0];
+            System.arraycopy(bounds, 0, bounds, 3, 3);
+            if (this.full()) {
+                this.settle(bounds, decided);
+            } else {
+                bounds[0] = this.results.size();
+                bounds[1] = bounds[0];
+                bounds[2] = bounds[0];
+                bounds[3] = Math.max(bounds[3], bounds[0]);
+            }
         }
-        return new TermCount[] {
-            new TermCount(bounds[0]), new TermCount(bounds[1]),
-            new TermCount(bounds[2]),
-        };
+        final TermCount[] result = new TermCount[bounds.length];
+        for (int idx = 0; idx < bounds.length; idx = idx + 1) {
+            result[idx] = new TermCount(bounds[idx]);
+        }
+        return result;
+    }
+
+    private int count(final String key) {
+        int result = 0;
+        if (!key.isEmpty()) {
+            result = this.collapser.count(
+                key, this.limits.percent() != 0, this.tally.least()
+            );
+        }
+        return result;
     }
 
     private void filtered(final int... bounds) {
@@ -389,6 +410,31 @@ final class Collector {
         } else if (!percent) {
             bounds[0] = Math.max(bounds[0], known);
             bounds[1] = Math.max(bounds[1], known);
+        }
+    }
+
+    private void settle(final int[] bounds, final boolean decided) {
+        this.adjust(bounds, decided);
+        if (this.collapsing()) {
+            this.uncollapsed(bounds, decided);
+        } else {
+            System.arraycopy(bounds, 0, bounds, 3, 3);
+        }
+    }
+
+    private void uncollapsed(final int[] bounds, final boolean decided) {
+        final boolean percent = this.limits.percent() != 0;
+        if (percent) {
+            bounds[3] = bounds[0];
+            bounds[4] = (int) (bounds[4] * (1.0 - this.limits.factor()) + 0.5);
+        } else if (!decided) {
+            bounds[3] = Math.max(bounds[3], this.tally.known());
+        }
+        bounds[3] = Math.max(bounds[3], bounds[0]);
+        if (bounds[4] < bounds[3]) {
+            bounds[4] = bounds[3];
+        } else if (bounds[4] > bounds[5]) {
+            bounds[4] = bounds[5];
         }
     }
 

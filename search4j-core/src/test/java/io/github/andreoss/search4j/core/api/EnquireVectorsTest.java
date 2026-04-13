@@ -96,6 +96,35 @@ final class EnquireVectorsTest {
     }
 
     @Test
+    void matchesCapturedCollapseCountsKeysAndUncollapsedBounds()
+        throws IOException {
+        final EnquireVectors vectors = new EnquireVectors();
+        Assertions.assertEquals(
+            List.of(List.of(), 26_712),
+            List.of(vectors.checkCollapse(), vectors.searches()),
+            "Collapse counts, collapse keys and bounds before collapsing"
+        );
+    }
+
+    @Test
+    void replaysCollapseSearchesOfTheOptionalDecayTargetAgainstCorrectedSets()
+        throws IOException {
+        final EnquireVectors vectors = new EnquireVectors();
+        vectors.checkCollapse();
+        final Set<String> queries = new TreeSet<>();
+        for (final String search : vectors.corrected()) {
+            queries.add(
+                search.substring(search.indexOf('\t') + 1, search.lastIndexOf('\t'))
+            );
+        }
+        Assertions.assertEquals(
+            List.of(41, vectors.corrected(), Set.of("m42", "m73")),
+            List.of(vectors.corrected().size(), vectors.skipped(), queries),
+            "Captured searches whose counted matches skip one matching both sides"
+        );
+    }
+
+    @Test
     void replaysOptionSearchesOfTheOptionalDecayTargetAgainstCorrectedSets()
         throws IOException {
         final EnquireVectors vectors = new EnquireVectors();

@@ -23,7 +23,8 @@ import java.util.regex.Pattern;
 /**
  * Replays match sets captured from the reference library for searches that
  * match more documents than requested: documents, order, weights, item
- * counts and the bounds on the number of matches.
+ * counts and the bounds on the number of matches, and under collapsing the
+ * collapse count and key of each match and the bounds before collapsing.
  *
  * <p>Searches whose captured result is changed by a known pruning defect of
  * the reference are deferred, each with its cause, and replayed against the
@@ -86,7 +87,7 @@ final class EnquireVectors {
         this.load();
         final Map<String, List<String[]>> items = new HashMap<>(16_384);
         for (final Map.Entry<String, String[]> entry
-            : EnquireVectors.bounds("enquire-vectors.tsv", items).entrySet()) {
+            : EnquireVectors.bounds("enquire-vectors.tsv", "M", items).entrySet()) {
             this.searches = this.searches + 1;
             if (this.deferred.containsKey(entry.getKey())) {
                 this.skipped.add(entry.getKey());
@@ -103,7 +104,7 @@ final class EnquireVectors {
         this.load();
         final Map<String, List<String[]>> items = new HashMap<>(64);
         for (final Map.Entry<String, String[]> entry
-            : EnquireVectors.bounds("enquire-corrected-vectors.tsv", items)
+            : EnquireVectors.bounds("enquire-corrected-vectors.tsv", "M", items)
                 .entrySet()) {
             this.corrected.add(entry.getKey());
             this.compare(
@@ -117,11 +118,11 @@ final class EnquireVectors {
         this.load();
         final Map<String, List<String[]>> fixed = new HashMap<>(128);
         final Map<String, String[]> heads = EnquireVectors.bounds(
-            "enquire-option-corrected-vectors.tsv", fixed
+            "enquire-option-corrected-vectors.tsv", "M", fixed
         );
         final Map<String, List<String[]>> items = new HashMap<>(65_536);
         for (final Map.Entry<String, String[]> entry
-            : EnquireVectors.bounds("enquire-option-vectors.tsv", items)
+            : EnquireVectors.bounds("enquire-option-vectors.tsv", "M", items)
                 .entrySet()) {
             this.searches = this.searches + 1;
             if (heads.containsKey(entry.getKey())) {
@@ -135,6 +136,34 @@ final class EnquireVectors {
         for (final Map.Entry<String, String[]> entry : heads.entrySet()) {
             this.corrected.add(entry.getKey());
             this.compare(
+                entry.getValue(), fixed.getOrDefault(entry.getKey(), List.of())
+            );
+        }
+        return this.failures;
+    }
+
+    List<String> checkCollapse() throws IOException {
+        this.load();
+        final Map<String, List<String[]>> fixed = new HashMap<>(128);
+        final Map<String, String[]> heads = EnquireVectors.bounds(
+            "enquire-collapse-corrected-vectors.tsv", "K", fixed
+        );
+        final Map<String, List<String[]>> items = new HashMap<>(65_536);
+        for (final Map.Entry<String, String[]> entry
+            : EnquireVectors.bounds("enquire-collapse-vectors.tsv", "K", items)
+                .entrySet()) {
+            this.searches = this.searches + 1;
+            if (heads.containsKey(entry.getKey())) {
+                this.skipped.add(entry.getKey());
+            } else {
+                this.collapsed(
+                    entry.getValue(), items.getOrDefault(entry.getKey(), List.of())
+                );
+            }
+        }
+        for (final Map.Entry<String, String[]> entry : heads.entrySet()) {
+            this.corrected.add(entry.getKey());
+            this.collapsed(
                 entry.getValue(), fixed.getOrDefault(entry.getKey(), List.of())
             );
         }
@@ -177,12 +206,12 @@ final class EnquireVectors {
     }
 
     private static Map<String, String[]> bounds(
-        final String name, final Map<String, List<String[]>> items
+        final String name, final String kind, final Map<String, List<String[]>> items
     ) throws IOException {
         final Map<String, String[]> result = new LinkedHashMap<>(16_384);
         for (final String[] row : WeightVectors.rows(name)) {
             final String key = String.join("\t", row[1], row[2], row[3]);
-            if ("M".equals(row[0])) {
+            if (kind.equals(row[0])) {
                 items.computeIfAbsent(key, ignored -> new ArrayList<>(8)).add(row);
             } else {
                 result.put(key, row);
@@ -216,7 +245,41 @@ final class EnquireVectors {
                 );
             } else {
                 this.close(row[6], list.get(rank).weight(), row);
+                if (row.length > 7) {
+                    this.same(
+                        row[7],
+                        Integer.toString(list.get(rank).collapseCount().value()),
+                        row
+                    );
+                }
             }
+        }
+    }
+
+    private void collapsed(final String[] head, final List<String[]> expected) {
+        final MSet found = this.search(head[1], head[2], head[3]);
+        final List<MSet.Item> list = found.toList();
+        this.same(
+            String.join("\t", head[4], head[5], head[6]),
+            String.join(
+                "\t", Integer.toString(found.uncollapsedMatchesLowerBound().value()),
+                Integer.toString(found.uncollapsedMatchesEstimated().value()),
+                Integer.toString(found.uncollapsedMatchesUpperBound().value())
+            ),
+            head
+        );
+        this.same(Integer.toString(expected.size()), Integer.toString(list.size()), head);
+        for (final String[] row : expected) {
+            final int rank = Integer.parseInt(row[4]);
+            String actual = "missing";
+            if (rank < list.size()) {
+                final MSet.Item item = list.get(rank);
+                actual = String.join(
+                    "\t", Integer.toString(item.docId().value()),
+                    Integer.toString(item.collapseCount().value()), item.collapseKey()
+                );
+            }
+            this.same(String.join("\t", row[5], row[6], row[7]), actual, row);
         }
     }
 
