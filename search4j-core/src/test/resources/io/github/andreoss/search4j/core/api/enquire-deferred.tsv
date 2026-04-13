@@ -1,11 +1,11 @@
-bm25	m42	0,10,0,0,1,R
-bm25	m42	0,2,0,0,0.5,R
-bm25	m42	0,2,0,0,0,R
-bm25	m42	0,2,5,0,0,R
-bm25	m42	0,3,0,0,0,R
-bm25	m42	0,3,0,30,0,R
-bm25	m42	1,2,0,0,0,R
-bm25	m73	0,1,0,0,0,R
-tfidf	m42	0,2,0,0,0,R
-tfidf	m70	0,10,0,0,1,R
-tfidf	m73	0,1,0,0,0,R
+decay-target	bm25	m42	0,10,0,0,1,R
+decay-target	bm25	m42	0,2,0,0,0.5,R
+decay-target	bm25	m42	0,2,0,0,0,R
+decay-target	bm25	m42	0,2,5,0,0,R
+decay-target	bm25	m42	0,3,0,0,0,R
+decay-target	bm25	m42	0,3,0,30,0,R
+decay-target	bm25	m42	1,2,0,0,0,R
+decay-target	bm25	m73	0,1,0,0,0,R
+decay-target	tfidf	m42	0,2,0,0,0,R
+unstarted-difference	tfidf	m70	0,10,0,0,1,R
+decay-target	tfidf	m73	0,1,0,0,0,R

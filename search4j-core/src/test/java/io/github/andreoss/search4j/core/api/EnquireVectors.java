@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
@@ -23,6 +24,10 @@ import java.util.regex.Pattern;
  * Replays match sets captured from the reference library for searches that
  * match more documents than requested: documents, order, weights, item
  * counts and the bounds on the number of matches.
+ *
+ * <p>Searches whose captured result is changed by a known pruning defect of
+ * the reference are deferred, each with its cause, and replayed against the
+ * match sets captured from a build with the defect corrected.</p>
  *
  * @since 0.4.0
  */
@@ -54,43 +59,36 @@ final class EnquireVectors {
     private int searches;
 
     /**
-     * Searches left out until the defect that changes them is decided.
+     * Causes of the deferred searches, by search.
      */
-    private final Set<String> deferred;
+    private final Map<String, String> deferred;
 
     /**
      * Deferred searches found among the captured ones.
      */
     private final Set<String> skipped;
 
+    /**
+     * Searches replayed against the corrected match sets.
+     */
+    private final Set<String> corrected;
+
     EnquireVectors() {
         this.queries = new HashMap<>(128);
         this.shards = new HashMap<>(4);
         this.failures = new ArrayList<>(0);
-        this.deferred = new TreeSet<>();
+        this.deferred = new TreeMap<>();
         this.skipped = new TreeSet<>();
+        this.corrected = new TreeSet<>();
     }
 
     List<String> check() throws IOException {
-        for (final String[] row : WeightVectors.rows("matcher-queries.tsv")) {
-            this.queries.put(row[0], row);
-        }
-        final Map<String, List<String[]>> items = new LinkedHashMap<>(4096);
-        final Map<String, String[]> bounds = new LinkedHashMap<>(4096);
-        for (final String[] row : WeightVectors.rows("enquire-vectors.tsv")) {
-            final String key = String.join("\t", row[1], row[2], row[3]);
-            if ("M".equals(row[0])) {
-                items.computeIfAbsent(key, ignored -> new ArrayList<>(8)).add(row);
-            } else {
-                bounds.put(key, row);
-            }
-        }
-        for (final String[] row : WeightVectors.rows("enquire-deferred.tsv")) {
-            this.deferred.add(String.join("\t", row));
-        }
-        for (final Map.Entry<String, String[]> entry : bounds.entrySet()) {
+        this.load();
+        final Map<String, List<String[]>> items = new HashMap<>(16_384);
+        for (final Map.Entry<String, String[]> entry
+            : EnquireVectors.bounds("enquire-vectors.tsv", items).entrySet()) {
             this.searches = this.searches + 1;
-            if (this.deferred.contains(entry.getKey())) {
+            if (this.deferred.containsKey(entry.getKey())) {
                 this.skipped.add(entry.getKey());
             } else {
                 this.compare(
@@ -101,16 +99,68 @@ final class EnquireVectors {
         return this.failures;
     }
 
+    List<String> checkCorrected() throws IOException {
+        this.load();
+        final Map<String, List<String[]>> items = new HashMap<>(64);
+        for (final Map.Entry<String, String[]> entry
+            : EnquireVectors.bounds("enquire-corrected-vectors.tsv", items)
+                .entrySet()) {
+            this.corrected.add(entry.getKey());
+            this.compare(
+                entry.getValue(), items.getOrDefault(entry.getKey(), List.of())
+            );
+        }
+        return this.failures;
+    }
+
     int searches() {
         return this.searches;
     }
 
+    Set<String> deferred(final String cause) {
+        final Set<String> result = new TreeSet<>();
+        for (final Map.Entry<String, String> entry : this.deferred.entrySet()) {
+            if (entry.getValue().equals(cause)) {
+                result.add(entry.getKey());
+            }
+        }
+        return result;
+    }
+
     Set<String> deferred() {
-        return this.deferred;
+        return this.deferred.keySet();
     }
 
     Set<String> skipped() {
         return this.skipped;
+    }
+
+    Set<String> corrected() {
+        return this.corrected;
+    }
+
+    private void load() throws IOException {
+        for (final String[] row : WeightVectors.rows("matcher-queries.tsv")) {
+            this.queries.put(row[0], row);
+        }
+        for (final String[] row : WeightVectors.rows("enquire-deferred.tsv")) {
+            this.deferred.put(String.join("\t", row[1], row[2], row[3]), row[0]);
+        }
+    }
+
+    private static Map<String, String[]> bounds(
+        final String name, final Map<String, List<String[]>> items
+    ) throws IOException {
+        final Map<String, String[]> result = new LinkedHashMap<>(16_384);
+        for (final String[] row : WeightVectors.rows(name)) {
+            final String key = String.join("\t", row[1], row[2], row[3]);
+            if ("M".equals(row[0])) {
+                items.computeIfAbsent(key, ignored -> new ArrayList<>(8)).add(row);
+            } else {
+                result.put(key, row);
+            }
+        }
+        return result;
     }
 
     private void compare(final String[] head, final List<String[]> expected) {

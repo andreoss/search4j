@@ -186,7 +186,7 @@ public final class AndMaybePostList implements PostList {
         final PostList result;
         if (least > this.lmax) {
             result = this.decayToAnd(
-                PostListMath.max(this.ldid, this.rdid).next(), least
+                PostListMath.max(this.ldid.next(), this.rdid), least
             );
         } else {
             result = this.advance(least);
