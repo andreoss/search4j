@@ -23,16 +23,16 @@ import java.util.List;
 public interface MSet extends Iterable<MSet.Item> {
 
     /**
-     * The estimated number of matching documents.
+     * The number of items in this match set.
      *
-     * @return Same as {@link #matchesEstimated()}
+     * @return Number of items, zero when empty
      */
     TermCount size();
 
     /**
-     * The maximum possible number of matching documents.
+     * The number of items in this match set, for container compatibility.
      *
-     * @return Same as {@link #matchesUpperBound()}
+     * @return Same as {@link #size()}
      */
     TermCount maxSize();
 

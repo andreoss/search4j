@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -20,7 +19,7 @@ import java.util.function.Supplier;
  * Named factories of weighting schemes and range processors.
  *
  * <p>A registry starts with the schemes this build ships; a caller may add
- * its own under a new name. Names are compared case-insensitively.</p>
+ * its own under a new name. Names are compared exactly, case included.</p>
  *
  * @since 0.1.0
  */
@@ -53,23 +52,23 @@ public final class Registry {
     /**
      * Registers a weighting scheme.
      *
-     * @param name Name of the scheme, case-insensitive
+     * @param name Name of the scheme, matched exactly
      * @param factory Factory of fresh scheme instances
      */
     public void registerWeightingScheme(
         final String name, final Supplier<Weight> factory
     ) {
-        this.weights.put(Registry.key(name), factory);
+        this.weights.put(name, factory);
     }
 
     /**
      * Creates a weighting scheme by name.
      *
-     * @param name Name of the scheme, case-insensitive
+     * @param name Name of the scheme, matched exactly
      * @return Fresh scheme instance
      */
     public Weight getWeightingScheme(final String name) {
-        final Supplier<Weight> found = this.weights.get(Registry.key(name));
+        final Supplier<Weight> found = this.weights.get(name);
         if (found == null) {
             throw new InvalidArgumentError(
                 String.format("Unknown weighting scheme: %s", name)
@@ -81,11 +80,11 @@ public final class Registry {
     /**
      * Reports whether a weighting scheme is registered.
      *
-     * @param name Name of the scheme, case-insensitive
+     * @param name Name of the scheme, matched exactly
      * @return True when the name is known
      */
     public boolean hasWeightingScheme(final String name) {
-        return this.weights.containsKey(Registry.key(name));
+        return this.weights.containsKey(name);
     }
 
     /**
@@ -102,24 +101,24 @@ public final class Registry {
     /**
      * Registers a range processor.
      *
-     * @param name Name of the processor, case-insensitive
+     * @param name Name of the processor, matched exactly
      * @param factory Factory of fresh processors
      */
     public void registerRangeProcessor(
         final String name, final Supplier<RangeProcessor> factory
     ) {
-        this.ranges.put(Registry.key(name), factory);
+        this.ranges.put(name, factory);
     }
 
     /**
      * Creates a range processor by name.
      *
-     * @param name Name of the processor, case-insensitive
+     * @param name Name of the processor, matched exactly
      * @return Fresh processor instance
      */
     public RangeProcessor getRangeProcessor(final String name) {
         final Supplier<RangeProcessor> found =
-            this.ranges.get(Registry.key(name));
+            this.ranges.get(name);
         if (found == null) {
             throw new InvalidArgumentError(
                 String.format("Unknown range processor: %s", name)
@@ -131,15 +130,11 @@ public final class Registry {
     /**
      * Reports whether a range processor is registered.
      *
-     * @param name Name of the processor, case-insensitive
+     * @param name Name of the processor, matched exactly
      * @return True when the name is known
      */
     public boolean hasRangeProcessor(final String name) {
-        return this.ranges.containsKey(Registry.key(name));
-    }
-
-    private static String key(final String name) {
-        return name.toLowerCase(Locale.ROOT);
+        return this.ranges.containsKey(name);
     }
 
     private static Map<String, Supplier<Weight>> defaults() {

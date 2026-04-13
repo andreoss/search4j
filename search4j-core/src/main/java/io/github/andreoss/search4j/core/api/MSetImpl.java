@@ -43,12 +43,12 @@ final class MSetImpl implements MSet {
 
     @Override
     public TermCount size() {
-        return this.matchesEstimated();
+        return new TermCount(this.found.size());
     }
 
     @Override
     public TermCount maxSize() {
-        return this.matchesUpperBound();
+        return this.size();
     }
 
     @Override

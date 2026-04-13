@@ -33,7 +33,7 @@ final class EnquireVectorsTest {
         final EnquireVectors vectors = new EnquireVectors();
         vectors.check();
         Assertions.assertEquals(
-            9672, vectors.searches(), "Searches captured"
+            11_024, vectors.searches(), "Searches captured"
         );
     }
 

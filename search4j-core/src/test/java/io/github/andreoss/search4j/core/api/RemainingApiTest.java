@@ -210,8 +210,8 @@ final class RemainingApiTest {
     @Test
     void registersTheDefaultWeightingSchemes() {
         final Registry registry = new Registry();
-        Assertions.assertTrue(
-            registry.hasWeightingScheme("BM25"), "Case-insensitive"
+        Assertions.assertFalse(
+            registry.hasWeightingScheme("BM25"), "Names match exactly"
         );
         Assertions.assertTrue(
             registry.getWeightingScheme("bm25") instanceof BM25Weight,
@@ -251,8 +251,10 @@ final class RemainingApiTest {
         registry.registerRangeProcessor(
             "slot", () -> new ValueRangeProcessor(new ValueNo(1))
         );
-        Assertions.assertTrue(
-            registry.hasRangeProcessor("SLOT"), "Registered"
+        Assertions.assertEquals(
+            List.of(true, false),
+            List.of(registry.hasRangeProcessor("slot"), registry.hasRangeProcessor("SLOT")),
+            "Registered under its exact name"
         );
         Assertions.assertEquals(
             new ValueNo(1),

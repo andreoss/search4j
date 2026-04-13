@@ -171,8 +171,11 @@ final class MatcherVectors {
     }
 
     private static String take(final List<String> tokens, final int... cursor) {
-        final String token = tokens.get(cursor[0]);
+        String token = tokens.get(cursor[0]);
         cursor[0] = cursor[0] + 1;
+        if ("\"\"".equals(token)) {
+            token = "";
+        }
         return token;
     }
 

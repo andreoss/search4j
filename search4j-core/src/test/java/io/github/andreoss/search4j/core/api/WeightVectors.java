@@ -22,6 +22,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
@@ -63,12 +64,32 @@ final class WeightVectors {
     private final Map<String, Consumer<String[]>> checks;
 
     /**
+     * Specifications replayed.
+     */
+    private final Predicate<String> specs;
+
+    /**
+     * Number of rows replayed.
+     */
+    private int replayed;
+
+    /**
      * Creates a replay with no failures.
      */
     WeightVectors() {
+        this(spec -> true);
+    }
+
+    /**
+     * Creates a replay of the vectors of some schemes.
+     *
+     * @param specs Specifications replayed
+     */
+    WeightVectors(final Predicate<String> specs) {
         this.schemes = new HashMap<>(64);
         this.failures = new ArrayList<>(0);
         this.checks = new HashMap<>(16);
+        this.specs = specs;
     }
 
     /**
@@ -82,7 +103,8 @@ final class WeightVectors {
         this.register();
         final Map<String, List<String[]>> docs = new HashMap<>(64);
         for (final String[] row : WeightVectors.rows("weight-vectors.tsv")) {
-            if (kinds.contains(row[0])) {
+            if (kinds.contains(row[0]) && this.specs.test(row[1])) {
+                this.replayed = this.replayed + 1;
                 if ("D".equals(row[0])) {
                     docs.computeIfAbsent(
                         String.join("\t", row[1], row[2]),
@@ -97,6 +119,15 @@ final class WeightVectors {
             this.ranked(expected);
         }
         return this.failures;
+    }
+
+    /**
+     * Number of rows replayed by the last check.
+     *
+     * @return Rows of the replayed kinds and schemes
+     */
+    int replayed() {
+        return this.replayed;
     }
 
     /**
@@ -161,6 +192,7 @@ final class WeightVectors {
         this.checks.put("R", this::rejected);
         this.checks.put("U", this::unserialised);
         this.checks.put("V", this::refused);
+        this.checks.put("G", this::looked);
     }
 
     private TermWeight part(final String... row) {
@@ -223,6 +255,15 @@ final class WeightVectors {
             ),
             row
         );
+    }
+
+    private void looked(final String... row) {
+        final Registry registry = new Registry();
+        String found = "missing";
+        if (registry.hasWeightingScheme(row[1])) {
+            found = registry.getWeightingScheme(row[1]).name();
+        }
+        this.same(row[2], found, row);
     }
 
     private void size(final String... row) {

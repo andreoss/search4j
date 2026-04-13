@@ -8,7 +8,6 @@
 package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
-import io.github.andreoss.search4j.core.error.SerialisationError;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -173,20 +172,21 @@ public enum IdfNorm {
     abstract double apply(WeightStats stats);
 
     /**
-     * Finds the normalisation of a serialised code.
+     * Normalised document frequency of a serialised code; an unknown code
+     * takes the logarithm of the inverse document frequency.
      *
      * @param code Serialised code
-     * @return The normalisation
+     * @param stats Collection and term statistics
+     * @return Normalised value
      */
-    static IdfNorm byCode(final int code) {
+    static double byCode(final int code, final WeightStats stats) {
+        double found = Math.log(1.0 / IdfNorm.freq(stats));
         for (final IdfNorm norm : IdfNorm.values()) {
             if (norm.code == code) {
-                return norm;
+                found = norm.apply(stats);
             }
         }
-        throw new SerialisationError(
-            String.format("Unknown document frequency normalisation %d", code)
-        );
+        return found;
     }
 
     /**

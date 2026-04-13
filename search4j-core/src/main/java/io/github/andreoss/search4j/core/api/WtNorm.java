@@ -8,7 +8,6 @@
 package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
-import io.github.andreoss.search4j.core.error.SerialisationError;
 
 /**
  * Weight normalisations of the tf-idf scheme.
@@ -29,21 +28,6 @@ public enum WtNorm {
      */
     public int code() {
         return 1;
-    }
-
-    /**
-     * Finds the normalisation of a serialised code.
-     *
-     * @param code Serialised code
-     * @return The normalisation
-     */
-    static WtNorm byCode(final int code) {
-        if (code != 1) {
-            throw new SerialisationError(
-                String.format("Unknown weight normalisation %d", code)
-            );
-        }
-        return WtNorm.NONE;
     }
 
     /**

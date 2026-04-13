@@ -24,9 +24,10 @@ public final class TfidfWeight implements Weight {
     private static final String NAME = "tfidf";
 
     /**
-     * Normalisations.
+     * Serialised codes of the frequency, document frequency and weight
+     * normalisations.
      */
-    private final TfidfNorms norms;
+    private final int[] codes;
 
     /**
      * Slope of the pivoted normalisation, above zero.
@@ -71,7 +72,11 @@ public final class TfidfWeight implements Weight {
      * @param delta Addend of the pivoted normalisation, above zero
      */
     public TfidfWeight(final TfidfNorms norms, final double slope, final double delta) {
-        this.norms = norms;
+        this(slope, delta, norms.wdf().code(), norms.idf().code(), norms.wt().code());
+    }
+
+    private TfidfWeight(final double slope, final double delta, final int... codes) {
+        this.codes = codes.clone();
         this.slope = new Positive("slope", slope);
         this.delta = new Positive("delta", delta);
     }
@@ -86,9 +91,9 @@ public final class TfidfWeight implements Weight {
         final byte[] head = WeightBytes.doubles(this.slope.value(), this.delta.value());
         final byte[] all = new byte[head.length + 3];
         System.arraycopy(head, 0, all, 0, head.length);
-        all[head.length] = (byte) this.norms.wdf().code();
-        all[head.length + 1] = (byte) this.norms.idf().code();
-        all[head.length + 2] = (byte) this.norms.wt().code();
+        for (int idx = 0; idx < this.codes.length; idx = idx + 1) {
+            all[head.length + idx] = (byte) this.codes[idx];
+        }
         return all;
     }
 
@@ -100,13 +105,7 @@ public final class TfidfWeight implements Weight {
         if (input.left() != 3) {
             throw new SerialisationError("Incorrect data in tfidf parameters");
         }
-        return new TfidfWeight(
-            new TfidfNorms(
-                WdfNorm.byCode(input.code()), IdfNorm.byCode(input.code()),
-                WtNorm.byCode(input.code())
-            ),
-            first, second
-        );
+        return new TfidfWeight(first, second, input.code(), input.code(), input.code());
     }
 
     @Override
@@ -132,12 +131,12 @@ public final class TfidfWeight implements Weight {
     @Override
     public TermWeight term(final WeightStats stats, final double factor) {
         return new TfidfPart(
-            this.norms.wdf(),
+            WdfNorm.byCode(this.codes[0]),
             new Pivot(
                 stats.collection().average(), this.slope.value(),
                 this.delta.value()
             ),
-            this.norms.idf().apply(stats), stats.term().wqf().value() * factor,
+            IdfNorm.byCode(this.codes[1], stats), stats.term().wqf().value() * factor,
             stats.term().wdfMax(), stats.collection().bounds().docMin()
         );
     }

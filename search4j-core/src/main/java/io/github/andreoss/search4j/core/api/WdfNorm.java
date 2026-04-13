@@ -9,7 +9,6 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
-import io.github.andreoss.search4j.core.error.SerialisationError;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.Arrays;
 import java.util.Optional;
@@ -216,20 +215,20 @@ public enum WdfNorm {
     abstract double apply(TermCount wdf, DocStats doc, Pivot pivot);
 
     /**
-     * Finds the normalisation of a serialised code.
+     * Finds the normalisation of a serialised code; an unknown code leaves
+     * the frequency as it is.
      *
      * @param code Serialised code
-     * @return The normalisation
+     * @return The normalisation, {@link #NONE} for an unknown code
      */
     static WdfNorm byCode(final int code) {
+        WdfNorm found = WdfNorm.NONE;
         for (final WdfNorm norm : WdfNorm.values()) {
             if (norm.code == code) {
-                return norm;
+                found = norm;
             }
         }
-        throw new SerialisationError(
-            String.format("Unknown frequency normalisation %d", code)
-        );
+        return found;
     }
 
     /**

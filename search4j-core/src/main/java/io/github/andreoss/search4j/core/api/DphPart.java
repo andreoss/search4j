@@ -31,17 +31,24 @@ record DphPart(double constant, double scale, double upper)
      * @return Term weight
      */
     static TermWeight prepare(final WeightStats stats, final double factor) {
-        final double wdfup = stats.term().wdfMax().value();
+        return DphPart.of(DfrStats.of(stats, factor));
+    }
+
+    /**
+     * Prepares the weight of a term from its statistics as numbers.
+     *
+     * @param input Statistics as numbers
+     * @return Term weight
+     */
+    static TermWeight of(final DfrStats input) {
+        final double wdfup = input.wdfup();
+        final double lenup = input.lenup();
+        final double scale = input.scale();
         final TermWeight part;
         if (wdfup == 0.0) {
             part = new FixedPart(0.0);
         } else {
-            final double lenup = stats.collection().bounds().docMax().value();
-            final double constant = WeightMath.logTwo(
-                stats.collection().total().value()
-                    / (double) stats.term().collFreq().value()
-            );
-            final double scale = stats.term().wqf().value() * factor;
+            final double constant = WeightMath.logTwo(input.mean());
             final double half = Math.min(wdfup, lenup / 2.0);
             final double product = Math.min(
                 wdfup * (1.0 - 1.0 / lenup), half * (1.0 - half / lenup)
@@ -65,13 +72,24 @@ record DphPart(double constant, double scale, double upper)
 
     @Override
     public double sumPart(final TermCount wdf, final DocStats doc) {
-        final int count = wdf.value();
-        final int len = doc.length().value();
+        return this.sum(
+            WeightMath.unsigned(wdf.value()), WeightMath.unsigned(doc.length().value())
+        );
+    }
+
+    /**
+     * Weight of a document from its counts as numbers.
+     *
+     * @param count Within-document frequency
+     * @param len Document length
+     * @return Weight, zero when not positive
+     */
+    double sum(final double count, final double len) {
         double result = 0.0;
         if (count != 0 && count != len) {
-            final double ratio = (double) count / len;
+            final double ratio = count / len;
             final double rest = 1.0 - ratio;
-            final double weight = rest * rest / WeightMath.unsigned(count + 1)
+            final double weight = rest * rest / (count + 1.0)
                 * (count * (WeightMath.logTwo(ratio) + this.constant)
                 + 0.5 * WeightMath.logTwo(2.0 * Math.PI * count * (1.0 - ratio)));
             if (weight > 0.0) {

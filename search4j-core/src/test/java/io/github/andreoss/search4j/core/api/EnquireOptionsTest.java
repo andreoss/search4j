@@ -258,9 +258,9 @@ final class EnquireOptionsTest {
             ranks.add(item.rank());
         }
         Assertions.assertEquals(
-            List.of(List.of(3, 4, 5), found.matchesEstimated(), found.matchesUpperBound()),
+            List.of(List.of(3, 4, 5), new TermCount(3), new TermCount(3)),
             List.of(ranks, found.size(), found.maxSize()),
-            "Ranks and size accessors"
+            "Ranks and item counts"
         );
     }
 

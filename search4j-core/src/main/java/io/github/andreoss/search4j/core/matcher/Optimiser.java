@@ -131,6 +131,8 @@ final class Optimiser {
         } else if (node.type() == QueryOp.VALUE_GE) {
             final BoundNode bound = (BoundNode) node;
             result = this.range(bound.slot(), bound.limit(), "");
+        } else if (((BoundNode) node).limit().isEmpty()) {
+            result = null;
         } else {
             final BoundNode bound = (BoundNode) node;
             result = this.range(bound.slot(), "", bound.limit());

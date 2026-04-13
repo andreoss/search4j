@@ -119,7 +119,7 @@ final class EnquireVectors {
         this.same(
             String.join("\t", head[4], head[5], head[6], head[7]),
             String.join(
-                "\t", Integer.toString(list.size()),
+                "\t", Integer.toString(found.size().value()),
                 Integer.toString(found.matchesLowerBound().value()),
                 Integer.toString(found.matchesEstimated().value()),
                 Integer.toString(found.matchesUpperBound().value())

@@ -9,7 +9,6 @@ package io.github.andreoss.search4j.core.api;
 
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.TermWeight;
-import io.github.andreoss.search4j.core.error.SerialisationError;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.TotalLength;
 import java.util.HexFormat;
@@ -69,12 +68,29 @@ final class WeightSchemesTest {
             "9a9999999999c93f000000000000f03f010202"
         }
     )
-    void refusesUnknownNormalisationCodes(final String hex) {
-        final Weight scheme = new TfidfWeight();
-        Assertions.assertThrows(
-            SerialisationError.class,
-            () -> scheme.unserialise(HexFormat.of().parseHex(hex)),
+    void keepsUnknownNormalisationCodes(final String hex) {
+        Assertions.assertEquals(
+            hex,
+            HexFormat.of().formatHex(
+                new TfidfWeight().unserialise(HexFormat.of().parseHex(hex)).serialise()
+            ),
             "Code outside the normalisations"
+        );
+    }
+
+    @Test
+    void leavesTheFrequencyForAnUnknownFrequencyCode() {
+        Assertions.assertEquals(
+            WeightSchemesTest.unknown("010201"), WeightSchemesTest.unknown("0c0201"),
+            "Unknown frequency code weighs as the raw frequency"
+        );
+    }
+
+    @Test
+    void invertsTheDocumentFrequencyForAnUnknownCode() {
+        Assertions.assertEquals(
+            3.0 * Math.log(1.0 / 2.0), WeightSchemesTest.unknown("010b01"), 1e-12,
+            "Unknown document frequency code weighs log of one over the frequency"
         );
     }
 
@@ -86,6 +102,28 @@ final class WeightSchemesTest {
                 new TfidfNorms(WdfNorm.PIVOTED, IdfNorm.FREQ, WtNorm.NONE)
             ).serialise(),
             "Letters name the normalisations"
+        );
+    }
+
+    private static double unknown(final String codes) {
+        return new TfidfWeight().unserialise(
+            HexFormat.of().parseHex(String.format("9a9999999999c93f000000000000f03f%s", codes))
+        ).term(
+            new WeightStats(
+                new CollectionStats(
+                    new TermCount(4), TermCount.ZERO, new TotalLength(9L),
+                    new TermCount(2),
+                    new LengthBounds(TermCount.ONE, new TermCount(9), TermCount.ONE)
+                ),
+                new TermStats(
+                    new TermCount(2), TermCount.ZERO, new TermCount(3),
+                    TermCount.ONE, new TermCount(5)
+                )
+            ),
+            1.0
+        ).sumPart(
+            new TermCount(3),
+            new DocStats(new TermCount(6), new TermCount(2), new TermCount(3))
         );
     }
 }
