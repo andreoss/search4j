@@ -27,7 +27,9 @@ public interface MatchCounts {
     /**
      * An estimate of the number of matching documents.
      *
-     * @return Estimate between the bounds, zero when empty
+     * @return Estimate between the bounds, rounded to the precision the
+     *  bounds justify once it and their distance both exceed ten, zero when
+     *  empty
      */
     TermCount matchesEstimated();
 
@@ -52,7 +54,8 @@ public interface MatchCounts {
      * An estimate of the number of matching documents had no matches been
      * collapsed.
      *
-     * @return Estimate between the uncollapsed bounds, the same as
+     * @return Estimate between the uncollapsed bounds, rounded as
+     *  {@link #matchesEstimated()} is, the same as
      *  {@link #matchesEstimated()} when not collapsing
      * @since 0.7.0
      */

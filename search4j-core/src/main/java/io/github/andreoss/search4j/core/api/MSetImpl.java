@@ -59,7 +59,8 @@ final class MSetImpl implements MSet {
 
     @Override
     public TermCount matchesEstimated() {
-        return this.bounds[1];
+        return new RoundedEstimate(this.bounds[0], this.bounds[1], this.bounds[2])
+            .value();
     }
 
     @Override
@@ -74,7 +75,8 @@ final class MSetImpl implements MSet {
 
     @Override
     public TermCount uncollapsedMatchesEstimated() {
-        return this.bounds[4];
+        return new RoundedEstimate(this.bounds[3], this.bounds[4], this.bounds[5])
+            .value();
     }
 
     @Override
