@@ -93,6 +93,34 @@ final class ReferenceTools {
     }
 
     /**
+     * True when the given tool is configured, exists and is executable.
+     *
+     * @param tool Property key suffix naming the tool
+     * @return True when the tool can run
+     */
+    static boolean configured(final String tool) {
+        final String key = String.format("tool.%s", tool);
+        return ReferenceTools.SETTINGS.isPresent()
+            && ReferenceTools.SETTINGS.get().getProperty(key) != null
+            && ReferenceTools.executable(key);
+    }
+
+    /**
+     * Runs one tool and returns its exit status with its output lines.
+     *
+     * @param tool Property key suffix naming the tool
+     * @param args Tool arguments
+     * @return Exit status and output lines
+     * @throws IOException When the tool cannot run or times out
+     */
+    static Outcome execute(
+        final String tool,
+        final List<String> args
+    ) throws IOException {
+        return ReferenceTools.launch(tool, args, List.of());
+    }
+
+    /**
      * Runs one tool and returns its output lines whatever its exit status,
      * for tools that report rejected input through it.
      *
@@ -289,6 +317,6 @@ final class ReferenceTools {
      * @param lines Output lines
      * @since 0.1.0
      */
-    private record Outcome(int code, List<String> lines) {
+    record Outcome(int code, List<String> lines) {
     }
 }

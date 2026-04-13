@@ -112,18 +112,17 @@ final class NativeTools {
      */
     static Map<String, Long> termFreqs(final Path dbs) throws IOException {
         final Map<String, Long> map = new LinkedHashMap<>(0);
-        final String marker = "termfreq ";
+        boolean listed = false;
         for (final String line : NativeTools.delve(
             dbs, List.of("-a", "-1", "-v")
         )) {
-            final int pos = line.indexOf(marker);
-            if (pos > 0 && !line.startsWith("All terms in database")) {
+            final int pos = line.lastIndexOf(' ');
+            if (line.startsWith("All terms in database")) {
+                listed = true;
+            } else if (listed && pos > 0) {
                 map.put(
-                    line.substring(0, pos).trim(),
-                    Long.parseLong(
-                        NativeTools
-                            .head(line.substring(pos + marker.length()).trim())
-                    )
+                    line.substring(0, pos),
+                    Long.parseLong(line.substring(pos + 1))
                 );
             }
         }
@@ -228,19 +227,6 @@ final class NativeTools {
             found = Optional.of(text);
         }
         return found;
-    }
-
-    /**
-     * Runs the reference consistency checker over a database.
-     *
-     * @param dbs Database directory
-     * @return Checker output lines
-     * @throws IOException When the tool fails
-     */
-    static List<String> integrity(final Path dbs) throws IOException {
-        return ReferenceTools.run(
-            "check", List.of(dbs.toAbsolutePath().toString())
-        );
     }
 
     /**
