@@ -13,7 +13,8 @@ import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
- * Lookups in a position table.
+ * Lookups in a position table, with the position changes not yet written
+ * read before the table.
  *
  * @since 0.1.0
  */
@@ -25,23 +26,30 @@ public final class PositionTable {
     private final TableLookup table;
 
     /**
-     * Creates the lookups over a table.
+     * Changes not yet written to the table.
+     */
+    private final PendingPositions pending;
+
+    /**
+     * Creates the lookups over a table and its pending changes.
      *
      * @param table Table looked up
+     * @param pending Changes not yet written to the table
      */
-    private PositionTable(final TableLookup table) {
+    PositionTable(final TableLookup table, final PendingPositions pending) {
         this.table = table;
+        this.pending = pending;
     }
 
     /**
-     * Opens the lookups over a table.
+     * Opens the lookups over a table without pending changes.
      *
      * @param table Position table
      * @return Lookups over the table
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static PositionTable of(final TableLookup table) {
-        return new PositionTable(table);
+        return new PositionTable(table, new PendingPositions());
     }
 
     /**
@@ -53,7 +61,10 @@ public final class PositionTable {
      */
     public VidrioPositionList open(final DocId doc, final String term) {
         return VidrioPositionList.of(
-            this.table.get(PositionKeys.of(doc, term)).orElseGet(() -> new byte[0])
+            this.pending.get(doc, term).orElseGet(
+                () -> this.table.get(PositionKeys.of(doc, term))
+                    .orElseGet(() -> new byte[0])
+            )
         );
     }
 
@@ -76,6 +87,8 @@ public final class PositionTable {
      * @return True when present
      */
     public boolean contains(final DocId doc, final String term) {
-        return this.table.contains(PositionKeys.of(doc, term));
+        return this.pending.get(doc, term)
+            .map(tag -> tag.length > 0)
+            .orElseGet(() -> this.table.contains(PositionKeys.of(doc, term)));
     }
 }

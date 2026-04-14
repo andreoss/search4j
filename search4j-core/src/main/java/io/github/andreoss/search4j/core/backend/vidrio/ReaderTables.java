@@ -27,18 +27,21 @@ public record ReaderTables(
 ) {
 
     /**
-     * Opens the lookups over a set of tables, each resolved on every call.
+     * Opens the lookups over a set of tables, each resolved on every call,
+     * the position changes not yet written read before the position table.
      *
      * @param tables Tables resolved on every call
      * @param sources Posting list lookups and term frequencies
+     * @param pending Position changes not yet written
      * @return Lookups over the set
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static ReaderTables of(
-        final TableSet tables, final PostingSources sources
+        final TableSet tables, final PostingSources sources,
+        final PendingPositions pending
     ) {
-        final PositionTable positions = PositionTable.of(
-            new LiveLookup(tables, TableType.POSITION)
+        final PositionTable positions = new PositionTable(
+            new LiveLookup(tables, TableType.POSITION), pending
         );
         return new ReaderTables(
             sources.postings(),

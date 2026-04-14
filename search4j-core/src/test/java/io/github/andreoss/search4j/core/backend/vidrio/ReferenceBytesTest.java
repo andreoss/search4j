@@ -9,6 +9,8 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.api.DatabaseFactory;
 import io.github.andreoss.search4j.core.api.Document;
+import io.github.andreoss.search4j.core.api.PositionIterator;
+import io.github.andreoss.search4j.core.api.PostingIterator;
 import io.github.andreoss.search4j.core.api.ValueIterator;
 import io.github.andreoss.search4j.core.api.WritableDatabase;
 import io.github.andreoss.search4j.core.backend.Uuid;
@@ -220,6 +222,7 @@ final class ReferenceBytesTest {
         map.put("highslots", ReferenceBytesTest::highSlots);
         map.put("midvalues", han -> ReferenceBytesTest.midSession(han, false));
         map.put("midcommits", han -> ReferenceBytesTest.midSession(han, true));
+        map.put("midpositions", ReferenceBytesTest::midPositions);
         return map;
     }
 
@@ -274,6 +277,47 @@ final class ReferenceBytesTest {
             ReferenceBytesTest.stream(han, 7);
         }
         han.commit();
+    }
+
+    private static void midPositions(final WritableDatabase han) {
+        han.addDocument(ReferenceBytesTest.placed("a", "hello", "world", "hello"));
+        han.addDocument(ReferenceBytesTest.placed("b", "world", "hello"));
+        han.addDocument(ReferenceBytesTest.placed("c", "hello", "alpha"));
+        han.commit();
+        han.addDocument(
+            ReferenceBytesTest.placed("d", "alpha", "hello", "world", "hello")
+        );
+        han.replaceDocument(
+            DocId.of(2), ReferenceBytesTest.placed("e", "hello", "hello", "world")
+        );
+        han.replaceDocument(
+            DocId.of(3), ReferenceBytesTest.plain("f", "hello", "alpha")
+        );
+        ReferenceBytesTest.positions(han);
+        han.addDocument(ReferenceBytesTest.placed("g", "world", "hello"));
+        han.deleteDocument(DocId.of(1));
+        ReferenceBytesTest.positions(han);
+        han.commit();
+    }
+
+    private static void positions(final WritableDatabase han) {
+        for (final String term : List.of("hello", "world", "alpha")) {
+            try (PostingIterator posts = han.postings(term)) {
+                while (posts.hasNext()) {
+                    final DocId doc = posts.next();
+                    ReferenceBytesTest.drain(posts.positions());
+                    ReferenceBytesTest.drain(han.positions(doc, term));
+                }
+            }
+        }
+    }
+
+    private static void drain(final PositionIterator positions) {
+        try (positions) {
+            while (positions.hasNext()) {
+                positions.next();
+            }
+        }
     }
 
     private static void stream(final WritableDatabase han, final int slot) {

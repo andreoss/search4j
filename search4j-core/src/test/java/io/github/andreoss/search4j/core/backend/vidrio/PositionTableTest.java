@@ -102,6 +102,36 @@ final class PositionTableTest {
     }
 
     @Test
+    void readsPendingChangesBeforeTable() {
+        final Positions positions = Positions.of();
+        positions.set(1, PositionTableTest.TERM, Positions.list(5, 8));
+        positions.set(2, PositionTableTest.TERM, Positions.list(3));
+        final PendingPositions pending = new PendingPositions();
+        pending.set(DocId.of(1), PositionTableTest.TERM, Positions.list(6));
+        pending.delete(DocId.of(2), PositionTableTest.TERM);
+        pending.set(DocId.of(4), PositionTableTest.TERM, Positions.list(1, 2, 7));
+        final PositionTable table = new PositionTable(
+            positions.writer(), pending
+        );
+        Assertions.assertEquals(
+            List.of(
+                Positions.list(6), TermCount.ZERO, new TermCount(3),
+                true, false, true, false
+            ),
+            List.of(
+                PositionTableTest.read(table.open(DocId.of(1), PositionTableTest.TERM)),
+                table.count(DocId.of(2), PositionTableTest.TERM),
+                table.count(DocId.of(4), PositionTableTest.TERM),
+                table.contains(DocId.of(1), PositionTableTest.TERM),
+                table.contains(DocId.of(2), PositionTableTest.TERM),
+                table.contains(DocId.of(4), PositionTableTest.TERM),
+                table.contains(DocId.of(3), PositionTableTest.TERM)
+            ),
+            "Pending lists replace stored ones, a pending removal hides one"
+        );
+    }
+
+    @Test
     void reachesPositionsThroughTermList() {
         final List<Object> seen = new ArrayList<>(6);
         final Documents docs = Documents.of(3L);

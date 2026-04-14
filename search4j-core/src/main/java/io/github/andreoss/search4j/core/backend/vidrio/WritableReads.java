@@ -35,7 +35,9 @@ import java.util.Optional;
  * far, with the inverter's and the value changes pending on top.
  *
  * <p>Opening a posting list or the terms with a prefix merges the pending
- * postings concerned into the table first, as the reference does.</p>
+ * postings concerned into the table first, as the reference does;
+ * positions are read from the pending changes before the table and are
+ * written on commit only.</p>
  *
  * @since 0.1.0
  */
@@ -79,8 +81,15 @@ public final class WritableReads
             session,
             VidrioReader.over(
                 session.version(), session,
-                term -> session.inverter().frequencies(
-                    term, stored.frequencies(term)
+                ReaderTables.of(
+                    session,
+                    PostingSources.pending(
+                        new LiveLookup(session, TableType.POSTLIST),
+                        term -> session.inverter().frequencies(
+                            term, stored.frequencies(term)
+                        )
+                    ),
+                    session.inverter().positions()
                 )
             )
         );
@@ -178,9 +187,6 @@ public final class WritableReads
             this.session.inverter().lengths().flush(writer);
         } else {
             this.session.inverter().flushTerm(writer, term);
-            if (this.session.inverter().positions().pending()) {
-                this.session.inverter().positions().flush(this.session.tables());
-            }
         }
         return this.reader.openLeafPostList(term, positions);
     }
@@ -206,10 +212,7 @@ public final class WritableReads
 
     @Override
     public PositionList openPositionList(final DocId docid, final String term) {
-        return this.session.inverter().positions().get(docid, term)
-            .map(VidrioPositionList::of)
-            .map(PositionList.class::cast)
-            .orElseGet(() -> this.reader.openPositionList(docid, term));
+        return this.reader.openPositionList(docid, term);
     }
 
     @Override

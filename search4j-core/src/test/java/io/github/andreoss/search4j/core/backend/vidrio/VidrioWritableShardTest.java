@@ -12,7 +12,9 @@ import io.github.andreoss.search4j.core.backend.DocumentInternal;
 import io.github.andreoss.search4j.core.backend.Revision;
 import io.github.andreoss.search4j.core.backend.TransactionState;
 import io.github.andreoss.search4j.core.backend.list.DocRange;
+import io.github.andreoss.search4j.core.backend.list.LeafPostList;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
+import io.github.andreoss.search4j.core.backend.list.TermList;
 import io.github.andreoss.search4j.core.backend.list.ValueList;
 import io.github.andreoss.search4j.core.error.DatabaseCreateError;
 import io.github.andreoss.search4j.core.error.DatabaseLockError;
@@ -27,6 +29,7 @@ import io.github.andreoss.search4j.core.types.ValueNo;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -182,6 +185,71 @@ final class VidrioWritableShardTest {
                     pending, quirk, shard.hasPositions(), shard.termExists("apple")
                 ),
                 "Reads see the changes before and after the flush"
+            );
+        }
+    }
+
+    @Test
+    void readsPendingPositionsThroughLists(@TempDir final Path dir) {
+        try (
+            VidrioWritableShard shard = VidrioWritableShard.open(
+                dir, VidrioOptions.of(DatabaseAction.CREATE.code())
+            )
+        ) {
+            final DocumentInternal first = new DocumentInternal();
+            first.addPosting("apple", new TermPos(2), TermCount.ONE);
+            shard.addDocument(first);
+            shard.commit();
+            final DocumentInternal second = new DocumentInternal();
+            second.addPosting("apple", new TermPos(4), TermCount.ONE);
+            second.addPosting("apple", new TermPos(6), TermCount.ONE);
+            shard.addDocument(second);
+            shard.replaceDocument(DocId.of(1), new DocumentInternal());
+            final LeafPostList list =
+                shard.openLeafPostList("apple", true).orElseThrow();
+            list.next();
+            final PositionList positions = list.readPositionList();
+            positions.next();
+            final TermList terms = shard.openTermList(DocId.of(2));
+            terms.next();
+            Assertions.assertEquals(
+                List.of(DocId.of(2), new TermPos(4), new TermCount(2), false),
+                List.of(
+                    list.docId(), positions.position(), terms.positionCount(),
+                    shard.openPositionList(DocId.of(1), "apple").next()
+                ),
+                "Lists read the positions not yet written"
+            );
+        }
+    }
+
+    @Test
+    void readsPendingPositionsThroughTermList(@TempDir final Path dir) {
+        try (
+            VidrioWritableShard shard = VidrioWritableShard.open(
+                dir, VidrioOptions.of(DatabaseAction.CREATE.code())
+            )
+        ) {
+            final DocumentInternal first = new DocumentInternal();
+            first.addPosting("hello", new TermPos(1), TermCount.ONE);
+            first.addPosting("world", new TermPos(2), TermCount.ONE);
+            shard.addDocument(first);
+            shard.commit();
+            final DocumentInternal second = new DocumentInternal();
+            second.addPosting("world", new TermPos(1), TermCount.ONE);
+            second.addPosting("world", new TermPos(2), TermCount.ONE);
+            shard.replaceDocument(DocId.of(1), second);
+            final TermList terms = shard.openTermList(DocId.of(1));
+            terms.next();
+            final PositionList positions = terms.positionList();
+            final List<TermPos> found = new ArrayList<>(2);
+            while (positions.next()) {
+                found.add(positions.position());
+            }
+            Assertions.assertEquals(
+                List.of("world", new TermCount(2), Positions.list(1, 2)),
+                List.of(terms.term(), terms.positionCount(), found),
+                "A term list reads the positions of a replaced document not yet written"
             );
         }
     }

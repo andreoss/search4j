@@ -90,35 +90,30 @@ public final class VidrioReader
             version, tables,
             ReaderTables.of(
                 tables,
-                PostingSources.committed(new LiveLookup(tables, TableType.POSTLIST))
+                PostingSources.committed(new LiveLookup(tables, TableType.POSTLIST)),
+                new PendingPositions()
             )
         );
     }
 
     /**
-     * Opens the read side over tables being written, with another source
-     * of the term frequencies of term lists; the posting list lookups are
-     * opened afresh on every call so they see the changes.
+     * Opens the read side over tables being written through lookups made
+     * for them: the posting list lookups opened afresh on every call so
+     * they see the changes, another source of the term frequencies of term
+     * lists, and the positions not yet written read before the position
+     * table.
      *
      * @param version Version file holding the statistics
      * @param tables Tables of the revision
-     * @param freqs Source of the term frequencies of term lists
+     * @param parts Lookups over the tables
      * @return Read side over the tables
      */
     @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
     public static VidrioReader over(
         final VersionFile version, final TableSet tables,
-        final TermFrequencySource freqs
+        final ReaderTables parts
     ) {
-        return new VidrioReader(
-            version, tables,
-            ReaderTables.of(
-                tables,
-                PostingSources.pending(
-                    new LiveLookup(tables, TableType.POSTLIST), freqs
-                )
-            )
-        );
+        return new VidrioReader(version, tables, parts);
     }
 
     @Override
