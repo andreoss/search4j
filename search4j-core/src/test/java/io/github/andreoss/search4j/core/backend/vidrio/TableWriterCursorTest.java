@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -109,12 +111,72 @@ final class TableWriterCursorTest {
     }
 
     @Test
+    void readsDeepChangesWithoutWriting() {
+        final Map<Long, byte[]> data = new HashMap<>();
+        final TableWriter writer =
+            TableWriter.create(new MemoryBlocks(data, BlockSize.MIN), 0);
+        for (int idx = 0; idx < 600; ++idx) {
+            writer.add(Trees.key(String.format("k%05d", idx)), new byte[40]);
+        }
+        writer.commit(new RevisionNumber(1L));
+        writer.add(Trees.key("k00300x"), Trees.key("new"));
+        writer.delete(Trees.key("k00450"));
+        final Map<Long, String> before = TableWriterCursorTest.dump(data);
+        final TableCursor cursor = writer.cursor();
+        int count = 0;
+        cursor.rewind();
+        while (cursor.next()) {
+            count += 1;
+        }
+        Assertions.assertEquals(
+            List.of(600, "new", false, true, true),
+            List.of(
+                count,
+                new String(
+                    writer.get(Trees.key("k00300x")).orElseThrow(),
+                    StandardCharsets.US_ASCII
+                ),
+                writer.contains(Trees.key("k00450")),
+                writer.contains(Trees.key("k00599")),
+                TableWriterCursorTest.dump(data).equals(before)
+            ),
+            "Pending blocks of a multi-level tree read from memory, none written"
+        );
+    }
+
+    @Test
+    void sharesStoreOfWriterBlocks() {
+        final MemoryBlocks blocks = new MemoryBlocks(new HashMap<>(), BlockSize.MIN);
+        final WriterBlocks view = new WriterBlocks(
+            blocks,
+            new Spine(
+                blocks,
+                FreeBlocks.of(blocks, TableState.initial(BlockSize.MIN, 0).free())
+            )
+        );
+        view.close();
+        Assertions.assertEquals(
+            List.of(BlockSize.MIN, 1),
+            List.of(view.size(), blocks.closes()),
+            "Size and close of the store"
+        );
+    }
+
+    @Test
     void rejectsCursorAfterClose() {
         final TableWriter writer = TableWriterCursorTest.writer();
         writer.close();
         Assertions.assertThrows(
             DatabaseClosedError.class, writer::cursor, "Closed"
         );
+    }
+
+    private static Map<Long, String> dump(final Map<Long, byte[]> data) {
+        final Map<Long, String> copy = new TreeMap<>();
+        for (final Map.Entry<Long, byte[]> entry : data.entrySet()) {
+            copy.put(entry.getKey(), HexFormat.of().formatHex(entry.getValue()));
+        }
+        return copy;
     }
 
     private static TableWriter writer() {

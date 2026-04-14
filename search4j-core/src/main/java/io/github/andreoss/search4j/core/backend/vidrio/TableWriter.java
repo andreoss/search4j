@@ -220,7 +220,9 @@ public final class TableWriter implements AutoCloseable, TableLookup {
     @Override
     public TableCursor cursor() {
         this.check();
-        return new TableCursor(this.store, this.spine.root());
+        return new TableCursor(
+            new WriterBlocks(this.store, this.spine), this.spine.root()
+        );
     }
 
     @Override

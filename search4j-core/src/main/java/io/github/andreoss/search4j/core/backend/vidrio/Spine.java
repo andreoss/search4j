@@ -11,6 +11,7 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * Path of blocks being changed, from the root of a tree being written down
@@ -298,20 +299,34 @@ final class Spine {
     }
 
     /**
-     * Root block of the tree as changed so far. A root above the leaves
-     * has every changed block written first, so that readers find its
-     * children; a leaf root is read from memory and written on commit only.
+     * Root block of the tree as changed so far, read from memory; no block
+     * is written.
      *
      * @return Root block
      */
     Block root() {
-        if (this.top > 0) {
-            this.flush();
-        }
         return Block.parse(
             new BlockNumber(this.numbers[this.top]),
             this.pages[this.top].bytes()
         );
+    }
+
+    /**
+     * Block of the path as changed so far, by its number.
+     *
+     * @param number Block number
+     * @return Copy of the block, empty when it is not on the path
+     */
+    Optional<Block> held(final BlockNumber number) {
+        int level = this.top;
+        while (level >= 0 && this.numbers[level] != number.value()) {
+            level -= 1;
+        }
+        Optional<Block> block = Optional.empty();
+        if (level >= 0) {
+            block = Optional.of(Block.parse(number, this.pages[level].bytes()));
+        }
+        return block;
     }
 
     private void place(final int level, final long block) {

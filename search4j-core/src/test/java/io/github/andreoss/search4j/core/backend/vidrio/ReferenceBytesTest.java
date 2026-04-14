@@ -223,6 +223,9 @@ final class ReferenceBytesTest {
         map.put("midvalues", han -> ReferenceBytesTest.midSession(han, false));
         map.put("midcommits", han -> ReferenceBytesTest.midSession(han, true));
         map.put("midpositions", ReferenceBytesTest::midPositions);
+        map.put("deepadds", ReferenceBytesTest::deepAdds);
+        map.put("deepfree", ReferenceBytesTest::deepFree);
+        map.put("deepreads", ReferenceBytesTest::deepReads);
         return map;
     }
 
@@ -309,6 +312,80 @@ final class ReferenceBytesTest {
                     ReferenceBytesTest.drain(han.positions(doc, term));
                 }
             }
+        }
+    }
+
+    private static void deepAdds(final WritableDatabase han) {
+        ReferenceBytesTest.many(han, 1, 2500);
+        han.commit();
+        ReferenceBytesTest.many(han, 2501, 2600);
+        for (int num = 1100; num <= 1300; num += 3) {
+            han.deleteDocument(DocId.of(num));
+        }
+        ReferenceBytesTest.many(han, 2601, 2700);
+        han.commit();
+    }
+
+    private static void deepFree(final WritableDatabase han) {
+        ReferenceBytesTest.many(han, 1, 1500);
+        han.commit();
+        ReferenceBytesTest.many(han, 1501, 1700);
+        for (int num = 1501; num <= 1700; ++num) {
+            han.deleteDocument(DocId.of(num));
+        }
+        han.commit();
+    }
+
+    private static void deepReads(final WritableDatabase han) {
+        ReferenceBytesTest.many(han, 1, 1500);
+        ReferenceBytesTest.common(han);
+        ReferenceBytesTest.many(han, 1501, 2500);
+        ReferenceBytesTest.common(han);
+        han.commit();
+        ReferenceBytesTest.common(han);
+        ReferenceBytesTest.many(han, 2501, 2600);
+        for (int num = 1100; num <= 1300; num += 3) {
+            han.deleteDocument(DocId.of(num));
+        }
+        ReferenceBytesTest.common(han);
+        ReferenceBytesTest.many(han, 2601, 2700);
+        ReferenceBytesTest.common(han);
+        han.commit();
+        ReferenceBytesTest.common(han);
+    }
+
+    private static void common(final WritableDatabase han) {
+        for (final String term : List.of("common", "u77")) {
+            try (PostingIterator posts = han.postings(term)) {
+                while (posts.hasNext()) {
+                    posts.next();
+                }
+            }
+        }
+        if (han.lastDocId().value() >= 1200) {
+            ReferenceBytesTest.drain(han.positions(DocId.of(1200), "common"));
+        }
+        ReferenceBytesTest.stream(han, 0);
+    }
+
+    private static void many(final WritableDatabase han, final int from, final int upto) {
+        for (int num = from; num <= upto; ++num) {
+            final String[] terms = {
+                "common", String.format("u%d", num % 997),
+                String.format("k%d", num), "common",
+            };
+            final Document doc;
+            if (num % 2 == 0) {
+                doc = ReferenceBytesTest.placed(String.format("doc%d", num), terms);
+            } else {
+                doc = ReferenceBytesTest.plain(String.format("doc%d", num), terms);
+                doc.addTerm("common", TermCount.ONE);
+            }
+            doc.addValue(new ValueNo(0), String.format("val%07d", num * 31 % 100_003));
+            if (num % 5 == 0) {
+                doc.addValue(new ValueNo(4), String.format("five%d", num));
+            }
+            han.addDocument(doc);
         }
     }
 
