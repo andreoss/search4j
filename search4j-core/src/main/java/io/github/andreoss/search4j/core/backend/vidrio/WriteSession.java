@@ -181,9 +181,7 @@ public final class WriteSession implements TableSet {
                 new PostingWriter(this.tables.writer(TableType.POSTLIST))
             );
             if (this.inverter.positions().pending()) {
-                this.inverter.positions().flush(
-                    this.tables.writer(TableType.POSITION)
-                );
+                this.inverter.positions().flush(this.tables);
             }
             done = true;
         } finally {

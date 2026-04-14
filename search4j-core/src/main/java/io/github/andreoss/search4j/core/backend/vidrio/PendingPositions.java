@@ -155,20 +155,23 @@ public final class PendingPositions {
     }
 
     /**
-     * Writes the changes to a position table and forgets them.
+     * Writes the changes to the position table and forgets them. The table
+     * is created by the first list stored; a removal from a table not yet
+     * created changes nothing.
      *
-     * @param table Table written
+     * @param tables Tables of the database
      */
-    public void flush(final TableWriter table) {
+    public void flush(final WriteTables tables) {
         for (final Map.Entry<String, NavigableMap<DocId, byte[]>> entry
             : this.changes.entrySet()) {
             for (final Map.Entry<DocId, byte[]> change
                 : entry.getValue().entrySet()) {
                 final byte[] key = PositionKeys.of(change.getKey(), entry.getKey());
                 if (change.getValue().length == 0) {
-                    table.delete(key);
+                    tables.opened(TableType.POSITION)
+                        .ifPresent(table -> table.delete(key));
                 } else {
-                    table.add(key, change.getValue());
+                    tables.writer(TableType.POSITION).add(key, change.getValue());
                 }
             }
         }

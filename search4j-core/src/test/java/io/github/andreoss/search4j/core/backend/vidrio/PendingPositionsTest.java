@@ -11,10 +11,12 @@ import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.TermPos;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Tests of {@link PendingPositions}.
@@ -59,26 +61,33 @@ final class PendingPositionsTest {
     }
 
     @Test
-    void flushesSetsAndRemovals() {
-        final MemoryBlocks blocks = new MemoryBlocks(new HashMap<>(), BlockSize.MIN);
-        final TableWriter table = TableWriter.create(blocks, 0);
-        new PositionWriter(table).set(PendingPositionsTest.DOC, "pear", Positions.list(2));
-        final PendingPositions pending = new PendingPositions();
-        pending.set(PendingPositionsTest.DOC, "apple", Positions.list(1, 5));
-        pending.delete(PendingPositionsTest.DOC, "pear");
-        pending.flush(table);
-        final PositionTable committed = PositionTable.of(
-            VidrioTable.over(blocks, table.commit(new RevisionNumber(1L)).root())
-        );
-        Assertions.assertEquals(
-            List.of(new TermCount(2), false, false),
-            List.of(
-                committed.count(PendingPositionsTest.DOC, "apple"),
-                committed.contains(PendingPositionsTest.DOC, "pear"),
-                pending.pending()
-            ),
-            "Written and forgotten"
-        );
+    void flushesSetsAndRemovals(@TempDir final Path dir) {
+        final VersionFile version = new VersionFile(dir);
+        version.create(BlockSize.MIN);
+        try (WriteTables tables = WriteTables.create(new TableFiles(dir), version)) {
+            final PendingPositions pending = new PendingPositions();
+            pending.delete(PendingPositionsTest.DOC, "pear");
+            pending.flush(tables);
+            final boolean opened = tables.opened(TableType.POSITION).isPresent();
+            new PositionWriter(tables.writer(TableType.POSITION))
+                .set(PendingPositionsTest.DOC, "pear", Positions.list(2));
+            pending.set(PendingPositionsTest.DOC, "apple", Positions.list(1, 5));
+            pending.delete(PendingPositionsTest.DOC, "pear");
+            pending.flush(tables);
+            tables.commit(new RevisionNumber(1L));
+            final PositionTable committed =
+                PositionTable.of(tables.lookup(TableType.POSITION));
+            Assertions.assertEquals(
+                List.of(false, new TermCount(2), false, false),
+                List.of(
+                    opened,
+                    committed.count(PendingPositionsTest.DOC, "apple"),
+                    committed.contains(PendingPositionsTest.DOC, "pear"),
+                    pending.pending()
+                ),
+                "A removal opens no table; lists written and forgotten"
+            );
+        }
     }
 
     @Test

@@ -42,6 +42,31 @@ import org.junit.jupiter.api.io.TempDir;
 final class VidrioWritableShardTest {
 
     @Test
+    void opensNoPositionTableForRemovedPositions(@TempDir final Path dir) {
+        final DocumentInternal first = new DocumentInternal();
+        first.addTerm("apple", TermCount.ONE);
+        first.addValue(new ValueNo(0L), "x");
+        final DocumentInternal second = new DocumentInternal();
+        second.addTerm("pear", TermCount.ONE);
+        try (
+            VidrioWritableShard shard = VidrioWritableShard.open(
+                dir, VidrioOptions.of(DatabaseAction.CREATE.code())
+            )
+        ) {
+            shard.addDocument(first);
+            shard.addDocument(first);
+            shard.commit();
+            shard.replaceDocument(DocId.of(1), second);
+            shard.deleteDocument(DocId.of(2));
+            shard.commit();
+        }
+        Assertions.assertFalse(
+            Files.exists(new TableFiles(dir).path(TableType.POSITION)),
+            "Removing positions never written leaves the table uncreated"
+        );
+    }
+
+    @Test
     void flushesAndCommitsAtThreshold(@TempDir final Path dir) {
         try (
             VidrioWritableShard shard = VidrioWritableShard.open(

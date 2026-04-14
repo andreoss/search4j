@@ -179,9 +179,7 @@ public final class WritableReads
         } else {
             this.session.inverter().flushTerm(writer, term);
             if (this.session.inverter().positions().pending()) {
-                this.session.inverter().positions().flush(
-                    this.session.tables().writer(TableType.POSITION)
-                );
+                this.session.inverter().positions().flush(this.session.tables());
             }
         }
         return this.reader.openLeafPostList(term, positions);
