@@ -13,7 +13,6 @@ import io.github.andreoss.search4j.core.api.PositionIterator;
 import io.github.andreoss.search4j.core.api.PostingIterator;
 import io.github.andreoss.search4j.core.api.ValueIterator;
 import io.github.andreoss.search4j.core.api.WritableDatabase;
-import io.github.andreoss.search4j.core.backend.Uuid;
 import io.github.andreoss.search4j.core.types.DatabaseAction;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
@@ -23,12 +22,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -74,7 +68,7 @@ final class ReferenceBytesTest {
         }
         Assertions.assertEquals(
             ReferenceBytesTest.expected(name),
-            ReferenceBytesTest.digests(dbs),
+            FileDigests.of(dbs),
             String.format("Files of %s differ from the reference", name)
         );
     }
@@ -106,48 +100,6 @@ final class ReferenceBytesTest {
             }
         }
         return rows;
-    }
-
-    private static Map<String, String> digests(final Path dbs)
-        throws IOException {
-        final Map<String, String> roles = new TreeMap<>();
-        for (final TableType type : TableType.values()) {
-            roles.put(type.fileName(), type.tableName());
-        }
-        roles.put(VidrioFormat.versionFileName(), "version");
-        roles.put(VidrioFormat.lockFileName(), "lock");
-        final Map<String, String> found = new TreeMap<>();
-        try (Stream<Path> files = Files.list(dbs)) {
-            for (final Path file : files.toList()) {
-                final String name = file.getFileName().toString();
-                byte[] data = Files.readAllBytes(file);
-                if (name.equals(VidrioFormat.versionFileName())) {
-                    data = ReferenceBytesTest.masked(data);
-                }
-                found.put(
-                    roles.getOrDefault(name, name),
-                    ReferenceBytesTest.digest(data)
-                );
-            }
-        }
-        return found;
-    }
-
-    private static byte[] masked(final byte[] data) {
-        final byte[] copy = data.clone();
-        final int start = VidrioFormat.MAGIC_BYTES + 2;
-        Arrays.fill(copy, start, start + Uuid.BYTES, (byte) 0);
-        return copy;
-    }
-
-    private static String digest(final byte[] data) {
-        try {
-            return HexFormat.of().formatHex(
-                MessageDigest.getInstance("SHA-256").digest(data)
-            );
-        } catch (final NoSuchAlgorithmException ex) {
-            throw new IllegalStateException(ex);
-        }
     }
 
     private static Map<String, Consumer<WritableDatabase>> cases() {

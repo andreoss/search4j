@@ -19,6 +19,10 @@ import io.github.andreoss.search4j.core.error.InvalidOperationError;
  * longer than one item is stored as components in consecutive items and
  * is reassembled, and inflated when compressed, on {@link #tag()}.</p>
  *
+ * <p>Over a table being written, a cursor positioned or moved after a
+ * change of the table first rebuilds its path from the tree as changed so
+ * far; a move then goes on from the key of the entry it was on.</p>
+ *
  * @since 0.1.0
  */
 public final class TableCursor {
@@ -29,9 +33,19 @@ public final class TableCursor {
     private static final String NO_ENTRY = "Cursor is not on an entry";
 
     /**
+     * Source of the paths into the tree.
+     */
+    private final CursorPaths paths;
+
+    /**
      * Path to the current leaf item.
      */
-    private final TreePath tree;
+    private TreePath tree;
+
+    /**
+     * Version of the tree the path was built at.
+     */
+    private long version;
 
     /**
      * Key of the current entry.
@@ -70,16 +84,31 @@ public final class TableCursor {
      * @param top Root block, at the top level of the tree
      */
     public TableCursor(final Blocks blocks, final Block top) {
-        this(new TreePath(blocks, top));
+        this(new FixedPaths(blocks, top));
+    }
+
+    /**
+     * Creates an unpositioned cursor over a tree that may change.
+     *
+     * @param paths Source of the paths into the tree
+     */
+    TableCursor(final CursorPaths paths) {
+        this(paths, paths.path(), paths.version());
     }
 
     /**
      * Creates an unpositioned cursor over a path.
      *
+     * @param paths Source of the paths into the tree
      * @param tree Path into the tree
+     * @param version Version of the tree the path was built at
      */
-    private TableCursor(final TreePath tree) {
+    private TableCursor(
+        final CursorPaths paths, final TreePath tree, final long version
+    ) {
+        this.paths = paths;
         this.tree = tree;
+        this.version = version;
         this.current = ItemKey.EMPTY;
         this.value = new byte[0];
         this.status = TagStatus.UNREAD;
@@ -98,6 +127,7 @@ public final class TableCursor {
      * @return True if the key itself was found
      */
     public boolean seek(final byte[] key) {
+        this.sync();
         this.start();
         final boolean found = this.tree.find(key);
         if (found) {
@@ -134,6 +164,7 @@ public final class TableCursor {
      * @return True if the key itself was found
      */
     public boolean seekAtLeast(final byte[] key) {
+        this.sync();
         this.start();
         final boolean found = this.tree.find(key);
         if (found || this.tree.next()) {
@@ -162,6 +193,7 @@ public final class TableCursor {
      * @return True if found; otherwise the cursor is unpositioned
      */
     public boolean exact(final byte[] key) {
+        this.sync();
         this.after = false;
         this.positioned = false;
         this.sought = true;
@@ -182,6 +214,9 @@ public final class TableCursor {
     public boolean next() {
         boolean moved = false;
         if (this.sought && !this.after) {
+            if (this.version != this.paths.version()) {
+                this.seek(this.current.data());
+            }
             if (this.status != TagStatus.READ) {
                 this.positioned = this.advance();
             }
@@ -232,6 +267,13 @@ public final class TableCursor {
             this.load();
         }
         return this.value.clone();
+    }
+
+    private void sync() {
+        if (this.version != this.paths.version()) {
+            this.tree = this.paths.path();
+            this.version = this.paths.version();
+        }
     }
 
     private void settle() {

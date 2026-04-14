@@ -145,6 +145,102 @@ final class TableWriterCursorTest {
     }
 
     @Test
+    void seesChangesMadeAfterOpening() {
+        final TableWriter writer = TableWriterCursorTest.filled();
+        final TableCursor cursor = writer.cursor();
+        cursor.rewind();
+        final List<String> seen = TableWriterCursorTest.steps(cursor, 100);
+        for (int idx = 0; idx < 600; idx += 2) {
+            writer.add(Trees.key(String.format("k%05dx", idx)), new byte[60]);
+        }
+        for (int idx = 200; idx < 500; ++idx) {
+            writer.delete(Trees.key(String.format("k%05d", idx)));
+        }
+        seen.addAll(TableWriterCursorTest.steps(cursor, Integer.MAX_VALUE));
+        final List<String> expected = new ArrayList<>(550);
+        for (int idx = 0; idx < 600; ++idx) {
+            if (idx < 200 || idx >= 500) {
+                expected.add(String.format("k%05d", idx));
+            }
+            if (idx >= 100 && idx % 2 == 0) {
+                expected.add(String.format("k%05dx", idx));
+            }
+        }
+        Assertions.assertEquals(
+            expected, seen,
+            "Entries added after the cursor opened are seen, deleted ones not"
+        );
+    }
+
+    @Test
+    void movesPastDeletedCurrentEntry() {
+        final TableWriter writer = TableWriterCursorTest.filled();
+        final TableCursor cursor = writer.cursor();
+        cursor.seek(Trees.key("k00300"));
+        cursor.tag();
+        for (int idx = 300; idx < 320; ++idx) {
+            writer.delete(Trees.key(String.format("k%05d", idx)));
+        }
+        Assertions.assertEquals(
+            List.of("k00320", "k00321"),
+            TableWriterCursorTest.steps(cursor, 2),
+            "Next entry after a deleted current entry"
+        );
+    }
+
+    @Test
+    void returnsToCommittedEntriesAfterCancel() {
+        final TableWriter writer = TableWriterCursorTest.writer();
+        for (int idx = 0; idx < 600; ++idx) {
+            writer.add(Trees.key(String.format("k%05d", idx)), new byte[40]);
+        }
+        final TableState state = writer.commit(new RevisionNumber(1L));
+        final TableCursor cursor = writer.cursor();
+        cursor.seek(Trees.key("k00010"));
+        for (int idx = 0; idx < 600; ++idx) {
+            writer.add(Trees.key(String.format("k%05dy", idx)), new byte[40]);
+        }
+        final List<String> seen = TableWriterCursorTest.steps(cursor, 2);
+        writer.cancel(state);
+        seen.addAll(TableWriterCursorTest.steps(cursor, Integer.MAX_VALUE));
+        Assertions.assertEquals(
+            List.of(590, "k00010y", "k00011", "k00012", "k00599"),
+            List.of(
+                seen.size(), seen.get(0), seen.get(1), seen.get(2),
+                seen.get(589)
+            ),
+            "Entries dropped by a cancel are not seen"
+        );
+    }
+
+    @Test
+    void findsEntriesAddedAfterOpening() {
+        final TableWriter writer = TableWriterCursorTest.filled();
+        final TableCursor exact = writer.cursor();
+        final TableCursor least = writer.cursor();
+        final TableCursor most = writer.cursor();
+        exact.rewind();
+        least.rewind();
+        most.rewind();
+        for (int idx = 0; idx < 600; idx += 3) {
+            writer.add(Trees.key(String.format("k%05dz", idx)), Trees.key("new"));
+        }
+        final boolean found = exact.exact(Trees.key("k00450z"));
+        least.seekAtLeast(Trees.key("k00450y"));
+        most.seek(Trees.key("k00450zz"));
+        Assertions.assertEquals(
+            List.of(true, "new", "k00450z", "new", "k00450z"),
+            List.of(
+                found, new String(exact.tag(), StandardCharsets.US_ASCII),
+                new String(least.key().data(), StandardCharsets.US_ASCII),
+                new String(least.tag(), StandardCharsets.US_ASCII),
+                new String(most.key().data(), StandardCharsets.US_ASCII)
+            ),
+            "Entries added after the cursors opened are found"
+        );
+    }
+
+    @Test
     void sharesStoreOfWriterBlocks() {
         final MemoryBlocks blocks = new MemoryBlocks(new HashMap<>(), BlockSize.MIN);
         final WriterBlocks view = new WriterBlocks(
@@ -177,6 +273,24 @@ final class TableWriterCursorTest {
             copy.put(entry.getKey(), HexFormat.of().formatHex(entry.getValue()));
         }
         return copy;
+    }
+
+    private static TableWriter filled() {
+        final TableWriter writer = TableWriterCursorTest.writer();
+        for (int idx = 0; idx < 600; ++idx) {
+            writer.add(Trees.key(String.format("k%05d", idx)), new byte[40]);
+        }
+        writer.commit(new RevisionNumber(1L));
+        return writer;
+    }
+
+    private static List<String> steps(final TableCursor cursor, final int most) {
+        final List<String> keys = new ArrayList<>(0);
+        while (keys.size() < most && cursor.next()) {
+            keys.add(new String(cursor.key().data(), StandardCharsets.US_ASCII));
+            cursor.tag();
+        }
+        return keys;
     }
 
     private static TableWriter writer() {

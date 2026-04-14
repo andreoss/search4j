@@ -184,7 +184,9 @@ public final class WritableReads
             this.session.tables().writer(TableType.POSTLIST)
         );
         if (term.isEmpty()) {
-            this.session.inverter().lengths().flush(writer);
+            if (this.gapped()) {
+                this.session.inverter().lengths().flush(writer);
+            }
         } else {
             this.session.inverter().flushTerm(writer, term);
         }
@@ -284,5 +286,10 @@ public final class WritableReads
      */
     public DocRange usedDocIds() {
         return this.reader.usedDocIds();
+    }
+
+    private boolean gapped() {
+        final long docs = this.docCount().value();
+        return docs > 0L && Integer.toUnsignedLong(this.lastDocId().value()) != docs;
     }
 }

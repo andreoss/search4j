@@ -221,8 +221,11 @@ public final class VidrioReader
     ) {
         Optional<LeafPostList> result = Optional.empty();
         if (term.isEmpty()) {
-            final TermCount count = this.docCount();
-            if (count.value() > 0) {
+            final DatabaseStats stats = this.version.stats();
+            final TermCount count = new TermCount(stats.docs());
+            if (stats.last() == stats.docs() && stats.docs() > 0L) {
+                result = Optional.of(new ContiguousPostList(count));
+            } else if (stats.docs() > 0L) {
                 result = Optional.of(
                     VidrioAllDocsPostList.open(
                         this.tables.lookup(TableType.POSTLIST), count

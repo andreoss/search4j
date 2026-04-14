@@ -44,6 +44,11 @@ public final class TableWriter implements AutoCloseable, TableLookup {
     private final Spine spine;
 
     /**
+     * Paths of the cursors into the tree as changed so far.
+     */
+    private final LivePaths paths;
+
+    /**
      * Item changes.
      */
     private final TreeEdit edit;
@@ -92,6 +97,7 @@ public final class TableWriter implements AutoCloseable, TableLookup {
         this.store = store;
         this.free = free;
         this.spine = spine;
+        this.paths = new LivePaths(store, spine);
         this.edit = edit;
         this.entries = entries;
         this.compress = compress;
@@ -184,6 +190,7 @@ public final class TableWriter implements AutoCloseable, TableLookup {
         if (done) {
             this.count -= 1L;
             this.changed = true;
+            this.paths.changed();
         }
         return done;
     }
@@ -220,9 +227,7 @@ public final class TableWriter implements AutoCloseable, TableLookup {
     @Override
     public TableCursor cursor() {
         this.check();
-        return new TableCursor(
-            new WriterBlocks(this.store, this.spine), this.spine.root()
-        );
+        return new TableCursor(this.paths);
     }
 
     @Override
@@ -294,6 +299,7 @@ public final class TableWriter implements AutoCloseable, TableLookup {
         this.spine.open(state.root());
         this.edit.rewind(state.sequential());
         this.changed = false;
+        this.paths.changed();
     }
 
     @Override
@@ -308,6 +314,7 @@ public final class TableWriter implements AutoCloseable, TableLookup {
             this.count += 1L;
         }
         this.changed = true;
+        this.paths.changed();
     }
 
     private void check() {
