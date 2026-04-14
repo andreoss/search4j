@@ -14,9 +14,9 @@ import io.github.andreoss.search4j.core.backend.ValueStats;
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.ValueNo;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.function.Function;
 
 /**
@@ -28,7 +28,7 @@ import java.util.function.Function;
 final class PendingStats {
 
     /**
-     * Statistics by slot.
+     * Statistics by slot, in slot order.
      */
     private final Map<ValueNo, ValueStats> pending;
 
@@ -43,7 +43,7 @@ final class PendingStats {
      * @param stored Statistics stored for a slot
      */
     PendingStats(final Function<ValueNo, ValueStats> stored) {
-        this.pending = new HashMap<>();
+        this.pending = new TreeMap<>();
         this.stored = stored;
     }
 

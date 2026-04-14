@@ -298,13 +298,16 @@ final class Spine {
     }
 
     /**
-     * Root block of the tree as changed so far, every changed block
-     * written first.
+     * Root block of the tree as changed so far. A root above the leaves
+     * has every changed block written first, so that readers find its
+     * children; a leaf root is read from memory and written on commit only.
      *
      * @return Root block
      */
     Block root() {
-        this.flush();
+        if (this.top > 0) {
+            this.flush();
+        }
         return Block.parse(
             new BlockNumber(this.numbers[this.top]),
             this.pages[this.top].bytes()

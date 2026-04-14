@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,24 @@ final class TableWriterTest {
      * Compression threshold used.
      */
     private static final int COMPRESS = 18;
+
+    @Test
+    void readsUncommittedLeafRootWithoutWritingIt() {
+        final Map<Long, byte[]> data = new HashMap<>();
+        final TableWriter table =
+            TableWriter.create(new MemoryBlocks(data, BlockSize.MIN), 0);
+        final boolean before = table.contains(Trees.key("a"));
+        final int empty = data.size();
+        table.add(Trees.key("a"), Trees.key("b"));
+        final boolean after = table.get(Trees.key("a")).isPresent();
+        final int unwritten = data.size();
+        table.commit(new RevisionNumber(1L));
+        Assertions.assertEquals(
+            List.of(false, 0, true, 0, 1),
+            List.of(before, empty, after, unwritten, data.size()),
+            "A leaf root is read from memory and written on commit only"
+        );
+    }
 
     @Test
     void keepsRandomChangesAcrossRevisions() {

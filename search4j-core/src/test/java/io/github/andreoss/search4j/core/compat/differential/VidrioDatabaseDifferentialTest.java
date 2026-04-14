@@ -6,23 +6,15 @@ package io.github.andreoss.search4j.core.compat.differential;
 
 import io.github.andreoss.search4j.core.api.Database;
 import io.github.andreoss.search4j.core.api.DatabaseFactory;
-import io.github.andreoss.search4j.core.api.Document;
 import io.github.andreoss.search4j.core.api.Enquire;
-import io.github.andreoss.search4j.core.api.WritableDatabase;
-import io.github.andreoss.search4j.core.backend.vidrio.BlockSize;
 import io.github.andreoss.search4j.core.queryparser.QueryParser;
-import io.github.andreoss.search4j.core.types.DatabaseAction;
-import io.github.andreoss.search4j.core.types.DocId;
-import io.github.andreoss.search4j.core.types.TermCount;
-import io.github.andreoss.search4j.core.types.TermPos;
-import io.github.andreoss.search4j.core.types.ValueNo;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -69,12 +61,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "basic",
-            VidrioDatabaseDifferentialTest.single(
-                VidrioDatabaseDifferentialTest::basicDocument
-            )
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "basic")) {
             final Map<String, String> stats = NativeTools.stats(dbs);
             Assertions.assertEquals(
                 "1", stats.get(VidrioDatabaseDifferentialTest.COUNT)
@@ -100,9 +87,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "many", VidrioDatabaseDifferentialTest::manyDocuments
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "many")) {
             final Map<String, String> stats = NativeTools.stats(dbs);
             Assertions.assertEquals(
                 "10", stats.get(VidrioDatabaseDifferentialTest.COUNT)
@@ -125,12 +110,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "positions",
-            VidrioDatabaseDifferentialTest.single(
-                VidrioDatabaseDifferentialTest::positionedDocument
-            )
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "positions")) {
             Assertions.assertFalse(
                 NativeTools.positions(dbs, "hello", 1L).isEmpty(),
                 String.format("reference reader finds no positions in %s", dbs)
@@ -144,9 +124,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "values", VidrioDatabaseDifferentialTest::valuesDocument
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "values")) {
             Assertions.assertEquals(3, NativeTools.values(dbs, 1L).size());
             Assertions.assertTrue(
                 NativeTools.inspect(
@@ -164,10 +142,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "uncommitted",
-            han -> han.addDocument(VidrioDatabaseDifferentialTest.rollback())
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "uncommitted")) {
             Assertions.assertEquals(
                 "1",
                 NativeTools.stats(dbs).get(VidrioDatabaseDifferentialTest.COUNT),
@@ -183,9 +158,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "cancelled", VidrioDatabaseDifferentialTest::cancelled
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "cancelled")) {
             Assertions.assertEquals(
                 "0",
                 NativeTools.stats(dbs).get(VidrioDatabaseDifferentialTest.COUNT),
@@ -200,12 +173,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "verify",
-            VidrioDatabaseDifferentialTest.single(
-                VidrioDatabaseDifferentialTest::verifyDocument
-            )
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "verify")) {
             Assertions.assertEquals(
                 List.of(),
                 ReferenceDatabases.integrity(dbs),
@@ -220,9 +188,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "search", VidrioDatabaseDifferentialTest::searchDocuments
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "search")) {
             final List<Long> found;
             try (Database han = DatabaseFactory.open(dbs)) {
                 final Enquire enquire = han.enquire();
@@ -245,9 +211,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "stats", VidrioDatabaseDifferentialTest::statsDocuments
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "stats")) {
             final Map<String, String> expected = NativeTools.stats(dbs);
             try (Database han = DatabaseFactory.open(dbs)) {
                 Assertions.assertEquals(
@@ -268,9 +232,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "frequencies", VidrioDatabaseDifferentialTest::appleDocuments
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "frequencies")) {
             Assertions.assertEquals(
                 Long.valueOf(2),
                 NativeTools.termFreqs(dbs).get("apple"),
@@ -290,9 +252,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.held(),
             VidrioDatabaseDifferentialTest.ABSENT
         );
-        for (final Path dbs : VidrioDatabaseDifferentialTest.pair(
-            temp, "empty", WritableDatabase::commit
-        )) {
+        for (final Path dbs : Scenarios.pair(temp, "empty")) {
             Assertions.assertEquals(
                 "0",
                 NativeTools.stats(dbs).get(VidrioDatabaseDifferentialTest.COUNT)
@@ -313,9 +273,7 @@ final class VidrioDatabaseDifferentialTest {
             VidrioDatabaseDifferentialTest.ABSENT
         );
         final Path own = temp.resolve("own").resolve("counts");
-        try (WritableDatabase han = VidrioDatabaseDifferentialTest.open(own)) {
-            VidrioDatabaseDifferentialTest.largeCounts(han);
-        }
+        Scenarios.writeCounts(own);
         final Path reference = Files.createDirectories(
             temp.resolve("reference")
         ).resolve("counts");
@@ -357,203 +315,56 @@ final class VidrioDatabaseDifferentialTest {
         }
     }
 
+    @Test
+    void writesBytesOfReference(@TempDir final Path temp) throws IOException {
+        Assumptions.assumeTrue(
+            VidrioDatabaseDifferentialTest.held(),
+            VidrioDatabaseDifferentialTest.ABSENT
+        );
+        final List<String> oracle = new ArrayList<>(0);
+        final List<String> faults = new ArrayList<>(0);
+        for (final String name : Scenarios.names()) {
+            final List<Path> dbs = Scenarios.pair(temp, name);
+            final Path again = Files.createDirectories(temp.resolve("again"))
+                .resolve(name);
+            ReferenceDatabases.write(name, again);
+            oracle.addAll(ReferenceBytes.differences(dbs.get(1), again));
+            faults.addAll(ReferenceBytes.differences(dbs.get(1), dbs.get(0)));
+        }
+        Assertions.assertEquals(
+            List.of(), oracle, "reference databases written twice differ"
+        );
+        Assertions.assertEquals(
+            List.of(), faults, "databases differ from the reference bytes"
+        );
+    }
+
+    @Test
+    void writesBytesOfReferenceCounts(@TempDir final Path temp)
+        throws IOException {
+        Assumptions.assumeTrue(
+            NativeTools.available() && ReferenceDatabases.countsWritable(),
+            VidrioDatabaseDifferentialTest.ABSENT
+        );
+        final Path own = temp.resolve("own");
+        Scenarios.writeCounts(own);
+        final Path reference = temp.resolve("reference");
+        ReferenceDatabases.writeCounts(reference);
+        final Path again = temp.resolve("again");
+        ReferenceDatabases.writeCounts(again);
+        Assertions.assertEquals(
+            List.of(),
+            ReferenceBytes.differences(reference, again),
+            "reference databases written twice differ"
+        );
+        Assertions.assertEquals(
+            List.of(),
+            ReferenceBytes.differences(reference, own),
+            "database differs from the reference bytes"
+        );
+    }
+
     private static boolean held() {
         return NativeTools.available() && ReferenceDatabases.writable();
-    }
-
-    private static void largeCounts(final WritableDatabase han) {
-        han.replaceDocument(
-            DocId.of(1),
-            VidrioDatabaseDifferentialTest.counted("a:3000000000", "b:1")
-        );
-        han.replaceDocument(
-            DocId.of(2),
-            VidrioDatabaseDifferentialTest.counted("a:5", "b:2147483648", "c:7")
-        );
-        han.replaceDocument(
-            DocId.of(3), VidrioDatabaseDifferentialTest.counted("c:4294967280")
-        );
-        han.replaceDocument(
-            DocId.of(4),
-            VidrioDatabaseDifferentialTest.counted("a:1000000000", "d:2")
-        );
-        han.replaceDocument(
-            DocId.of(5),
-            VidrioDatabaseDifferentialTest.counted("b:3", "e:1", "d:2147483650")
-        );
-        final Document six = VidrioDatabaseDifferentialTest.counted("e:2");
-        six.addPosting("f", new TermPos(1), TermCount.parse("2147483648"));
-        six.addPosting("f", new TermPos(2), TermCount.ONE);
-        han.replaceDocument(DocId.of(6), six);
-        han.replaceDocument(
-            DocId.of(4),
-            VidrioDatabaseDifferentialTest.counted(
-                "a:1000000001", "d:3", "g:2147483648"
-            )
-        );
-        han.replaceDocument(
-            DocId.of(7), VidrioDatabaseDifferentialTest.counted("h:4000000000")
-        );
-        han.deleteDocument(DocId.of(7));
-        han.commit();
-    }
-
-    private static Document counted(final String... terms) {
-        final Document doc = DatabaseFactory.document();
-        for (final String term : terms) {
-            final int colon = term.indexOf(':');
-            doc.addTerm(
-                term.substring(0, colon),
-                TermCount.parse(term.substring(colon + 1))
-            );
-        }
-        return doc;
-    }
-
-    private static List<Path> pair(
-        final Path temp,
-        final String scenario,
-        final Consumer<WritableDatabase> steps
-    ) throws IOException {
-        final Path own = temp.resolve("own").resolve(scenario);
-        try (WritableDatabase han = VidrioDatabaseDifferentialTest.open(own)) {
-            steps.accept(han);
-        }
-        final Path reference = Files.createDirectories(
-            temp.resolve("reference")
-        ).resolve(scenario);
-        ReferenceDatabases.write(scenario, reference);
-        return List.of(own, reference);
-    }
-
-    private static WritableDatabase open(final Path dbs) throws IOException {
-        return DatabaseFactory.openWritable(
-            dbs,
-            DatabaseAction.CREATE.code(),
-            BlockSize.MIN_BYTES
-        );
-    }
-
-    private static Consumer<WritableDatabase> single(
-        final Consumer<Document> config
-    ) {
-        return han -> {
-            final Document doc = DatabaseFactory.document();
-            config.accept(doc);
-            doc.addValue(new ValueNo(0), "title");
-            han.addDocument(doc);
-            han.commit();
-        };
-    }
-
-    private static void basicDocument(final Document doc) {
-        doc.setData("test document");
-        doc.addTerm("test", TermCount.ONE);
-        doc.addTerm("document", TermCount.ONE);
-        doc.addValue(new ValueNo(0), "title");
-    }
-
-    private static void positionedDocument(final Document doc) {
-        doc.setData("hello world hello universe");
-        doc.addPosting("hello", new TermPos(1), TermCount.ONE);
-        doc.addPosting("world", new TermPos(2), TermCount.ONE);
-        doc.addPosting("hello", new TermPos(3), TermCount.ONE);
-        doc.addPosting("universe", new TermPos(4), TermCount.ONE);
-    }
-
-    private static void verifyDocument(final Document doc) {
-        doc.setData("verify test");
-        doc.addTerm("verify", TermCount.ONE);
-    }
-
-    private static void manyDocuments(final WritableDatabase han) {
-        for (int num = 1; num <= 10; ++num) {
-            final Document doc = DatabaseFactory.document();
-            doc.setData(String.format("document %d", num));
-            doc.addTerm("doc", new TermCount(num));
-            doc.addTerm(String.format("number%d", num), TermCount.ONE);
-            doc.addValue(new ValueNo(0), String.format("title%d", num));
-            doc.addValue(
-                new ValueNo(1),
-                String.format("category%d", num % 3)
-            );
-            han.addDocument(doc);
-        }
-        han.commit();
-    }
-
-    private static void valuesDocument(final WritableDatabase han) {
-        final Document doc = DatabaseFactory.document();
-        doc.setData("metadata test");
-        doc.addTerm("meta", TermCount.ONE);
-        doc.addValue(new ValueNo(0), "author:john");
-        doc.addValue(new ValueNo(1), "date:2024");
-        doc.addValue(new ValueNo(2), "tags:test,java");
-        han.addDocument(doc);
-        han.setMetadata("source", "test-suite");
-        han.setMetadata("version", "1.0");
-        han.commit();
-    }
-
-    private static Document rollback() {
-        final Document doc = DatabaseFactory.document();
-        doc.setData("rolled back");
-        doc.addTerm("rollback", TermCount.ONE);
-        return doc;
-    }
-
-    private static void cancelled(final WritableDatabase han) {
-        han.beginTransaction(true);
-        han.addDocument(VidrioDatabaseDifferentialTest.rollback());
-        han.cancelTransaction();
-    }
-
-    private static void searchDocuments(final WritableDatabase han) {
-        VidrioDatabaseDifferentialTest.text(
-            han, "alpha beta gamma", "alpha", "beta", "gamma"
-        );
-        VidrioDatabaseDifferentialTest.text(
-            han, "alpha delta epsilon", "alpha", "delta", "epsilon"
-        );
-        han.commit();
-    }
-
-    private static void statsDocuments(final WritableDatabase han) {
-        for (int num = 1; num <= 5; ++num) {
-            final Document doc = DatabaseFactory.document();
-            doc.setData(String.format("doc %d", num));
-            doc.addTerm(String.format("term%d", num), TermCount.ONE);
-            doc.addValue(new ValueNo(0), String.format("val%d", num));
-            han.addDocument(doc);
-        }
-        han.commit();
-    }
-
-    private static void appleDocuments(final WritableDatabase han) {
-        final Document first = DatabaseFactory.document();
-        first.setData("apple apple apple");
-        first.addPosting("apple", new TermPos(1), TermCount.ONE);
-        first.addPosting("apple", new TermPos(2), TermCount.ONE);
-        first.addPosting("apple", new TermPos(3), TermCount.ONE);
-        han.addDocument(first);
-        final Document second = DatabaseFactory.document();
-        second.setData("apple apple");
-        second.addPosting("apple", new TermPos(1), TermCount.ONE);
-        second.addPosting("apple", new TermPos(2), TermCount.ONE);
-        han.addDocument(second);
-        han.commit();
-    }
-
-    private static void text(
-        final WritableDatabase store,
-        final String data,
-        final String... terms
-    ) {
-        final Document doc = DatabaseFactory.document();
-        doc.setData(data);
-        for (final String term : terms) {
-            doc.addTerm(term, TermCount.ONE);
-        }
-        store.addDocument(doc);
     }
 }

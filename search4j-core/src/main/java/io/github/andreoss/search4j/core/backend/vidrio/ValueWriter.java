@@ -13,7 +13,6 @@ import io.github.andreoss.search4j.core.backend.ValueStats;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.ValueNo;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
@@ -46,7 +45,8 @@ public final class ValueWriter {
     private final NavigableMap<ValueNo, NavigableMap<DocId, String>> changes;
 
     /**
-     * Slots used by the documents changed, encoded; empty for none.
+     * Slots used by the documents changed, encoded, in document order;
+     * empty for none.
      */
     private final Map<DocId, byte[]> slots;
 
@@ -65,7 +65,7 @@ public final class ValueWriter {
         this.postings = postings;
         this.termlists = termlists;
         this.changes = new TreeMap<>();
-        this.slots = new HashMap<>();
+        this.slots = new TreeMap<>();
         this.stats = new PendingStats(
             slot -> ValueTable.of(postings, termlists).stats(slot)
         );
@@ -179,7 +179,17 @@ public final class ValueWriter {
     }
 
     /**
-     * Merges the changes into the tables and forgets them.
+     * Writes the statistics of the slots changed and forgets them; done
+     * only when a revision is committed, before {@link #merge()}.
+     */
+    public void writeStats() {
+        this.stats.write(this.postings);
+    }
+
+    /**
+     * Merges the value changes into the tables and forgets them: the slots
+     * used by each document, then the value chunks. The statistics stay
+     * pending until {@link #writeStats()}.
      */
     public void merge() {
         for (final Map.Entry<DocId, byte[]> entry : this.slots.entrySet()) {
@@ -201,7 +211,6 @@ public final class ValueWriter {
             writer.finish();
         }
         this.changes.clear();
-        this.stats.write(this.postings);
     }
 
     /**

@@ -191,12 +191,13 @@ final class Values {
     }
 
     /**
-     * Merges the changes, commits both tables as the next revision and
+     * Writes the statistics, merges the changes, commits both tables as the next revision and
      * opens them to read.
      *
      * @return Lookups over the revision
      */
     ValueTable commit() {
+        this.writer.writeStats();
         this.writer.merge();
         this.revision = this.revision + 1L;
         final RevisionNumber number = new RevisionNumber(this.revision);

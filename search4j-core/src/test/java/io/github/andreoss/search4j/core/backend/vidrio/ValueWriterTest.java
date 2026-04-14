@@ -15,7 +15,9 @@ import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.ValueNo;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,95 @@ final class ValueWriterTest {
      * Value of a kilobyte.
      */
     private static final String BIG = "k".repeat(1000);
+
+    @Test
+    void keepsStatisticsPendingThroughMerge() {
+        final TableWriter postings = TableWriter.create(
+            new MemoryBlocks(new HashMap<>(), BlockSize.MIN), 0
+        );
+        final ValueWriter writer = new ValueWriter(
+            postings,
+            TableWriter.create(new MemoryBlocks(new HashMap<>(), BlockSize.MIN), 18)
+        );
+        writer.add(DocId.of(1), Values.map(0, "x"));
+        writer.merge();
+        final boolean merged =
+            postings.contains(ValueKeys.stats(ValueWriterTest.ZERO));
+        final ValueStats pending = writer.stats(ValueWriterTest.ZERO);
+        writer.writeStats();
+        Assertions.assertEquals(
+            List.of(false, ValueWriterTest.stats(1, "x", "x"), true),
+            List.of(
+                merged, pending,
+                postings.contains(ValueKeys.stats(ValueWriterTest.ZERO))
+            ),
+            "A merge writes no statistics; they wait for the commit"
+        );
+    }
+
+    @Test
+    void mergesSlotsInDocumentOrder() {
+        final Map<Long, byte[]> data = new HashMap<>();
+        final TableWriter termlists =
+            TableWriter.create(new MemoryBlocks(data, BlockSize.MIN), 18);
+        final ValueWriter writer = new ValueWriter(
+            TableWriter.create(new MemoryBlocks(new HashMap<>(), BlockSize.MIN), 0),
+            termlists
+        );
+        writer.add(DocId.of(17), Values.map(0, "x"));
+        writer.add(DocId.of(2), Values.map(0, "y"));
+        writer.merge();
+        final TableRoot root = termlists.commit(new RevisionNumber(1L)).root();
+        final Block block = Block.parse(root.block(), data.get(root.block().value()));
+        Assertions.assertTrue(
+            ValueWriterTest.offset(block, ValueKeys.slots(DocId.of(2)))
+                > ValueWriterTest.offset(block, ValueKeys.slots(DocId.of(17))),
+            "The lower document is added first, so it sits above the higher"
+        );
+    }
+
+    @Test
+    void writesStatisticsInSlotOrder() {
+        final Map<Long, byte[]> data = new HashMap<>();
+        final TableWriter postings =
+            TableWriter.create(new MemoryBlocks(data, BlockSize.MIN), 0);
+        final ValueWriter writer = new ValueWriter(
+            postings,
+            TableWriter.create(new MemoryBlocks(new HashMap<>(), BlockSize.MIN), 18)
+        );
+        writer.add(DocId.of(1), Values.map(17, "x", 2, "y"));
+        writer.writeStats();
+        final TableRoot root = postings.commit(new RevisionNumber(1L)).root();
+        final Block block = Block.parse(root.block(), data.get(root.block().value()));
+        Assertions.assertTrue(
+            ValueWriterTest.offset(block, ValueKeys.stats(new ValueNo(2L)))
+                > ValueWriterTest.offset(block, ValueKeys.stats(new ValueNo(17L))),
+            "The lower slot is added first, so it sits above the higher"
+        );
+    }
+
+    @Test
+    void placesStatisticsBeforeChunks() {
+        final Map<Long, byte[]> data = new HashMap<>();
+        final TableWriter postings =
+            TableWriter.create(new MemoryBlocks(data, BlockSize.MIN), 0);
+        final ValueWriter writer = new ValueWriter(
+            postings,
+            TableWriter.create(new MemoryBlocks(new HashMap<>(), BlockSize.MIN), 18)
+        );
+        writer.add(DocId.of(1), Values.map(0, "x"));
+        writer.writeStats();
+        writer.merge();
+        final TableRoot root = postings.commit(new RevisionNumber(1L)).root();
+        final Block block = Block.parse(root.block(), data.get(root.block().value()));
+        Assertions.assertTrue(
+            ValueWriterTest.offset(block, ValueKeys.stats(ValueWriterTest.ZERO))
+                > ValueWriterTest.offset(
+                    block, ValueKeys.chunk(ValueWriterTest.ZERO, DocId.of(1))
+                ),
+            "Statistics are added first, so they sit above the chunk"
+        );
+    }
 
     @Test
     void writesEntriesAsReference() {
@@ -341,6 +432,12 @@ final class ValueWriterTest {
             list.next();
         }
         return result;
+    }
+
+    private static int offset(final Block block, final byte[] key) {
+        final byte[] bytes = block.copy();
+        final int pos = block.header().entryOffset(block.searchLeaf(key, key.length));
+        return (bytes[pos] & 0xFF) << 8 | bytes[pos + 1] & 0xFF;
     }
 
     private static ValueStats stats(

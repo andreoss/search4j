@@ -193,12 +193,13 @@ public final class WriteSession implements TableSet {
 
     /**
      * Commits the changes of the tables as the next revision: value
-     * changes merged, tables written and forced to disk, then the version
-     * file; nothing happens without changes.
+     * statistics written, value changes merged, tables written and forced
+     * to disk, then the version file; nothing happens without changes.
      *
      * <p>On failure the tables are reopened at the revision before.</p>
      */
     public void apply() {
+        this.values.writeStats();
         if (this.tables.modified() || this.values.modified()) {
             final RevisionNumber next =
                 new RevisionNumber(this.version.revision().value() + 1L);
