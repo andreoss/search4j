@@ -20,6 +20,11 @@ import io.github.andreoss.search4j.core.types.TermCount;
 record FixedPart(double value) implements TermWeight {
 
     @Override
+    public boolean needsWdf() {
+        return false;
+    }
+
+    @Override
     public double sumPart(final TermCount wdf, final DocStats doc) {
         return this.value;
     }

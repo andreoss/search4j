@@ -7,7 +7,6 @@
  */
 package io.github.andreoss.search4j.core.matcher;
 
-import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
@@ -21,6 +20,10 @@ import java.util.function.Consumer;
 /**
  * Filters a candidate stream while preserving its weights and postings.
  *
+ * <p>A candidate whose weight is below the minimum asked for is skipped
+ * without being tested; the numbers of tested candidates accepted and
+ * rejected refine the estimate of the matches.</p>
+ *
  * @since 0.1.0
  */
 public abstract class SelectPostList implements PostList {
@@ -31,19 +34,34 @@ public abstract class SelectPostList implements PostList {
     private PostList source;
 
     /**
-     * Positional children in query order.
+     * Children, estimate, window and document statistics of the filter.
      */
-    private final List<PostList> terms;
+    private final SelectSetup setup;
 
     /**
-     * Estimated number of selected documents.
+     * Weight of the current candidate, negative when not calculated.
      */
-    private final TermCount frequency;
+    private double cached;
 
     /**
-     * Positional window, absent for exact phrase matching.
+     * Whether the candidate stream was started.
      */
-    private final TermPos window;
+    private boolean began;
+
+    /**
+     * Whether the candidate stream ran out.
+     */
+    private boolean ended;
+
+    /**
+     * Number of tested candidates accepted.
+     */
+    private long accepted;
+
+    /**
+     * Number of tested candidates rejected.
+     */
+    private long rejected;
 
     /**
      * Creates a positional filter from prepared state.
@@ -51,21 +69,13 @@ public abstract class SelectPostList implements PostList {
      * @param setup Validated source, children and estimate
      */
     protected SelectPostList(final SelectSetup setup) {
-        this(
-            setup.source(), setup.terms(), setup.frequency(), setup.window()
-        );
+        this(setup, setup.source());
     }
 
-    private SelectPostList(
-        final PostList candidates,
-        final List<PostList> children,
-        final TermCount estimate,
-        final TermPos span
-    ) {
-        this.source = candidates;
-        this.terms = children;
-        this.frequency = estimate;
-        this.window = span;
+    private SelectPostList(final SelectSetup setup, final PostList source) {
+        this.setup = setup;
+        this.source = source;
+        this.cached = Double.NEGATIVE_INFINITY;
     }
 
     @Override
@@ -75,55 +85,59 @@ public abstract class SelectPostList implements PostList {
 
     @Override
     public final boolean atEnd() {
-        return this.source.atEnd();
+        return this.ended;
     }
 
     @Override
     public final PostList next(final double least) {
-        if (!this.source.atEnd()) {
+        this.began = true;
+        do {
             this.source = this.source.next(least);
-            while (!this.source.atEnd() && !this.testDoc()) {
-                this.source = this.source.next(least);
-            }
-        }
-        PostList result = this;
-        if (this.source.atEnd()) {
-            result = this.source;
-        }
-        return result;
+        } while (!this.vet(least));
+        return this;
     }
 
     @Override
     public final PostList skipTo(final DocId target, final double least) {
-        if (!this.source.atEnd()
-            && target.compareTo(this.source.docId()) > 0) {
-            this.source = this.source.skipTo(target, least);
-            while (!this.source.atEnd() && !this.testDoc()) {
-                this.source = this.source.next(least);
-            }
+        DocId current = DocId.NONE;
+        if (this.began) {
+            current = this.source.docId();
         }
         PostList result = this;
-        if (this.source.atEnd()) {
-            result = this.source;
+        if (target.compareTo(current) > 0) {
+            this.began = true;
+            this.source = this.source.skipTo(target, least);
+            if (!this.vet(least)) {
+                result = this.next(least);
+            }
         }
         return result;
     }
 
     @Override
     public final Probe check(final DocId target, final double least) {
+        this.began = true;
         final Probe probe = this.source.check(target, least);
         this.source = probe.list();
-        return new Probe(this, probe.valid() && this.testCurrent());
+        boolean valid = probe.valid();
+        if (valid) {
+            valid = this.vet(least);
+        }
+        return new Probe(this, valid);
     }
 
     @Override
     public final TermCount termFrequency() {
-        return this.frequency;
+        return this.setup.frequency();
     }
 
     @Override
     public final double weight(final DocStats doc) {
-        return this.source.weight(doc);
+        double result = this.cached;
+        if (result < 0.0) {
+            result = this.source.weight(doc);
+        }
+        return result;
     }
 
     @Override
@@ -140,8 +154,8 @@ public abstract class SelectPostList implements PostList {
     }
 
     @Override
-    public final DocRange docIdRange(final DocRange whole) {
-        return this.source.docIdRange(whole);
+    public final PositionList readPositionList() {
+        return this.source.readPositionList();
     }
 
     @Override
@@ -150,12 +164,12 @@ public abstract class SelectPostList implements PostList {
     }
 
     /**
-     * Positional children in their original query order.
+     * Positional children in their current order.
      *
-     * @return Immutable positional children
+     * @return Positional children
      */
     protected final List<PostList> terms() {
-        return this.terms;
+        return this.setup.terms();
     }
 
     /**
@@ -173,30 +187,65 @@ public abstract class SelectPostList implements PostList {
      * @return Window, or null for exact phrase matching
      */
     protected final TermPos window() {
-        return this.window;
+        return this.setup.window();
     }
 
     /**
-     * Minimum within-document frequency among the positional children.
+     * Smallest within-document frequency of the positional children.
      *
-     * @return Conservative frequency estimate
+     * @return Minimum frequency
      */
     protected final TermCount minimumWdf() {
-        long minimum = TermCount.MAX.value();
-        for (final PostList term : this.terms) {
-            minimum = Math.min(minimum, term.wdf().value());
+        final List<PostList> terms = this.setup.terms();
+        TermCount minimum = terms.get(0).wdf();
+        for (int index = 1; index < terms.size(); ++index) {
+            final TermCount wdf = terms.get(index).wdf();
+            if (wdf.compareTo(minimum) < 0) {
+                minimum = wdf;
+            }
         }
-        return new TermCount(minimum);
+        return minimum;
     }
 
     /**
-     * Tests positional membership at the source's current document.
+     * Number of tested candidates accepted and rejected.
      *
-     * @return True when the current candidate passes the filter
+     * @return Accepted count as the minimum, rejected count as the maximum
      */
+    final MatchEstimates ratio() {
+        return new MatchEstimates(
+            TermCount.wrap(this.accepted), TermCount.ZERO, TermCount.wrap(this.rejected),
+            PostListMath.WHOLE.first(), PostListMath.WHOLE.last()
+        );
+    }
+
     abstract boolean testDoc();
 
-    private boolean testCurrent() {
-        return !this.source.atEnd() && this.testDoc();
+    private boolean vet(final double least) {
+        boolean result = true;
+        if (this.source.atEnd()) {
+            this.ended = true;
+        } else {
+            boolean tested = true;
+            this.cached = Double.NEGATIVE_INFINITY;
+            if (least > 0.0 && this.setup.stats() != null) {
+                this.cached = this.source.weight(
+                    this.setup.stats().apply(this.source.docId())
+                );
+                tested = this.cached >= least;
+            }
+            result = tested && this.tested();
+        }
+        return result;
+    }
+
+    private boolean tested() {
+        final boolean result = this.testDoc();
+        if (result) {
+            this.accepted = this.accepted + 1L;
+        } else {
+            this.rejected = this.rejected + 1L;
+        }
+        return result;
     }
 }

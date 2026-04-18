@@ -26,6 +26,11 @@ import io.github.andreoss.search4j.core.types.TermCount;
 record RoundedEstimate(TermCount lower, TermCount estimate, TermCount upper) {
 
     /**
+     * Mask of an unsigned 32-bit count.
+     */
+    private static final long MASK = 0xFFFF_FFFFL;
+
+    /**
      * The rounded estimate.
      *
      * @return Estimate rounded within the bounds
@@ -34,7 +39,7 @@ record RoundedEstimate(TermCount lower, TermCount estimate, TermCount upper) {
         final long low = this.lower.value();
         final long high = this.upper.value();
         final long est = this.estimate.value();
-        final long scale = Math.min(high - low, est);
+        final long scale = Math.min(high - low & RoundedEstimate.MASK, est);
         long result = est;
         if (scale > 10L) {
             long step = 1L;
@@ -45,15 +50,16 @@ record RoundedEstimate(TermCount lower, TermCount estimate, TermCount upper) {
             final boolean upward;
             if (result < low) {
                 upward = true;
-            } else if (result > high - step) {
+            } else if (result > (high - step & RoundedEstimate.MASK)) {
                 upward = false;
             } else {
                 final long twice = 2L * (est - result);
-                upward = twice > step
-                    || twice == step && result - low <= high - step - result;
+                final boolean nearer = (result - low & RoundedEstimate.MASK)
+                    <= (high - step - result & RoundedEstimate.MASK);
+                upward = twice > step || twice == step && nearer;
             }
             if (upward) {
-                result = result + step;
+                result = result + step & RoundedEstimate.MASK;
             }
         }
         return new TermCount(result);

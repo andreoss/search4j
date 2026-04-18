@@ -51,4 +51,15 @@ public interface SynonymWeight {
      * @return True when clamping is needed
      */
     boolean needsDocLength();
+
+    /**
+     * Whether the scheme needs the highest within-document frequency of the
+     * document, which the group takes as the document length.
+     *
+     * @return True when wanted
+     * @since 0.10.0
+     */
+    default boolean needsWdfDocMax() {
+        return true;
+    }
 }

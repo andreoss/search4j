@@ -10,13 +10,18 @@ package io.github.andreoss.search4j.core.matcher;
 import io.github.andreoss.search4j.core.backend.inmemory.InMemoryShard;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.types.DocId;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Positional matching checks against a brute-force model.
+ * Positional matching checks against captured reference selections.
  *
  * @since 0.1.0
  */
@@ -27,17 +32,43 @@ import org.junit.jupiter.api.Test;
 final class PhraseNearPostListTest {
 
     @Test
-    void matchesTwoThroughFiveTermsAgainstPositionalOracle() {
-        final List<Map<String, List<Integer>>> documents =
-            PositionalTestData.generated();
-        final InMemoryShard database = PositionalTestData.shard(documents);
-        for (int count = 2; count <= 5; ++count) {
-            final List<String> words = PositionalTestData.words(count);
-            PhraseNearPostListTest.assertExact(database, documents, words, count);
-            PhraseNearPostListTest.assertWindows(
-                database, documents, words, count
-            );
+    void matchesCapturedPositionalFiltersOfTwoThroughFiveTerms() throws IOException {
+        final InMemoryShard database = PositionalTestData.shard(
+            PositionalTestData.generated()
+        );
+        final List<String> failures = new ArrayList<>(0);
+        for (final String line : PhraseNearPostListTest.lines()) {
+            final String[] row = line.split("\t", -1);
+            final int count = Integer.parseInt(row[1]);
+            final int window = Integer.parseInt(row[2]);
+            final String[] words = PositionalTestData.words(count).toArray(String[]::new);
+            final PostList filter;
+            if ("exact".equals(row[0])) {
+                final List<PostList> terms = PositionalTestData.terms(
+                    database, List.of(words)
+                );
+                filter = new ExactPhrasePostList(new AndPostList(terms, () -> { }), terms);
+            } else if ("phrase".equals(row[0])) {
+                filter = PositionalTestData.phrase(
+                    database, window, words
+                );
+            } else {
+                filter = PositionalTestData.near(database, window, words);
+            }
+            final StringBuilder found = new StringBuilder(64);
+            for (final DocId docid : PositionalTestData.drain(filter)) {
+                if (found.length() > 0) {
+                    found.append(',');
+                }
+                found.append(docid.value());
+            }
+            if (!found.toString().equals(row[3])) {
+                failures.add(String.format("%s got %s", line, found));
+            }
         }
+        Assertions.assertEquals(
+            List.of(), failures, "Documents selected by the captured filters"
+        );
     }
 
     @Test
@@ -155,70 +186,18 @@ final class PhraseNearPostListTest {
         );
     }
 
-    private static void assertExact(
-        final InMemoryShard database,
-        final List<Map<String, List<Integer>>> documents,
-        final List<String> words,
-        final int count
-    ) {
-        final List<PostList> terms = PositionalTestData.terms(database, words);
-        final PostList source = new AndPostList(terms, () -> { });
-        Assertions.assertEquals(
-            PositionalOracle.exact(documents, words),
-            PositionalTestData.drain(new ExactPhrasePostList(source, terms)),
-            String.format("Exact phrase of %d terms", count)
-        );
-    }
-
-    private static void assertWindows(
-        final InMemoryShard database,
-        final List<Map<String, List<Integer>>> documents,
-        final List<String> words,
-        final int count
-    ) {
-        for (int window = 1; window <= 7; ++window) {
-            PhraseNearPostListTest.assertPhrase(
-                database, documents, words, count, window
-            );
-            PhraseNearPostListTest.assertNear(
-                database, documents, words, count, window
-            );
+    private static List<String> lines() throws IOException {
+        try (
+            BufferedReader input = new BufferedReader(
+                new InputStreamReader(
+                    PhraseNearPostListTest.class.getResourceAsStream(
+                        "positional-filter-vectors.tsv"
+                    ),
+                    StandardCharsets.UTF_8
+                )
+            )
+        ) {
+            return input.lines().toList();
         }
-    }
-
-    private static void assertPhrase(
-        final InMemoryShard database,
-        final List<Map<String, List<Integer>>> documents,
-        final List<String> words,
-        final int count,
-        final int window
-    ) {
-        Assertions.assertEquals(
-            PositionalOracle.phrase(documents, words, window),
-            PositionalTestData.drain(
-                PositionalTestData.phrase(
-                    database, window, words.toArray(String[]::new)
-                )
-            ),
-            String.format("Phrase count=%d window=%d", count, window)
-        );
-    }
-
-    private static void assertNear(
-        final InMemoryShard database,
-        final List<Map<String, List<Integer>>> documents,
-        final List<String> words,
-        final int count,
-        final int window
-    ) {
-        Assertions.assertEquals(
-            PositionalOracle.near(documents, words, window),
-            PositionalTestData.drain(
-                PositionalTestData.near(
-                    database, window, words.toArray(String[]::new)
-                )
-            ),
-            String.format("Near count=%d window=%d", count, window)
-        );
     }
 }

@@ -167,11 +167,6 @@ public final class ValueRangePostList implements PostList {
     }
 
     @Override
-    public TermCount wdf() {
-        return TermCount.ZERO;
-    }
-
-    @Override
     public double weight(final DocStats doc) {
         return 0.0;
     }

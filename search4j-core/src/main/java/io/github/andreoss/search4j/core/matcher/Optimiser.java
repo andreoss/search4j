@@ -7,45 +7,35 @@
  */
 package io.github.andreoss.search4j.core.matcher;
 
-import io.github.andreoss.search4j.core.api.query.BoundNode;
+import io.github.andreoss.search4j.core.api.query.BranchNode;
 import io.github.andreoss.search4j.core.api.query.Node;
-import io.github.andreoss.search4j.core.api.query.RangeNode;
 import io.github.andreoss.search4j.core.api.query.ScaleNode;
 import io.github.andreoss.search4j.core.backend.Shard;
-import io.github.andreoss.search4j.core.backend.ValueStats;
-import io.github.andreoss.search4j.core.backend.list.DocRange;
-import io.github.andreoss.search4j.core.backend.list.LeafPostList;
-import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
-import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.QueryOp;
-import io.github.andreoss.search4j.core.types.TermCount;
-import io.github.andreoss.search4j.core.types.ValueNo;
-import java.util.Optional;
+import io.github.andreoss.search4j.core.types.TermPos;
 
 /**
  * Builds the posting list tree of a query and the estimate of its matches:
- * conjunctions are flattened with their exclusions and optional parts,
- * disjunctions are flattened, and scale factors reach the term weights.
+ * conjunctions are flattened with their exclusions, optional parts and
+ * positional checks, disjunctions are flattened and may keep an elite set,
+ * synonyms are weighted as one term from estimated frequencies, wildcards
+ * and edit distances expand over the terms of the shard, and scale factors
+ * reach the term weights.
  *
  * @since 0.3.0
  */
 final class Optimiser {
 
     /**
-     * Database shard searched.
+     * Shard, statistics and callback of the search.
      */
-    private final Shard shard;
+    private final Matching env;
 
     /**
-     * Weighting scheme with the collection statistics.
+     * Posting lists of the leaves.
      */
-    private final Scheme scheme;
-
-    /**
-     * Callback when maximum weights change.
-     */
-    private final Runnable recalc;
+    private final Leaves leaves;
 
     /**
      * Number of weighted leaf subqueries.
@@ -53,9 +43,12 @@ final class Optimiser {
     private int subqueries;
 
     Optimiser(final Shard shard, final Scheme scheme, final Runnable recalc) {
-        this.shard = shard;
-        this.scheme = scheme;
-        this.recalc = recalc;
+        this(new Matching(shard, scheme.collection(), recalc), scheme);
+    }
+
+    private Optimiser(final Matching env, final Scheme scheme) {
+        this.env = env;
+        this.leaves = new Leaves(env, scheme);
     }
 
     int subqueries() {
@@ -63,120 +56,120 @@ final class Optimiser {
     }
 
     MatchTree tree(final Node node, final double factor) {
+        return this.postlist(node, factor, null);
+    }
+
+    private MatchTree postlist(final Node node, final double factor, final TermFreqs sink) {
         return switch (node.type()) {
-            case LEAF_TERM, LEAF_MATCH_ALL, LEAF_MATCH_NOTHING -> this.leaf(node, factor);
-            case AND, FILTER, AND_NOT, AND_MAYBE -> this.conjunction(node, factor);
-            case OR -> this.disjunction(node, factor);
-            case XOR -> this.exclusive(node, factor);
-            case SCALE_WEIGHT -> this.tree(
-                node.subquery(0).node(), factor * ((ScaleNode) node).factor()
+            case LEAF_TERM, LEAF_MATCH_ALL -> {
+                this.count(factor);
+                yield this.leaves.term(node, factor, sink);
+            }
+            case LEAF_MATCH_NOTHING -> null;
+            case AND, FILTER, AND_NOT, AND_MAYBE, PHRASE, NEAR -> this.conjunction(
+                node, factor, sink
             );
-            case VALUE_RANGE, VALUE_GE, VALUE_LE -> this.value(node, factor);
+            case OR, XOR, ELITE_SET, SYNONYM, MAX -> this.union(node, factor, sink);
+            case SCALE_WEIGHT -> this.postlist(
+                node.subquery(0).node(), factor * ((ScaleNode) node).factor(), sink
+            );
+            case VALUE_RANGE, VALUE_GE, VALUE_LE -> {
+                this.count(factor);
+                yield this.leaves.value(node, sink);
+            }
+            case WILDCARD, EDIT_DISTANCE -> this.expanded(node, factor, sink);
             default -> throw new InvalidArgumentError(
                 String.format("Query type %s is not supported", node.type())
             );
         };
     }
 
-    private MatchTree leaf(final Node node, final double factor) {
-        final MatchTree result;
-        if (factor != 0.0 && node.type() != QueryOp.LEAF_MATCH_NOTHING) {
-            this.subqueries = this.subqueries + 1;
-        }
-        if (node.type() == QueryOp.LEAF_TERM) {
-            result = this.term(node, factor);
-        } else if (node.type() == QueryOp.LEAF_MATCH_ALL) {
-            result = this.all();
-        } else {
-            result = null;
+    private MatchTree conjunction(final Node node, final double factor, final TermFreqs sink) {
+        final AndContext ctx = new AndContext(this.env);
+        MatchTree result = null;
+        if (this.andLike(ctx, node, factor, sink)) {
+            result = ctx.conjunction(this.leaves::all, sink);
         }
         return result;
     }
 
-    private MatchTree conjunction(final Node node, final double factor) {
-        final AndContext ctx = new AndContext();
-        final MatchTree result;
-        if (this.conjoin(ctx, node, factor)) {
-            result = ctx.conjunction(this::all, this.shard.docCount(), this.recalc);
-        } else {
-            result = null;
-        }
-        return result;
+    private MatchTree union(final Node node, final double factor, final TermFreqs sink) {
+        final UnionContext ctx = new UnionContext(this.env);
+        return switch (node.type()) {
+            case OR -> this.disjunction(ctx, node, factor, sink);
+            case XOR -> {
+                this.xorLike(ctx, node, factor, sink);
+                yield ctx.exclusive(sink);
+            }
+            case ELITE_SET -> {
+                this.orLike(ctx, node, factor, sink, Optimiser.parameter(node), 0, true);
+                yield ctx.disjunction(sink, false);
+            }
+            default -> this.grouping(ctx, node, factor, sink);
+        };
     }
 
-    private MatchTree disjunction(final Node node, final double factor) {
-        final UnionContext ctx = new UnionContext();
-        if (factor == 0.0) {
-            this.plain(ctx, node, 0);
-        } else {
-            this.disjoin(ctx, node, factor, 0, true);
-        }
-        return ctx.disjunction(factor == 0.0, this.shard.docCount(), this.recalc);
-    }
-
-    private MatchTree exclusive(final Node node, final double factor) {
-        final UnionContext ctx = new UnionContext();
-        this.exclude(ctx, node, factor);
-        return ctx.exclusive(this.shard.docCount(), this.recalc);
-    }
-
-    private MatchTree value(final Node node, final double factor) {
-        final MatchTree result;
+    private MatchTree grouping(
+        final UnionContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
+        int saved = this.subqueries;
         if (factor != 0.0) {
-            this.subqueries = this.subqueries + 1;
+            saved = saved + 1;
         }
-        if (node.type() == QueryOp.VALUE_RANGE) {
-            final RangeNode range = (RangeNode) node;
-            result = this.range(range.slot(), range.lower(), range.upper());
-        } else if (node.type() == QueryOp.VALUE_GE) {
-            final BoundNode bound = (BoundNode) node;
-            result = this.range(bound.slot(), bound.limit(), "");
-        } else if (((BoundNode) node).limit().isEmpty()) {
-            result = null;
+        final MatchTree result;
+        if (factor == 0.0) {
+            this.boolOrLike(ctx, node, sink, 0);
+            result = ctx.disjunction(sink, true);
+        } else if (node.type() == QueryOp.SYNONYM) {
+            final TermFreqs group = new TermFreqs();
+            this.boolOrLike(ctx, node, group, 0);
+            result = this.leaves.grouped(ctx.disjunction(group, true), factor, group);
         } else {
-            final BoundNode bound = (BoundNode) node;
-            result = this.range(bound.slot(), "", bound.limit());
+            this.orLike(ctx, node, factor, sink, 0, 0, true);
+            result = ctx.maximum();
         }
+        this.subqueries = saved;
         return result;
     }
 
-    private boolean conjoin(final AndContext ctx, final Node node, final double factor) {
-        final boolean result;
-        switch (node.type()) {
-            case LEAF_MATCH_ALL -> {
-                if (factor == 0.0) {
-                    ctx.everything();
-                    result = true;
-                } else {
-                    result = ctx.add(this.tree(node, factor));
-                }
-            }
-            case AND, FILTER -> result = this.conjoinAll(ctx, node, factor);
-            case AND_NOT -> {
-                result = this.conjoin(ctx, node.subquery(0).node(), factor);
-                if (result) {
-                    this.plain(ctx.excluded(), node, 1);
-                }
-            }
-            case AND_MAYBE -> {
-                result = this.conjoin(ctx, node.subquery(0).node(), factor);
-                if (result && factor != 0.0) {
-                    this.disjoin(ctx.optional(), node, factor, 1, false);
-                }
-            }
-            case SCALE_WEIGHT -> result = this.conjoin(
-                ctx, node.subquery(0).node(), factor * ((ScaleNode) node).factor()
+    private boolean andLike(
+        final AndContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
+        return switch (node.type()) {
+            case LEAF_MATCH_ALL -> this.everything(ctx, node, factor, sink);
+            case AND, FILTER -> this.conjoin(ctx, node, factor, sink);
+            case AND_NOT -> this.andLike(ctx, node.subquery(0).node(), factor, sink)
+                && this.excluded(ctx, node, sink);
+            case AND_MAYBE -> this.andLike(ctx, node.subquery(0).node(), factor, sink)
+                && this.optional(ctx, node, factor, sink);
+            case PHRASE, NEAR -> this.windowed(ctx, node, factor, sink);
+            case SCALE_WEIGHT -> this.andLike(
+                ctx, node.subquery(0).node(), factor * ((ScaleNode) node).factor(), sink
             );
-            default -> result = ctx.add(this.tree(node, factor));
+            default -> ctx.add(this.postlist(node, factor, sink), sink);
+        };
+    }
+
+    private boolean everything(
+        final AndContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
+        final boolean result;
+        if (!this.leaves.positioned() && factor == 0.0 && sink == null) {
+            ctx.everything();
+            result = true;
+        } else {
+            result = ctx.add(this.postlist(node, factor, sink), sink);
         }
         return result;
     }
 
-    private boolean conjoinAll(final AndContext ctx, final Node node, final double factor) {
+    private boolean conjoin(
+        final AndContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
         boolean result = true;
         double scale = factor;
         for (int idx = 0; result && idx < node.subqueryCount(); idx = idx + 1) {
-            result = this.conjoin(ctx, node.subquery(idx).node(), scale);
+            result = this.andLike(ctx, node.subquery(idx).node(), scale, sink);
             if (node.type() == QueryOp.FILTER) {
                 scale = 0.0;
             }
@@ -184,130 +177,168 @@ final class Optimiser {
         return result;
     }
 
-    private void disjoin(
+    private boolean excluded(final AndContext ctx, final Node node, final TermFreqs sink) {
+        this.boolOrLike(ctx.excluded(), node, sink, 1);
+        return true;
+    }
+
+    private boolean optional(
+        final AndContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
+        if (factor != 0.0) {
+            this.orLike(ctx.optional(), node, factor, sink, 0, 1, false);
+        }
+        return true;
+    }
+
+    private boolean windowed(
+        final AndContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
+        boolean result = false;
+        if (this.env.shard().hasPositions()) {
+            final boolean saved = this.leaves.positioned();
+            this.leaves.positions(true);
+            result = this.positional(ctx, node, factor, sink);
+            if (result) {
+                ctx.filter(
+                    node.type(), node.subqueryCount(), new TermPos(Optimiser.parameter(node))
+                );
+            }
+            this.leaves.positions(saved);
+        } else {
+            ctx.clear();
+        }
+        return result;
+    }
+
+    private boolean positional(
+        final AndContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
+        boolean result = true;
+        int idx = 0;
+        while (result && idx < node.subqueryCount()) {
+            final Node sub = node.subquery(idx).node();
+            MatchTree tree = this.postlist(sub, factor, null);
+            if (tree != null && sub.type() != QueryOp.LEAF_TERM) {
+                tree = new MatchTree(new OrPosPostList(tree.list()), tree.estimate());
+            }
+            result = ctx.add(tree, sink);
+            if (result) {
+                idx = idx + 1;
+            }
+        }
+        while (!result && factor != 0.0 && idx < node.subqueryCount()) {
+            this.postlist(node.subquery(idx).node(), factor, null);
+            idx = idx + 1;
+        }
+        return result;
+    }
+
+    private MatchTree disjunction(
+        final UnionContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
+        final MatchTree result;
+        if (factor == 0.0) {
+            this.boolOrLike(ctx, node, sink, 0);
+            result = ctx.disjunction(sink, true);
+        } else {
+            this.orLike(ctx, node, factor, sink, 0, 0, true);
+            result = ctx.disjunction(sink, false);
+        }
+        return result;
+    }
+
+    private void orLike(
         final UnionContext ctx, final Node node, final double factor,
-        final int from, final boolean zero
+        final TermFreqs sink, final int elite, final int from, final boolean zero
+    ) {
+        final int before = ctx.size();
+        for (int idx = from; idx < node.subqueryCount(); idx = idx + 1) {
+            this.orSub(ctx, node.subquery(idx).node(), factor, sink, zero);
+        }
+        final int among = ctx.size() - before;
+        if (elite != 0 && elite < among) {
+            ctx.elite(elite, among);
+        }
+    }
+
+    private void orSub(
+        final UnionContext ctx, final Node sub, final double factor,
+        final TermFreqs sink, final boolean zero
+    ) {
+        if (sub.type() == QueryOp.OR) {
+            this.orLike(ctx, sub, factor, sink, 0, 0, zero);
+        } else if (sub.type() == QueryOp.ELITE_SET) {
+            this.orLike(ctx, sub, factor, sink, Optimiser.parameter(sub), 0, zero);
+        } else {
+            final int saved = this.subqueries;
+            final MatchTree tree = this.postlist(sub, factor, sink);
+            if (zero || tree == null || tree.list().recalcMaxWeight() != 0.0) {
+                ctx.add(tree, sink);
+            } else {
+                this.subqueries = saved;
+            }
+        }
+    }
+
+    private void boolOrLike(
+        final UnionContext ctx, final Node node, final TermFreqs sink, final int from
     ) {
         for (int idx = from; idx < node.subqueryCount(); idx = idx + 1) {
             final Node sub = node.subquery(idx).node();
             if (sub.type() == QueryOp.OR) {
-                this.disjoin(ctx, sub, factor, 0, zero);
+                this.boolOrLike(ctx, sub, sink, 0);
             } else {
-                final int saved = this.subqueries;
-                final MatchTree tree = this.tree(sub, factor);
-                if (zero || tree == null || tree.list().recalcMaxWeight() != 0.0) {
-                    ctx.add(tree);
-                } else {
-                    this.subqueries = saved;
-                }
+                ctx.add(this.postlist(sub, 0.0, sink), sink);
             }
         }
     }
 
-    private void plain(final UnionContext ctx, final Node node, final int from) {
-        for (int idx = from; idx < node.subqueryCount(); idx = idx + 1) {
-            final Node sub = node.subquery(idx).node();
-            if (sub.type() == QueryOp.OR) {
-                this.plain(ctx, sub, 0);
-            } else {
-                ctx.add(this.tree(sub, 0.0));
-            }
-        }
-    }
-
-    private void exclude(final UnionContext ctx, final Node node, final double factor) {
+    private void xorLike(
+        final UnionContext ctx, final Node node, final double factor, final TermFreqs sink
+    ) {
         for (int idx = 0; idx < node.subqueryCount(); idx = idx + 1) {
             final Node sub = node.subquery(idx).node();
             if (sub.type() == QueryOp.XOR) {
-                this.exclude(ctx, sub, factor);
+                this.xorLike(ctx, sub, factor, sink);
             } else {
-                ctx.add(this.tree(sub, factor));
+                ctx.add(this.postlist(sub, factor, sink), sink);
             }
         }
     }
 
-    private MatchTree term(final Node node, final double factor) {
-        final String term = node.term();
-        final Optional<LeafPostList> leaf = this.shard.openLeafPostList(term, false);
-        MatchTree result = null;
-        if (leaf.isPresent()) {
-            final LeafPostList list = leaf.get();
-            if (factor != 0.0) {
-                list.weighting(
-                    this.scheme.term(
-                        Scheme.stats(list, this.shard.frequencies(term), node.wqf()),
-                        factor
-                    )
-                );
-            }
-            final DocRange range = list.docIdRange(PostListMath.WHOLE);
-            result = new MatchTree(
-                list,
-                MatchEstimate.known(list.termFrequency(), range.first(), range.last())
-            );
-        }
-        return result;
-    }
-
-    private MatchTree all() {
-        final PostList list = this.shard.openPostList("");
-        return new MatchTree(
-            list,
-            MatchEstimate.known(
-                list.termFrequency(), PostListMath.WHOLE.first(),
-                PostListMath.WHOLE.last()
-            )
-        );
-    }
-
-    private MatchTree range(final ValueNo slot, final String begin, final String end) {
-        final ValueStats stats = this.shard.valueStats(slot);
-        final String lower = stats.lower();
-        final String upper = stats.upper();
+    private MatchTree expanded(final Node node, final double factor, final TermFreqs sink) {
+        final UnionContext ctx = new UnionContext(this.env);
+        final Expander expander = new Expander(this.env, this.leaves, ExpansionSpec.of(node));
+        final QueryOp combiner = expander.spec().combiner();
         final MatchTree result;
-        if (lower.isEmpty() || !end.isEmpty() && end.compareTo(lower) < 0
-            || begin.compareTo(upper) > 0) {
-            result = null;
-        } else if ((end.isEmpty() || end.compareTo(upper) >= 0)
-            && begin.compareTo(lower) <= 0) {
-            result = this.valued(slot, stats.frequency());
+        if (factor == 0.0) {
+            expander.into(ctx, 0.0, sink);
+            result = ctx.disjunction(sink, true);
+        } else if (combiner == QueryOp.SYNONYM) {
+            this.subqueries = this.subqueries + 1;
+            final TermFreqs group = new TermFreqs();
+            expander.into(ctx, 0.0, group);
+            result = this.leaves.grouped(ctx.disjunction(group, true), factor, group);
         } else {
-            String high = end;
-            if (end.compareTo(upper) >= 0) {
-                high = "";
+            expander.into(ctx, factor, sink);
+            this.subqueries = this.subqueries + ctx.size();
+            if (combiner == QueryOp.MAX) {
+                result = ctx.maximum();
+            } else {
+                result = ctx.disjunction(sink, false);
             }
-            final ValueRangePostList list = new ValueRangePostList(
-                this.shard, ValueRange.of(slot, begin, high),
-                Optimiser.bounds(
-                    0, RangeEstimate.frequency(stats, begin, high),
-                    stats.frequency().value()
-                )
-            );
-            result = new MatchTree(list, MatchEstimate.reported(list));
         }
         return result;
     }
 
-    private MatchTree valued(final ValueNo slot, final TermCount freq) {
-        final MatchEstimates bounds = Optimiser.bounds(freq.value(), freq.value(), freq.value());
-        final MatchTree result;
-        if (freq.equals(this.shard.docCount())) {
-            result = new MatchTree(
-                this.shard.openPostList(""), MatchEstimate.known(bounds)
-            );
-        } else {
-            final ValueRangePostList list = new ValueRangePostList(
-                this.shard, ValueRange.of(slot, "", ""), bounds
-            );
-            result = new MatchTree(list, MatchEstimate.reported(list));
+    private void count(final double factor) {
+        if (factor != 0.0) {
+            this.subqueries = this.subqueries + 1;
         }
-        return result;
     }
 
-    private static MatchEstimates bounds(final long min, final long est, final long max) {
-        return new MatchEstimates(
-            new TermCount(min), new TermCount(est), new TermCount(max),
-            PostListMath.WHOLE.first(), new DocId(Integer.MAX_VALUE)
-        );
+    private static int parameter(final Node node) {
+        return ((BranchNode) node).parameter();
     }
 }

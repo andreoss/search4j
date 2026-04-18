@@ -185,6 +185,16 @@ public final class MatchEstimate {
         );
     }
 
+    static MatchEstimate filtered(
+        final EstimateKind operation, final MatchEstimate child,
+        final Supplier<MatchEstimates> ratio
+    ) {
+        return new MatchEstimate(
+            operation, List.of(child), ratio,
+            PostListMath.WHOLE.first(), PostListMath.WHOLE.last()
+        );
+    }
+
     static MatchEstimate intersection(final List<? extends PostList> lists) {
         return MatchEstimate.combine(EstimateKind.AND, lists);
     }
@@ -226,6 +236,7 @@ public final class MatchEstimate {
                 children.get(0).first, children.get(0).last
             );
             case OR, XOR -> MatchEstimate.unionRange(children);
+            case NEAR, PHRASE, EXACT_PHRASE -> PostListMath.WHOLE;
             case KNOWN -> throw new IllegalArgumentException(
                 "A known estimate has no children"
             );
@@ -278,7 +289,38 @@ public final class MatchEstimate {
             case AND_NOT -> this.andNot(dbsize, dbfirst, dblast);
             case OR -> this.or(dbsize, dbfirst, dblast, range);
             case XOR -> this.xor(dbsize, dbfirst, dblast, range);
+            case NEAR, PHRASE, EXACT_PHRASE -> this.filter(dbsize, dbfirst, dblast);
         };
+    }
+
+    private long[] filter(
+        final TermCount dbsize, final DocId dbfirst, final DocId dblast
+    ) {
+        final MatchEstimates part = this.children.get(0).resolve(
+            dbsize, dbfirst, dblast
+        );
+        final MatchEstimates ratio = this.bounds.get();
+        final long accepted = ratio.min().value();
+        final long rejected = ratio.max().value();
+        final long[] result;
+        if (accepted == 0L && rejected == 0L) {
+            result = new long[] {
+                0L, part.est().value() / this.kind.divisor(), part.max().value(),
+            };
+        } else {
+            final long maximum = MatchEstimate.unsigned(part.max().value() - rejected);
+            result = new long[] {
+                accepted,
+                MatchEstimate.clamp(
+                    MatchEstimate.round(
+                        part.est().value() * ((double) accepted / (accepted + rejected))
+                    ),
+                    accepted, maximum
+                ),
+                maximum,
+            };
+        }
+        return result;
     }
 
     private DocId lowest() {

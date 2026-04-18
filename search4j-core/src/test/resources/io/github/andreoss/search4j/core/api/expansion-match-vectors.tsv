@@ -1,0 +1,232 @@
+W	a*	0	
+W	a*	16	a,ab,abc,abcd,abd,abxd,acd,ad,aaa,aaaa,afox
+W	a*	32	
+W	a*	48	a,ab,abc,abcd,abd,abxd,acd,ad,aaa,aaaa,afox
+W	*b*	0	
+W	*b*	16	ab,abc,abcd,abd,abxd,b,ba,bab,baab
+W	*b*	32	
+W	*b*	48	ab,abc,abcd,abd,abxd,b,ba,bab,baab
+W	a?d	0	
+W	a?d	16	
+W	a?d	32	abd,acd
+W	a?d	48	abd,acd
+W	a??d	0	
+W	a??d	16	
+W	a??d	32	abcd,abxd
+W	a??d	48	abcd,abxd
+W	?	0	
+W	?	16	
+W	?	32	a,b,d,f
+W	?	48	a,b,d,f
+W	??	0	
+W	??	16	
+W	??	32	ab,ad,ba,cé,do,zz,fx
+W	??	48	ab,ad,ba,cé,do,zz,fx
+W	*	0	
+W	*	16	a,ab,abc,abcd,abd,abxd,acd,ad,b,ba,bab,baab,cé,café,cafe,cafes,caff,caf€,caf😀,cxfe,dog,dot,dug,dogs,doge,god,odg,do,d,xyz,xxyz,zz,aaa,aaaa,foxes,fox,fx,f,afox,foxa,oxf,kfox,Kfox,2fox,été,ete
+W	*	32	
+W	*	48	a,ab,abc,abcd,abd,abxd,acd,ad,b,ba,bab,baab,cé,café,cafe,cafes,caff,caf€,caf😀,cxfe,dog,dot,dug,dogs,doge,god,odg,do,d,xyz,xxyz,zz,aaa,aaaa,foxes,fox,fx,f,afox,foxa,oxf,kfox,Kfox,2fox,été,ete
+W	a*d	0	
+W	a*d	16	abcd,abd,abxd,acd,ad
+W	a*d	32	
+W	a*d	48	abcd,abd,abxd,acd,ad
+W	a*b*d	0	
+W	a*b*d	16	abcd,abd,abxd
+W	a*b*d	32	
+W	a*b*d	48	abcd,abd,abxd
+W	*d	0	
+W	*d	16	abcd,abd,abxd,acd,ad,god,d
+W	*d	32	
+W	*d	48	abcd,abd,abxd,acd,ad,god,d
+W	caf?	0	
+W	caf?	16	
+W	caf?	32	café,cafe,caff,caf€,caf😀
+W	caf?	48	café,cafe,caff,caf€,caf😀
+W	caf??	0	
+W	caf??	16	
+W	caf??	32	cafes
+W	caf??	48	cafes
+W	c?f*	0	
+W	c?f*	16	
+W	c?f*	32	
+W	c?f*	48	café,cafe,cafes,caff,caf€,caf😀,cxfe
+W	*?	0	
+W	*?	16	
+W	*?	32	
+W	*?	48	a,ab,abc,abcd,abd,abxd,acd,ad,b,ba,bab,baab,cé,café,cafe,cafes,caff,caf€,caf😀,cxfe,dog,dot,dug,dogs,doge,god,odg,do,d,xyz,xxyz,zz,aaa,aaaa,foxes,fox,fx,f,afox,foxa,oxf,kfox,Kfox,2fox,été,ete
+W	?*	0	
+W	?*	16	
+W	?*	32	
+W	?*	48	a,ab,abc,abcd,abd,abxd,acd,ad,b,ba,bab,baab,cé,café,cafe,cafes,caff,caf€,caf😀,cxfe,dog,dot,dug,dogs,doge,god,odg,do,d,xyz,xxyz,zz,aaa,aaaa,foxes,fox,fx,f,afox,foxa,oxf,kfox,Kfox,2fox,été,ete
+W	b*b	0	
+W	b*b	16	bab,baab
+W	b*b	32	
+W	b*b	48	bab,baab
+W	ba*ab	0	
+W	ba*ab	16	baab
+W	ba*ab	32	
+W	ba*ab	48	baab
+W	a*a	0	
+W	a*a	16	aaa,aaaa
+W	a*a	32	
+W	a*a	48	aaa,aaaa
+W	aa*a	0	
+W	aa*a	16	aaa,aaaa
+W	aa*a	32	
+W	aa*a	48	aaa,aaaa
+W	*z	0	
+W	*z	16	xyz,xxyz,zz
+W	*z	32	
+W	*z	48	xyz,xxyz,zz
+W	x*yz	0	
+W	x*yz	16	xyz,xxyz
+W	x*yz	32	
+W	x*yz	48	xyz,xxyz
+W	*o*	0	
+W	*o*	16	dog,dot,dogs,doge,god,odg,do,foxes,fox,afox,foxa,oxf,kfox,2fox
+W	*o*	32	
+W	*o*	48	dog,dot,dogs,doge,god,odg,do,foxes,fox,afox,foxa,oxf,kfox,2fox
+W	d?g	0	
+W	d?g	16	
+W	d?g	32	dog,dug
+W	d?g	48	dog,dug
+W	??g	0	
+W	??g	16	
+W	??g	32	dog,dug,odg
+W	??g	48	dog,dug,odg
+W	f*x	0	
+W	f*x	16	fox,fx
+W	f*x	32	
+W	f*x	48	fox,fx
+W	*ox*	0	
+W	*ox*	16	foxes,fox,afox,foxa,oxf,kfox,2fox
+W	*ox*	32	
+W	*ox*	48	foxes,fox,afox,foxa,oxf,kfox,2fox
+W	é?é	0	
+W	é?é	16	
+W	é?é	32	été
+W	é?é	48	été
+W	?t?	0	
+W	?t?	16	
+W	?t?	32	été,ete
+W	?t?	48	été,ete
+D	fox	0	0	fox
+D	fox	0	1	fox
+D	fox	0	2	fox
+D	fox	1	0	fox,fx,afox,foxa,kfox,2fox
+D	fox	1	1	fox,fx,foxa
+D	fox	1	2	fox,foxa
+D	fox	2	0	dog,dot,god,do,foxes,fox,fx,f,afox,foxa,oxf,kfox,2fox
+D	fox	2	1	foxes,fox,fx,f,foxa
+D	fox	2	2	foxes,fox,foxa
+D	fox	3	0	a,ab,abc,abd,abxd,acd,ad,b,ba,bab,cé,dog,dot,dug,dogs,doge,god,odg,do,d,xyz,zz,aaa,foxes,fox,fx,f,afox,foxa,oxf,kfox,2fox,été,ete
+D	fox	3	1	foxes,fox,fx,f,foxa
+D	fox	3	2	foxes,fox,foxa
+D	dog	0	0	dog
+D	dog	0	1	dog
+D	dog	0	2	dog
+D	dog	1	0	dog,dot,dug,dogs,doge,odg,do
+D	dog	1	1	dog,dot,dug,dogs,doge,do
+D	dog	1	2	dog,dot,dogs,doge,do
+D	dog	2	0	dog,dot,dug,dogs,doge,god,odg,do,d,fox
+D	dog	2	1	dog,dot,dug,dogs,doge,do,d
+D	dog	2	2	dog,dot,dogs,doge,do
+D	dog	3	0	a,ab,abc,abd,acd,ad,b,ba,bab,cé,dog,dot,dug,dogs,doge,god,odg,do,d,xyz,zz,aaa,fox,fx,f,afox,foxa,oxf,kfox,2fox,été,ete
+D	dog	3	1	dog,dot,dug,dogs,doge,do,d
+D	dog	3	2	dog,dot,dogs,doge,do
+D	cafe	0	0	cafe
+D	cafe	0	1	cafe
+D	cafe	0	2	cafe
+D	cafe	1	0	café,cafe,cafes,caff,caf€,caf😀,cxfe
+D	cafe	1	1	café,cafe,cafes,caff,caf€,caf😀,cxfe
+D	cafe	1	2	café,cafe,cafes,caff,caf€,caf😀
+D	cafe	2	0	café,cafe,cafes,caff,caf€,caf😀,cxfe
+D	cafe	2	1	café,cafe,cafes,caff,caf€,caf😀,cxfe
+D	cafe	2	2	café,cafe,cafes,caff,caf€,caf😀
+D	cafe	3	0	a,ab,abc,abd,acd,ad,ba,bab,baab,cé,café,cafe,cafes,caff,caf€,caf😀,cxfe,doge,aaa,aaaa,fx,f,afox,oxf,ete
+D	cafe	3	1	cé,café,cafe,cafes,caff,caf€,caf😀,cxfe
+D	cafe	3	2	café,cafe,cafes,caff,caf€,caf😀
+D	café	0	0	café
+D	café	0	1	café
+D	café	0	2	café
+D	café	1	0	café,cafe,caff,caf€,caf😀
+D	café	1	1	café,cafe,caff,caf€,caf😀
+D	café	1	2	café,cafe,caff,caf€,caf😀
+D	café	2	0	cé,café,cafe,cafes,caff,caf€,caf😀,cxfe
+D	café	2	1	cé,café,cafe,cafes,caff,caf€,caf😀,cxfe
+D	café	2	2	café,cafe,cafes,caff,caf€,caf😀
+D	café	3	0	a,ab,abc,abd,acd,ad,ba,bab,baab,cé,café,cafe,cafes,caff,caf€,caf😀,cxfe,aaa,aaaa,fx,f,afox,oxf,été
+D	café	3	1	cé,café,cafe,cafes,caff,caf€,caf😀,cxfe
+D	café	3	2	café,cafe,cafes,caff,caf€,caf😀
+D	abcd	0	0	abcd
+D	abcd	0	1	abcd
+D	abcd	0	2	abcd
+D	abcd	1	0	abc,abcd,abd,abxd,acd
+D	abcd	1	1	abc,abcd,abd,abxd,acd
+D	abcd	1	2	abc,abcd,abd,abxd
+D	abcd	2	0	ab,abc,abcd,abd,abxd,acd,ad
+D	abcd	2	1	ab,abc,abcd,abd,abxd,acd,ad
+D	abcd	2	2	ab,abc,abcd,abd,abxd
+D	abcd	3	0	a,ab,abc,abcd,abd,abxd,acd,ad,b,ba,bab,baab,cé,god,d,aaa,aaaa,afox
+D	abcd	3	1	a,ab,abc,abcd,abd,abxd,acd,ad,aaa,aaaa,afox
+D	abcd	3	2	ab,abc,abcd,abd,abxd
+D	a	0	0	a
+D	a	0	1	a
+D	a	0	2	a
+D	a	1	0	a,ab,ad,b,ba,d,f
+D	a	1	1	a,ab,ad
+D	a	1	2	a,ab,ad
+D	a	2	0	a,ab,abc,abd,acd,ad,b,ba,bab,cé,do,d,zz,aaa,fx,f
+D	a	2	1	a,ab,abc,abd,acd,ad,aaa
+D	a	2	2	a,ab,abc,abd,acd,ad,aaa
+D	a	3	0	a,ab,abc,abcd,abd,abxd,acd,ad,b,ba,bab,baab,cé,café,cafe,caff,caf€,caf😀,dog,dot,dug,god,odg,do,d,xyz,zz,aaa,aaaa,fox,fx,f,afox,foxa,oxf,été,ete
+D	a	3	1	a,ab,abc,abcd,abd,abxd,acd,ad,aaa,aaaa,afox
+D	a	3	2	a,ab,abc,abcd,abd,abxd,acd,ad,aaa,aaaa,afox
+D	do	0	0	do
+D	do	0	1	do
+D	do	0	2	do
+D	do	1	0	dog,dot,do,d
+D	do	1	1	dog,dot,do,d
+D	do	1	2	dog,dot,do
+D	do	2	0	a,ab,ad,b,ba,cé,dog,dot,dug,dogs,doge,god,odg,do,d,zz,fox,fx,f
+D	do	2	1	dog,dot,dug,dogs,doge,do,d
+D	do	2	2	dog,dot,dogs,doge,do
+D	do	3	0	a,ab,abc,abd,acd,ad,b,ba,bab,cé,dog,dot,dug,dogs,doge,god,odg,do,d,xyz,zz,aaa,fox,fx,f,afox,foxa,oxf,kfox,2fox,été,ete
+D	do	3	1	dog,dot,dug,dogs,doge,do,d
+D	do	3	2	dog,dot,dogs,doge,do
+D	été	0	0	été
+D	été	0	1	été
+D	été	0	2	été
+D	été	1	0	été
+D	été	1	1	été
+D	été	1	2	été
+D	été	2	0	cé,été,ete
+D	été	2	1	été
+D	été	2	2	été
+D	été	3	0	a,ab,abc,abd,acd,ad,b,ba,bab,cé,café,dog,dot,dug,god,odg,do,d,xyz,zz,aaa,fox,fx,f,oxf,été,ete
+D	été	3	1	été
+D	été	3	2	été
+D	baab	0	0	baab
+D	baab	0	1	baab
+D	baab	0	2	baab
+D	baab	1	0	bab,baab
+D	baab	1	1	bab,baab
+D	baab	1	2	bab,baab
+D	baab	2	0	ab,ba,bab,baab,aaa,aaaa
+D	baab	2	1	ba,bab,baab
+D	baab	2	2	ba,bab,baab
+D	baab	3	0	a,ab,abc,abcd,abd,abxd,acd,ad,b,ba,bab,baab,café,cafe,caff,caf€,caf😀,aaa,aaaa
+D	baab	3	1	b,ba,bab,baab
+D	baab	3	2	ba,bab,baab
+D	xyz	0	0	xyz
+D	xyz	0	1	xyz
+D	xyz	0	2	xyz
+D	xyz	1	0	xyz,xxyz
+D	xyz	1	1	xyz,xxyz
+D	xyz	1	2	xyz
+D	xyz	2	0	xyz,xxyz,zz
+D	xyz	2	1	xyz,xxyz
+D	xyz	2	2	xyz
+D	xyz	3	0	a,ab,abc,abd,acd,ad,b,ba,bab,cé,cxfe,dog,dot,dug,god,odg,do,d,xyz,xxyz,zz,aaa,fox,fx,f,oxf,été,ete
+D	xyz	3	1	xyz,xxyz
+D	xyz	3	2	xyz

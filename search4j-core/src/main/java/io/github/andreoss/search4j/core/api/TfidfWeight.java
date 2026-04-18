@@ -137,8 +137,14 @@ public final class TfidfWeight implements Weight {
                 this.delta.value()
             ),
             IdfNorm.byCode(this.codes[1], stats), stats.term().wqf().value() * factor,
-            stats.term().wdfMax(), stats.collection().bounds().docMin()
+            stats.term().wdfMax(), stats.collection().bounds().docMin(),
+            TfidfWeight.lengthy(this.codes)
         );
+    }
+
+    private static boolean lengthy(final int... codes) {
+        return codes[0] == WdfNorm.PIVOTED.code() || codes[0] == WdfNorm.LOG_AVERAGE.code()
+            || codes[0] == WdfNorm.AUG_AVERAGE.code() || codes[1] == IdfNorm.PIVOTED.code();
     }
 
     private static IdfNorm rest(final WeightParams input) {

@@ -21,6 +21,26 @@ import java.util.List;
 public final class PhrasePostList extends SelectPostList {
 
     /**
+     * Outcome of a full match.
+     */
+    private static final long ACCEPT = -1L;
+
+    /**
+     * Outcome of a match still in progress.
+     */
+    private static final long MORE = -3L;
+
+    /**
+     * Number of position lists read for the document tested.
+     */
+    private int read;
+
+    /**
+     * Position of the last term matched.
+     */
+    private long pos;
+
+    /**
      * Creates an ordered positional filter.
      *
      * @param candidates Stream containing every required term
@@ -37,7 +57,7 @@ public final class PhrasePostList extends SelectPostList {
         ));
     }
 
-    private PhrasePostList(final SelectSetup setup) {
+    PhrasePostList(final SelectSetup setup) {
         super(setup);
     }
 
@@ -55,31 +75,51 @@ public final class PhrasePostList extends SelectPostList {
 
     @Override
     boolean testDoc() {
-        final List<PostList> terms = this.terms();
-        final PositionList first = terms.get(0).readPositionList();
-        boolean matched = false;
-        boolean more = first.next();
-        while (more && !matched) {
-            final long base = first.position().value();
-            long position = base;
-            boolean within = true;
-            for (int index = 1; index < terms.size() && within; ++index) {
-                final long next = position + 1L;
-                if (next > Integer.MAX_VALUE) {
-                    within = false;
-                } else {
-                    final PositionList positions = terms.get(index)
-                        .readPositionList();
-                    within = positions.skipTo(new TermPos((int) next));
-                    if (within) {
-                        position = positions.position().value();
-                        within = position - base + 1L <= this.window().value();
-                    }
-                }
-            }
-            matched = within;
-            more = !matched && first.next();
+        final PositionList[] lists = new PositionList[this.terms().size()];
+        lists[0] = this.terms().get(0).readPositionList();
+        this.read = 0;
+        final long window = this.window().value() & Positions.MASK;
+        boolean result = false;
+        boolean more = lists[0].next();
+        while (more && !result) {
+            final long bound = this.attempt(lists, window);
+            result = bound == PhrasePostList.ACCEPT;
+            more = bound >= 0L && Positions.skip(lists[0], bound - window);
         }
-        return matched;
+        return result;
+    }
+
+    private long attempt(final PositionList[] lists, final long window) {
+        final long base = Positions.at(lists[0]);
+        this.pos = base;
+        int index = 0;
+        long result = PhrasePostList.MORE;
+        while (result == PhrasePostList.MORE) {
+            index = index + 1;
+            if (index == lists.length) {
+                result = PhrasePostList.ACCEPT;
+            } else {
+                result = this.step(lists, index, base, window);
+            }
+        }
+        return result;
+    }
+
+    private long step(
+        final PositionList[] lists, final int index, final long base, final long window
+    ) {
+        if (index > this.read) {
+            this.read = index;
+            lists[index] = this.terms().get(index).readPositionList();
+        }
+        long result = Long.MIN_VALUE;
+        if (Positions.skip(lists[index], this.pos + 1L)) {
+            this.pos = Positions.at(lists[index]);
+            result = this.pos + lists.length - index & Positions.MASK;
+            if ((result - base & Positions.MASK) <= window) {
+                result = PhrasePostList.MORE;
+            }
+        }
+        return result;
     }
 }

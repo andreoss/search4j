@@ -11,26 +11,44 @@ import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.types.TermCount;
 import io.github.andreoss.search4j.core.types.TermPos;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Unordered positional match contained in a term-position window.
+ *
+ * <p>Terms are read from the lowest within-document frequency, an order kept
+ * from one document to the next; the position lists form a heap with the
+ * lowest position on top.</p>
  *
  * @since 0.1.0
  */
 public final class NearPostList extends SelectPostList {
 
     /**
+     * Position lists of the document tested.
+     */
+    private PositionList[] heap;
+
+    /**
+     * Highest position reached.
+     */
+    private long last;
+
+    /**
+     * Number of position lists started.
+     */
+    private int end;
+
+    /**
+     * Window of positions.
+     */
+    private long span;
+
+    /**
      * Creates an unordered positional filter.
      *
      * @param candidates Stream containing every required term
-     * @param span Maximum exclusive distance between selected positions
+     * @param span Maximum inclusive span of a near match
      * @param terms Terms in query order
      */
     public NearPostList(
@@ -43,7 +61,7 @@ public final class NearPostList extends SelectPostList {
         ));
     }
 
-    private NearPostList(final SelectSetup setup) {
+    NearPostList(final SelectSetup setup) {
         super(setup);
     }
 
@@ -61,139 +79,106 @@ public final class NearPostList extends SelectPostList {
 
     @Override
     boolean testDoc() {
-        final List<List<Integer>> positions = new ArrayList<>(this.terms().size());
-        final NavigableSet<Integer> starts = new TreeSet<>();
-        boolean possible = this.window().value() > 0;
-        for (final PostList term : this.terms()) {
-            final PositionList list = term.readPositionList();
-            final List<Integer> found = new ArrayList<>(0);
-            while (list.next()) {
-                final int position = list.position().value();
-                found.add(position);
-                starts.add(position);
-            }
-            if (found.isEmpty()) {
-                possible = false;
-            }
-            positions.add(List.copyOf(found));
-        }
-        boolean matched = false;
-        if (possible) {
-            for (final int start : starts) {
-                final long end = (long) start + this.window().value() - 1L;
-                final List<Integer> order = NearPostList.order(
-                    positions, start, end
-                );
-                if (order != null && NearPostList.assign(
-                    positions, order, 0, new HashSet<>(0), start, end
-                )) {
-                    matched = true;
-                    break;
+        final List<PostList> terms = this.terms();
+        Positions.sortByWdf(terms);
+        this.heap = new PositionList[terms.size()];
+        this.heap[0] = terms.get(0).readPositionList();
+        this.span = this.window().value() & Positions.MASK;
+        boolean result = false;
+        if (this.heap[0].next()) {
+            this.last = Positions.at(this.heap[0]);
+            this.end = 1;
+            int state = 0;
+            while (state == 0) {
+                if ((this.last - Positions.at(this.heap[0]) & Positions.MASK) < this.span) {
+                    state = this.grow();
+                } else {
+                    state = this.slide();
                 }
             }
-        }
-        return matched;
-    }
-
-    private static List<Integer> order(
-        final List<List<Integer>> positions,
-        final int start,
-        final long end
-    ) {
-        final List<Integer> order = new ArrayList<>(positions.size());
-        boolean possible = true;
-        for (int index = 0; index < positions.size(); ++index) {
-            if (NearPostList.count(positions.get(index), start, end) == 0) {
-                possible = false;
-            }
-            order.add(index);
-        }
-        order.sort(
-            Comparator.comparingInt(
-                index -> NearPostList.count(positions.get(index), start, end)
-            )
-        );
-        List<Integer> result = null;
-        if (possible) {
-            result = order;
+            result = state > 0;
         }
         return result;
     }
 
-    private static int count(
-        final List<Integer> positions, final int start, final long end
-    ) {
-        int count = 0;
-        for (final int position : positions) {
-            if (position > end) {
-                break;
-            }
-            if (position >= start) {
-                ++count;
-            }
+    private int grow() {
+        final int state;
+        if (this.end == this.heap.length) {
+            state = this.distinct();
+        } else {
+            state = this.add();
         }
-        return count;
+        return state;
     }
 
-    private static boolean assign(
-        final List<List<Integer>> positions,
-        final List<Integer> order,
-        final int index,
-        final Set<Integer> chosen,
-        final long start,
-        final long end
-    ) {
-        boolean assigned = index == order.size();
-        if (!assigned) {
-            assigned = NearPostList.assignChoices(
-                positions.get(order.get(index)), positions, order,
-                index, chosen, start, end
-            );
+    private int add() {
+        final PositionList list = this.terms().get(this.end).readPositionList();
+        final boolean placed;
+        if (this.last < this.span) {
+            placed = list.next();
+        } else {
+            placed = Positions.skip(list, this.last - this.span + 1L);
         }
-        return assigned;
+        int state = -1;
+        if (placed) {
+            this.last = Math.max(this.last, Positions.at(list));
+            this.heap[this.end] = list;
+            this.end = this.end + 1;
+            Positions.push(this.heap, this.end, NearPostList::later);
+            state = 0;
+        }
+        return state;
     }
 
-    private static boolean assignChoices(
-        final List<Integer> choices,
-        final List<List<Integer>> positions,
-        final List<Integer> order,
-        final int index,
-        final Set<Integer> chosen,
-        final long start,
-        final long end
-    ) {
-        boolean assigned = false;
-        int choice = 0;
-        while (choice < choices.size() && !assigned) {
-            final int position = choices.get(choice);
-            if (position > end) {
-                choice = choices.size();
+    private int slide() {
+        int state = -1;
+        if (Positions.skip(this.heap[0], this.last - this.span + 1L)) {
+            this.last = Math.max(this.last, Positions.at(this.heap[0]));
+            Positions.replace(this.heap, this.end, NearPostList::later);
+            state = 0;
+        }
+        return state;
+    }
+
+    private int distinct() {
+        long pos = Positions.at(this.heap[0]);
+        Positions.pop(this.heap, this.end, NearPostList::later);
+        int index = this.end - 1;
+        int state = 2;
+        while (state == 2) {
+            if (Positions.at(this.heap[0]) == pos) {
+                state = this.bump(index);
             } else {
-                assigned = NearPostList.assignChoice(
-                    position, positions, order, index, chosen, start, end
-                );
-                ++choice;
+                pos = Positions.at(this.heap[0]);
+                Positions.pop(this.heap, index, NearPostList::later);
+                index = index - 1;
+                if (index == 0) {
+                    state = 1;
+                }
             }
         }
-        return assigned;
+        if (state == 0) {
+            Positions.make(this.heap, this.end, NearPostList::later);
+        }
+        return state;
     }
 
-    private static boolean assignChoice(
-        final int position,
-        final List<List<Integer>> positions,
-        final List<Integer> order,
-        final int index,
-        final Set<Integer> chosen,
-        final long start,
-        final long end
-    ) {
-        boolean assigned = false;
-        if (position >= start && chosen.add(position)) {
-            assigned = NearPostList.assign(
-                positions, order, index + 1, chosen, start, end
-            );
-            chosen.remove(position);
+    private int bump(final int index) {
+        int state = -1;
+        if (this.heap[0].next()) {
+            final long moved = Positions.at(this.heap[0]);
+            if ((moved - Positions.at(this.heap[this.end - 1]) & Positions.MASK) >= this.span) {
+                this.last = moved;
+                state = 0;
+            } else {
+                Positions.replace(this.heap, index, NearPostList::later);
+                state = 2;
+            }
         }
-        return assigned;
+        return state;
+    }
+
+    private static boolean later(final PositionList left, final PositionList right) {
+        return Positions.at(left) > Positions.at(right);
     }
 }

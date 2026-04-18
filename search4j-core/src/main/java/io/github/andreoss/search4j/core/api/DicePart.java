@@ -43,6 +43,11 @@ record DicePart(double numerator, long query, double upper)
     }
 
     @Override
+    public boolean needsWdf() {
+        return false;
+    }
+
+    @Override
     public double sumPart(final TermCount wdf, final DocStats doc) {
         return this.numerator
             / WeightMath.unsigned(this.query + doc.unique().value());

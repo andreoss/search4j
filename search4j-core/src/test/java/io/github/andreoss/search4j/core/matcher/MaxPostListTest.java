@@ -85,13 +85,35 @@ final class MaxPostListTest {
             () -> { }
         );
         Assertions.assertEquals(
-            3, union.termFrequency().value(), "Sum of child estimates"
+            3, union.termFrequency().value(), "Estimate of independent children"
         );
         Assertions.assertEquals(
             "(left MAX right)", union.description(), "Description"
         );
         Assertions.assertEquals(
-            new TermCount(0), union.countMatchingSubqueries(), "No leaves"
+            new TermCount(1), union.countMatchingSubqueries(), "One subquery"
+        );
+    }
+
+    @Test
+    void estimatesFrequencyOverTheDatabaseAndGivesWayToTheLastChild() {
+        final PostList right = BooleanPostListFixture.fake("right", 2, 3);
+        final PostList union = new MaxPostList(
+            List.of(BooleanPostListFixture.fake("left", 1, 2, 4), right),
+            () -> { }, new TermCount(4)
+        );
+        Assertions.assertEquals(
+            4, union.termFrequency().value(), "Independent children in four documents"
+        );
+        PostList list = union.next(0.0);
+        list = list.next(0.0);
+        list = list.next(0.0);
+        final DocId third = list.docId();
+        final PostList last = list.next(0.0);
+        Assertions.assertEquals(
+            List.of(DocId.of(3), true, DocId.of(4)),
+            List.of(third, !last.equals(union), last.docId()),
+            "The left child is left alone after the right one ends"
         );
     }
 
@@ -112,11 +134,10 @@ final class MaxPostListTest {
     private static List<DocId> drain(final PostList source) {
         PostList list = source;
         final List<DocId> result = new ArrayList<>(0);
+        list = list.next();
         while (!list.atEnd()) {
+            result.add(list.docId());
             list = list.next();
-            if (!list.atEnd()) {
-                result.add(list.docId());
-            }
         }
         return result;
     }

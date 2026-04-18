@@ -9,10 +9,8 @@ package io.github.andreoss.search4j.core.matcher;
 
 import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.DocStats;
-import io.github.andreoss.search4j.core.backend.list.EmptyPostList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
-import io.github.andreoss.search4j.core.error.InvalidOperationError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.ArrayList;
@@ -21,12 +19,12 @@ import java.util.List;
 /**
  * Union of several lists whose document weight is the largest child weight.
  *
+ * <p>The union counts as one matching subquery, estimates its frequency
+ * assuming independent children and gives way to its last child left.</p>
+ *
  * @since 0.1.0
  */
-@SuppressWarnings({
-    "PMD.NullAssignment",
-    "PMD.ProhibitPublicStaticMethods"
-})
+@SuppressWarnings("PMD.ProhibitPublicStaticMethods")
 public final class MaxPostList implements PostList {
 
     /**
@@ -40,12 +38,17 @@ public final class MaxPostList implements PostList {
     private final Runnable recalc;
 
     /**
-     * Current document, absent before the first move and after the end.
+     * Estimated number of documents matched.
      */
-    private DocId current;
+    private final TermCount frequency;
 
     /**
-     * Creates a weighted maximum union.
+     * Current document, zero before the first move and after the end.
+     */
+    private int current;
+
+    /**
+     * Creates a weighted maximum union over the largest database.
      *
      * @param children Child lists, at least one
      * @param recalculation Callback run when a child is replaced
@@ -54,13 +57,30 @@ public final class MaxPostList implements PostList {
         final List<? extends PostList> children,
         final Runnable recalculation
     ) {
-        this.children = new ArrayList<>(children);
+        this(children, recalculation, TermCount.MAX);
+    }
+
+    MaxPostList(
+        final List<? extends PostList> children,
+        final Runnable recalculation, final TermCount dbsize
+    ) {
+        this(
+            MaxPostList.estimate(children, dbsize), new ArrayList<>(children),
+            recalculation
+        );
+    }
+
+    private MaxPostList(
+        final TermCount frequency, final List<PostList> children,
+        final Runnable recalculation
+    ) {
+        this.children = children;
         this.recalc = recalculation;
-        this.current = null;
+        this.frequency = frequency;
     }
 
     /**
-     * Creates a weighted maximum union.
+     * Creates a weighted maximum union over the largest database.
      *
      * @param children Child lists, at least one
      * @param recalculation Callback run when a child is replaced
@@ -86,29 +106,33 @@ public final class MaxPostList implements PostList {
 
     @Override
     public DocId docId() {
-        if (this.current == null) {
-            throw new InvalidOperationError(
-                "A maximum union is not on a document"
-            );
-        }
-        return this.current;
+        return new DocId(this.current);
     }
 
     @Override
     public boolean atEnd() {
-        return this.children.isEmpty();
+        return this.current == 0;
     }
 
     @Override
     public PostList next(final double least) {
-        final DocId previous = this.current;
-        this.current = null;
+        final int old = this.current;
+        this.current = 0;
         int index = 0;
         while (index < this.children.size()) {
             final PostList child = this.children.get(index);
-            final PostList moved = this.move(child, previous, least);
-            if (moved != null) {
-                this.observe(moved);
+            int here = 0;
+            if (old != 0) {
+                here = child.docId().value();
+            }
+            boolean kept = true;
+            if (Integer.compareUnsigned(here, old) <= 0) {
+                final PostList moved = MaxPostList.advance(child, old, here, least);
+                kept = this.settle(index, child, moved);
+                here = MaxPostList.position(moved, kept);
+            }
+            if (kept) {
+                this.observe(here);
                 index = index + 1;
             }
         }
@@ -117,13 +141,23 @@ public final class MaxPostList implements PostList {
 
     @Override
     public PostList skipTo(final DocId target, final double least) {
-        this.current = null;
+        final int old = this.current;
+        this.current = 0;
         int index = 0;
         while (index < this.children.size()) {
             final PostList child = this.children.get(index);
-            final PostList moved = this.skip(child, target, least);
-            if (moved != null) {
-                this.observe(moved);
+            int here = 0;
+            if (old != 0) {
+                here = child.docId().value();
+            }
+            boolean kept = true;
+            if (Integer.compareUnsigned(here, target.value()) < 0) {
+                final PostList moved = child.skipTo(target, least);
+                kept = this.settle(index, child, moved);
+                here = MaxPostList.position(moved, kept);
+            }
+            if (kept) {
+                this.observe(here);
                 index = index + 1;
             }
         }
@@ -132,29 +166,25 @@ public final class MaxPostList implements PostList {
 
     @Override
     public TermCount termFrequency() {
-        TermCount total = TermCount.ZERO;
-        for (final PostList child : this.children) {
-            total = total.plus(child.termFrequency());
-        }
-        return total;
+        return this.frequency;
     }
 
     @Override
     public TermCount wdf() {
-        TermCount total = TermCount.ZERO;
+        long total = 0L;
         for (final PostList child : this.children) {
-            if (this.on(child)) {
-                total = total.plus(child.wdf());
+            if (child.docId().value() == this.current) {
+                total = total + child.wdf().value();
             }
         }
-        return total;
+        return TermCount.wrap(total);
     }
 
     @Override
     public double weight(final DocStats doc) {
         double result = 0.0;
         for (final PostList child : this.children) {
-            if (this.on(child)) {
+            if (child.docId().value() == this.current) {
                 result = Math.max(result, child.weight(doc));
             }
         }
@@ -163,34 +193,30 @@ public final class MaxPostList implements PostList {
 
     @Override
     public double recalcMaxWeight() {
-        double result = 0.0;
-        for (final PostList child : this.children) {
-            result = Math.max(result, child.recalcMaxWeight());
+        double result = this.children.get(0).recalcMaxWeight();
+        for (int index = 1; index < this.children.size(); ++index) {
+            result = Math.max(result, this.children.get(index).recalcMaxWeight());
         }
         return result;
     }
 
     @Override
     public TermCount countMatchingSubqueries() {
-        return TermCount.ZERO;
+        return TermCount.ONE;
     }
 
     @Override
     public DocRange docIdRange(final DocRange whole) {
-        DocRange range = whole;
-        for (final PostList child : this.children) {
-            final DocRange inner = child.docIdRange(whole);
-            final DocId first;
-            if (inner.first().compareTo(range.first()) < 0) {
+        DocRange range = this.children.get(0).docIdRange(whole);
+        for (int index = 1; index < this.children.size(); ++index) {
+            final DocRange inner = this.children.get(index).docIdRange(PostListMath.WHOLE);
+            DocId first = range.first();
+            if (inner.first().compareTo(first) < 0) {
                 first = inner.first();
-            } else {
-                first = range.first();
             }
-            final DocId last;
-            if (inner.last().compareTo(range.last()) > 0) {
+            DocId last = range.last();
+            if (inner.last().compareTo(last) > 0) {
                 last = inner.last();
-            } else {
-                last = range.last();
             }
             range = new DocRange(first, last);
         }
@@ -200,83 +226,74 @@ public final class MaxPostList implements PostList {
     @Override
     public String description() {
         final StringBuilder text = new StringBuilder("(");
-        int index = 0;
-        while (index < this.children.size()) {
+        for (int index = 0; index < this.children.size(); ++index) {
             if (index > 0) {
                 text.append(" MAX ");
             }
             text.append(this.children.get(index).description());
-            index = index + 1;
         }
         return text.append(')').toString();
     }
 
-    private boolean on(final PostList child) {
-        return !child.atEnd() && child.docId().equals(this.current);
-    }
-
-    private PostList move(
-        final PostList child, final DocId previous, final double least
-    ) {
-        final DocId here = MaxPostList.here(child);
-        PostList moved = child;
-        if (previous == null || here.compareTo(previous) <= 0) {
-            if (previous == null || here.equals(previous)) {
-                moved = child.next(least);
-            } else {
-                moved = child.skipTo(previous.next(), least);
-            }
-            moved = this.replace(child, moved);
-        }
-        return moved;
-    }
-
-    private PostList skip(
-        final PostList child, final DocId target, final double least
-    ) {
-        final DocId here = MaxPostList.here(child);
-        PostList moved = child;
-        if (here.compareTo(target) < 0) {
-            moved = this.replace(child, child.skipTo(target, least));
-        }
-        return moved;
-    }
-
-    private static DocId here(final PostList child) {
-        final DocId result;
-        if (child.atEnd()) {
-            result = DocId.NONE;
-        } else {
-            result = child.docId();
-        }
-        return result;
-    }
-
-    private PostList replace(final PostList child, final PostList moved) {
-        PostList result = moved;
-        final int index = this.children.indexOf(child);
+    private boolean settle(final int index, final PostList child, final PostList moved) {
         this.children.set(index, moved);
+        boolean kept = true;
         if (moved.atEnd()) {
             this.children.remove(index);
-            result = null;
+            kept = false;
         } else if (!moved.equals(child)) {
             this.recalc.run();
         }
+        return kept;
+    }
+
+    private static PostList advance(
+        final PostList child, final int old, final int here, final double least
+    ) {
+        final PostList moved;
+        if (old == 0 || here == old) {
+            moved = child.next(least);
+        } else {
+            moved = child.skipTo(new DocId(old + 1), least);
+        }
+        return moved;
+    }
+
+    private static int position(final PostList list, final boolean kept) {
+        int result = 0;
+        if (kept) {
+            result = list.docId().value();
+        }
         return result;
     }
 
-    private void observe(final PostList child) {
-        final DocId candidate = child.docId();
-        if (this.current == null
-            || candidate.compareTo(this.current) < 0) {
-            this.current = candidate;
+    private void observe(final int here) {
+        if (this.current == 0 || Integer.compareUnsigned(here, this.current) < 0) {
+            this.current = here;
         }
     }
 
     private PostList finish() {
         PostList result = this;
-        if (this.children.isEmpty()) {
-            result = EmptyPostList.INSTANCE;
+        if (this.children.size() == 1) {
+            result = this.children.get(0);
+        }
+        return result;
+    }
+
+    private static TermCount estimate(
+        final List<? extends PostList> lists, final TermCount dbsize
+    ) {
+        TermCount result = TermCount.ZERO;
+        if (!lists.isEmpty()) {
+            final double size = dbsize.value();
+            final double scale = 1.0 / size;
+            double prob = lists.get(0).termFrequency().value() * scale;
+            for (int index = 1; index < lists.size(); ++index) {
+                final double part = lists.get(index).termFrequency().value() * scale;
+                prob += part - prob * part;
+            }
+            result = TermCount.wrap((long) (prob * size + 0.5));
         }
         return result;
     }

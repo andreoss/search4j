@@ -20,12 +20,23 @@ import io.github.andreoss.search4j.core.types.TermCount;
  * @param scale Scaled within-query frequency
  * @param wdfmax Upper bound on the within-document frequency
  * @param docmin Lower bound on the document length
+ * @param length Whether a contribution depends on the document length
  * @since 0.1.0
  */
 record TfidfPart(
     WdfNorm wdf, Pivot pivot, double idf, double scale, TermCount wdfmax,
-    TermCount docmin
+    TermCount docmin, boolean length
 ) implements TermWeight {
+
+    @Override
+    public boolean needsDocLength() {
+        return this.length;
+    }
+
+    @Override
+    public boolean needsWdfDocMax() {
+        return this.wdf == WdfNorm.MAX || this.wdf == WdfNorm.AUG;
+    }
 
     @Override
     public double sumPart(final TermCount freq, final DocStats doc) {

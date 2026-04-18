@@ -1,0 +1,26 @@
+text	1	the quick brown fox jumps over the lazy dog	0:apple
+text	2	the lazy brown dog sleeps quick	0:banana
+text	3	quick quick brown brown fox fox	0:cherry
+text	4	a brown quick fox and a lazy cat	0:date
+text	5	the quiet quilt and the quick cat	0:elder
+text	6	brow brows frown fox fax fix box	0:fig
+text	7	quick _ brown _ fox dog dog	0:grape
+text	8	the the the dog the
+text	9	lazy dog quick brown fox lazy dog	0:kiwi
+text	10	café cafe caff XAsmith Kfox 2024 fox
+text	11	dig dog dot dug quack quick
+text	12	brown fox:3 quick:2 lazy
+text	13	the cat and the dog and the fox	0:lemon
+text	14	quicker browner foxes dogs
+text	15	XAjones quick brown Kdog
+text	16	fox quick brown the dog lazy quick brown	0:mango
+text	17	cat
+text	18	quick brown
+flat	1	quick:1 brown:1 fox:1
+flat	2	lazy:2 dog:1 quick:1
+flat	3	brown:2 fox:1 cat:1
+flat	4	the:3 dog:1
+every	1	every fox quick
+every	2	every cat
+every	3	every fox fox lazy
+every	4	every dog

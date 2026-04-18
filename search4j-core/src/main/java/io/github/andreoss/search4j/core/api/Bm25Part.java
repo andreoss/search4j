@@ -29,6 +29,12 @@ record Bm25Part(
 ) implements TermWeight {
 
     @Override
+    public boolean needsDocLength() {
+        return this.params.termsat() != 0.0 && this.params.slope() != 0.0
+            || this.params.correction() != 0.0;
+    }
+
+    @Override
     public double sumPart(final TermCount wdf, final DocStats doc) {
         return this.saturated((double) wdf.value(), (double) doc.length().value());
     }

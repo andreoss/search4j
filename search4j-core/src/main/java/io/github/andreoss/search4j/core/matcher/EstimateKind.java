@@ -17,25 +17,59 @@ enum EstimateKind {
     /**
      * A leaf with known match bounds.
      */
-    KNOWN,
+    KNOWN(1),
+
+    /**
+     * Documents of a child with terms near each other.
+     *
+     * @since 0.10.0
+     */
+    NEAR(2),
+
+    /**
+     * Documents of a child with terms in order within a window.
+     *
+     * @since 0.10.0
+     */
+    PHRASE(3),
+
+    /**
+     * Documents of a child with terms at adjacent positions.
+     *
+     * @since 0.10.0
+     */
+    EXACT_PHRASE(4),
 
     /**
      * Documents present in every child.
      */
-    AND,
+    AND(1),
 
     /**
      * Left-side documents absent from the right side.
      */
-    AND_NOT,
+    AND_NOT(1),
 
     /**
      * Documents present in one or more children.
      */
-    OR,
+    OR(1),
 
     /**
      * Documents present in an odd number of children.
      */
-    XOR
+    XOR(1);
+
+    /**
+     * Divisor of the child estimate of a filter without counts.
+     */
+    private final int divisor;
+
+    EstimateKind(final int divisor) {
+        this.divisor = divisor;
+    }
+
+    int divisor() {
+        return this.divisor;
+    }
 }

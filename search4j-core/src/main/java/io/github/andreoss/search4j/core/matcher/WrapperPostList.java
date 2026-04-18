@@ -7,7 +7,6 @@
  */
 package io.github.andreoss.search4j.core.matcher;
 
-import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
@@ -62,10 +61,7 @@ public abstract class WrapperPostList implements PostList {
 
     @Override
     public final PostList skipTo(final DocId target, final double least) {
-        final PostList wrapped = this.source;
-        final PostList moved = wrapped.skipTo(target, least);
-        this.replaced(wrapped, moved);
-        this.source = moved;
+        final PostList moved = this.skip(target, least);
         PostList result = this;
         if (moved.atEnd()) {
             result = moved;
@@ -75,9 +71,7 @@ public abstract class WrapperPostList implements PostList {
 
     @Override
     public final Probe check(final DocId target, final double least) {
-        final Probe probe = this.source.check(target, least);
-        this.source = probe.list();
-        return new Probe(this, probe.valid());
+        return this.probe(target, least);
     }
 
     @Override
@@ -96,11 +90,6 @@ public abstract class WrapperPostList implements PostList {
 
     @Override
     public abstract TermCount countMatchingSubqueries();
-
-    @Override
-    public final DocRange docIdRange(final DocRange whole) {
-        return this.source.docIdRange(whole);
-    }
 
     @Override
     public final PositionList readPositionList() {
@@ -147,6 +136,36 @@ public abstract class WrapperPostList implements PostList {
     PostList move(final double least) {
         final PostList wrapped = this.source;
         final PostList moved = wrapped.next(least);
+        this.replaced(wrapped, moved);
+        this.source = moved;
+        return moved;
+    }
+
+    /**
+     * Checks the wrapped list at a document; a subclass may instead skip to
+     * it and report the position as valid.
+     *
+     * @param target Document to check
+     * @param least Minimum weight wanted
+     * @return Probe of this wrapper
+     */
+    Probe probe(final DocId target, final double least) {
+        final Probe probe = this.source.check(target, least);
+        this.source = probe.list();
+        return new Probe(this, probe.valid());
+    }
+
+    /**
+     * Skips the wrapped list to a document; a subclass may ignore the
+     * minimum weight, and must replace the wrapped list with the moved one.
+     *
+     * @param target Document to skip to
+     * @param least Minimum weight wanted
+     * @return Moved wrapped list
+     */
+    PostList skip(final DocId target, final double least) {
+        final PostList wrapped = this.source;
+        final PostList moved = wrapped.skipTo(target, least);
         this.replaced(wrapped, moved);
         this.source = moved;
         return moved;

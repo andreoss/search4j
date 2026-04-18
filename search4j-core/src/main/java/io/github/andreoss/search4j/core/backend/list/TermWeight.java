@@ -31,4 +31,38 @@ public interface TermWeight {
      * @return Highest possible contribution
      */
     double maxPart();
+
+    /**
+     * Whether a contribution depends on the document length, so that a
+     * frequency summed over several terms is clamped to it.
+     *
+     * @return True unless the scheme ignores the document length
+     * @since 0.10.0
+     */
+    default boolean needsDocLength() {
+        return true;
+    }
+
+    /**
+     * Whether a contribution depends on the within-document frequency, so
+     * that a synonym group needs the frequency summed over its terms.
+     *
+     * @return True unless the scheme ignores the frequency
+     * @since 0.10.0
+     */
+    default boolean needsWdf() {
+        return true;
+    }
+
+    /**
+     * Whether a contribution depends on the highest within-document
+     * frequency of the document, which a synonym group takes as the
+     * document length.
+     *
+     * @return True when the scheme uses that frequency
+     * @since 0.10.0
+     */
+    default boolean needsWdfDocMax() {
+        return false;
+    }
 }

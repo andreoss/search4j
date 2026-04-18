@@ -9,7 +9,9 @@ package io.github.andreoss.search4j.core.matcher;
 
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PostList;
+import io.github.andreoss.search4j.core.backend.list.Probe;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
+import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 
 /**
@@ -60,9 +62,16 @@ public final class SynonymPostList extends WrapperPostList {
     public double weight(final DocStats doc) {
         TermCount wdf = TermCount.ZERO;
         if (this.scheme.weight().needsWdf()) {
-            wdf = SynonymPostList.clamped(this.wdf(), doc);
+            wdf = this.wdf();
+            if (this.scheme.clamp()) {
+                wdf = SynonymPostList.clamped(wdf, doc);
+            }
         }
-        return this.scheme.weight().sumPart(wdf, doc);
+        DocStats stats = doc;
+        if (this.scheme.weight().needsWdfDocMax()) {
+            stats = new DocStats(doc.length(), doc.unique(), doc.length());
+        }
+        return this.scheme.weight().sumPart(wdf, stats);
     }
 
     @Override
@@ -86,6 +95,25 @@ public final class SynonymPostList extends WrapperPostList {
     PostList move(final double least) {
         final PostList wrapped = this.wrapped();
         final PostList moved = wrapped.next(0.0);
+        this.replace(moved);
+        this.replaced(wrapped, moved);
+        return moved;
+    }
+
+    @Override
+    Probe probe(final DocId target, final double least) {
+        final PostList moved = this.skip(target, least);
+        PostList result = this;
+        if (moved.atEnd()) {
+            result = moved;
+        }
+        return new Probe(result, true);
+    }
+
+    @Override
+    PostList skip(final DocId target, final double least) {
+        final PostList wrapped = this.wrapped();
+        final PostList moved = wrapped.skipTo(target, 0.0);
         this.replace(moved);
         this.replaced(wrapped, moved);
         return moved;

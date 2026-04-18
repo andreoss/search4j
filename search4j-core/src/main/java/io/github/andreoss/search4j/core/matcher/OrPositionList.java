@@ -29,19 +29,14 @@ public final class OrPositionList implements PositionList {
     private final List<PositionList> lists;
 
     /**
-     * Current position from each live source.
+     * Current position of each live source, empty before the first move.
      */
-    private final List<TermPos> positions;
+    private long[] positions;
 
     /**
-     * Current merged position, absent before the first move and after the end.
+     * Current merged position.
      */
-    private TermPos current;
-
-    /**
-     * Whether source lists have received their first move.
-     */
-    private boolean started;
+    private long current;
 
     /**
      * Creates a merge over independent source position lists.
@@ -53,16 +48,12 @@ public final class OrPositionList implements PositionList {
     }
 
     private OrPositionList(final OrPositionSetup setup) {
-        this(setup.lists(), setup.positions());
+        this(setup.lists(), new long[0]);
     }
 
-    private OrPositionList(
-        final List<PositionList> sources,
-        final List<TermPos> positions
-    ) {
-        this.lists = sources;
+    private OrPositionList(final List<PositionList> lists, final long... positions) {
+        this.lists = lists;
         this.positions = positions;
-        this.started = false;
     }
 
     @Override
@@ -88,50 +79,28 @@ public final class OrPositionList implements PositionList {
 
     @Override
     public TermPos position() {
-        if (this.current == null) {
-            throw new InvalidOperationError(
-                "Position list is not on a position"
-            );
+        if (this.positions.length == 0 || this.current > Integer.MAX_VALUE) {
+            throw new InvalidOperationError("Position list is not on a position");
         }
-        return this.current;
+        return new TermPos((int) this.current);
     }
 
     @Override
     public boolean next() {
-        final boolean initial = !this.started;
-        if (initial) {
-            this.started = true;
-            this.beginNext();
-        }
-        if (!initial && this.current != null) {
-            this.advanceNext();
-        }
-        return this.selectCurrent();
+        return this.merge(this.current, false);
     }
 
     @Override
     public boolean skipTo(final TermPos target) {
         Objects.requireNonNull(target, "target");
-        final boolean move = this.current == null
-            || target.compareTo(this.current) > 0;
-        if (move) {
-            this.started = true;
-            if (this.current == null) {
-                this.beginTo(target);
-            }
-            if (this.current != null) {
-                this.advanceTo(target);
-            }
+        final long wanted = target.value() & Positions.MASK;
+        boolean result = true;
+        if (this.positions.length == 0 || wanted > this.current) {
+            result = this.merge(wanted, true);
         }
-        return this.selectCurrent();
+        return result;
     }
 
-    /**
-     * Gathers positions from the current posting list document.
-     *
-     * @param source Posting list supplying the matching leaves
-     * @return Sole position list or a merged list
-     */
     static PositionList gather(final PostList source) {
         Objects.requireNonNull(source, "source");
         final List<PositionList> gathered = new ArrayList<>(0);
@@ -143,76 +112,53 @@ public final class OrPositionList implements PositionList {
         return result;
     }
 
-    private void beginNext() {
-        int index = 0;
-        while (index < this.lists.size()) {
-            final PositionList list = this.lists.get(index);
-            if (list.next()) {
-                this.positions.add(list.position());
-                ++index;
-            } else {
-                this.lists.remove(index);
+    private boolean merge(final long bound, final boolean skip) {
+        final boolean first = this.positions.length == 0;
+        if (first) {
+            this.positions = new long[this.lists.size()];
+        }
+        this.current = Positions.MASK;
+        int kept = 0;
+        for (int index = 0; index < this.lists.size(); ++index) {
+            final long pos = this.moved(index, first, bound, skip);
+            if (pos >= 0L) {
+                kept = this.keep(kept, index, pos);
             }
         }
+        this.truncate(kept);
+        return kept != 0;
     }
 
-    private void beginTo(final TermPos target) {
-        int index = 0;
-        while (index < this.lists.size()) {
-            final PositionList list = this.lists.get(index);
-            if (list.skipTo(target)) {
-                this.positions.add(list.position());
-                ++index;
-            } else {
-                this.lists.remove(index);
-            }
+    private long moved(
+        final int index, final boolean first, final long bound, final boolean skip
+    ) {
+        final PositionList list = this.lists.get(index);
+        long result = this.positions[index];
+        final boolean due;
+        final boolean live;
+        if (skip) {
+            due = first || bound > result;
+            live = !due || Positions.skip(list, bound);
+        } else {
+            due = first || result <= bound;
+            live = !due || list.next();
         }
+        if (due) {
+            result = Positions.at(list, live) - Positions.flag(live);
+        }
+        return result;
     }
 
-    private void advanceNext() {
-        int index = 0;
-        while (index < this.lists.size()) {
-            if (this.positions.get(index).equals(this.current)) {
-                final PositionList list = this.lists.get(index);
-                if (list.next()) {
-                    this.positions.set(index, list.position());
-                    ++index;
-                } else {
-                    this.lists.remove(index);
-                    this.positions.remove(index);
-                }
-            } else {
-                ++index;
-            }
-        }
+    private int keep(final int kept, final int index, final long pos) {
+        this.current = Math.min(this.current, pos);
+        this.positions[kept] = pos;
+        this.lists.set(kept, this.lists.get(index));
+        return kept + 1;
     }
 
-    private void advanceTo(final TermPos target) {
-        int index = 0;
-        while (index < this.lists.size()) {
-            if (this.positions.get(index).compareTo(target) < 0) {
-                final PositionList list = this.lists.get(index);
-                if (list.skipTo(target)) {
-                    this.positions.set(index, list.position());
-                    ++index;
-                } else {
-                    this.lists.remove(index);
-                    this.positions.remove(index);
-                }
-            } else {
-                ++index;
-            }
+    private void truncate(final int kept) {
+        while (this.lists.size() > kept) {
+            this.lists.remove(this.lists.size() - 1);
         }
-    }
-
-    private boolean selectCurrent() {
-        TermPos minimum = null;
-        for (final TermPos position : this.positions) {
-            if (minimum == null || position.compareTo(minimum) < 0) {
-                minimum = position;
-            }
-        }
-        this.current = minimum;
-        return minimum != null;
     }
 }

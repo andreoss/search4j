@@ -7,7 +7,6 @@
  */
 package io.github.andreoss.search4j.core.matcher;
 
-import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
@@ -65,37 +64,19 @@ public final class OrPosPostList implements PostList {
 
     @Override
     public PostList next(final double least) {
-        final PostList moved = this.source.next(least);
-        final boolean replaced = !moved.equals(this.source);
-        this.source = moved;
-        PostList result = this;
-        if (replaced) {
-            result = moved;
-        }
-        return result;
+        this.source = this.source.next(least);
+        return this;
     }
 
     @Override
     public PostList skipTo(final DocId target, final double least) {
-        final PostList moved = this.source.skipTo(target, least);
-        final boolean replaced = !moved.equals(this.source);
-        this.source = moved;
-        PostList result = this;
-        if (replaced) {
-            result = moved;
-        }
-        return result;
+        this.source = this.source.skipTo(target, least);
+        return this;
     }
 
     @Override
     public Probe check(final DocId target, final double least) {
-        final Probe probe = this.source.check(target, least);
-        this.source = probe.list();
-        boolean valid = probe.valid();
-        if (valid && this.source.atEnd()) {
-            valid = false;
-        }
-        return new Probe(this, valid);
+        return new Probe(this.skipTo(target, least), true);
     }
 
     @Override
@@ -136,11 +117,6 @@ public final class OrPosPostList implements PostList {
     @Override
     public TermCount countMatchingSubqueries() {
         return this.source.countMatchingSubqueries();
-    }
-
-    @Override
-    public DocRange docIdRange(final DocRange whole) {
-        return this.source.docIdRange(whole);
     }
 
     @Override
