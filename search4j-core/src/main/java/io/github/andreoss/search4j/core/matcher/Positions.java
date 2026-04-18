@@ -62,16 +62,16 @@ final class Positions {
     }
 
     static void sortByWdf(final List<PostList> terms) {
-        for (int index = 1; index < terms.size(); ++index) {
-            final PostList item = terms.get(index);
-            int hole = index;
-            while (hole > 0
-                && item.wdf().compareTo(terms.get(hole - 1).wdf()) < 0) {
-                terms.set(hole, terms.get(hole - 1));
-                hole = hole - 1;
-            }
-            terms.set(hole, item);
-        }
+        new Selection<PostList>(
+            terms, (left, right) -> left.wdf().compareTo(right.wdf()) < 0
+        ).sort();
+    }
+
+    static void sortByWdf(final List<Integer> order, final List<PostList> terms) {
+        new Selection<Integer>(
+            order,
+            (left, right) -> terms.get(left).wdf().compareTo(terms.get(right).wdf()) < 0
+        ).sort();
     }
 
     static <T> void push(final T[] items, final int size, final BiPredicate<T, T> less) {

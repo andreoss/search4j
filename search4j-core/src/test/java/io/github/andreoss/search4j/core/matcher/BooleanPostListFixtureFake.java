@@ -78,6 +78,11 @@ final class BooleanPostListFixtureFake implements PostList {
     private List<TermPos> positions;
 
     /**
+     * Names of the lists whose positions were read, in reading order.
+     */
+    private List<String> reads;
+
+    /**
      * Least weight hint received by the last move.
      */
     private double least;
@@ -108,6 +113,7 @@ final class BooleanPostListFixtureFake implements PostList {
         this.subqueries = new TermCount(1);
         this.range = span;
         this.positions = positions;
+        this.reads = new ArrayList<>(0);
     }
 
     @Override
@@ -196,6 +202,7 @@ final class BooleanPostListFixtureFake implements PostList {
 
     @Override
     public PositionList readPositionList() {
+        this.reads.add(this.name);
         return new VectorPositionList(this.positions);
     }
 
@@ -239,6 +246,11 @@ final class BooleanPostListFixtureFake implements PostList {
 
     BooleanPostListFixtureFake span(final int first, final int last) {
         this.range = new DocRange(DocId.of(first), DocId.of(last));
+        return this;
+    }
+
+    BooleanPostListFixtureFake logging(final List<String> log) {
+        this.reads = log;
         return this;
     }
 

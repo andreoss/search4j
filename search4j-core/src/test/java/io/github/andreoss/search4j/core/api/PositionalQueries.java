@@ -199,6 +199,8 @@ final class PositionalQueries {
             final int colon = token.indexOf(':');
             if ("_".equals(token)) {
                 position = position + 1;
+            } else if (token.startsWith("@")) {
+                position = Integer.parseInt(token.substring(1)) - 1;
             } else if (colon < 0) {
                 position = position + 1;
                 doc.addPosting(token, new TermPos(position), TermCount.ONE);

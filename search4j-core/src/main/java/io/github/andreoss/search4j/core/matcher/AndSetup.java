@@ -11,7 +11,6 @@ import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -99,7 +98,9 @@ final class AndSetup {
         final List<? extends PostList> lists, final Runnable recalc
     ) {
         final List<PostList> kids = new ArrayList<>(lists);
-        kids.sort(Comparator.comparing(PostList::termFrequency));
+        new Selection<PostList>(
+            kids, (left, right) -> left.termFrequency().compareTo(right.termFrequency()) < 0
+        ).heapSort();
         return new AndSetup(
             kids, new double[kids.size()],
             Objects.requireNonNull(recalc, "recalculation"),

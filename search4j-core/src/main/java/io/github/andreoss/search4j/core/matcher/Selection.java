@@ -11,10 +11,11 @@ import java.util.List;
 import java.util.function.BiPredicate;
 
 /**
- * Partial ordering that places the element of a given rank in its sorted
- * position, with every element before it not after it and every element
- * after it not before it, exchanging elements in the same order as the
- * selection the reference library uses.
+ * Orderings that exchange elements in the same order as the reference
+ * library: a partial ordering that places the element of a given rank in its
+ * sorted position, with every element before it not after it and every
+ * element after it not before it; an unstable sort; and a heap sort, which
+ * leaves equal elements in another order than the unstable sort.
  *
  * @param <T> Element type
  * @since 0.10.0
@@ -41,6 +42,43 @@ final class Selection<T> {
             this.introselect(
                 first, nth, last, 2 * (31 - Integer.numberOfLeadingZeros(last - first))
             );
+        }
+    }
+
+    void sort() {
+        final int last = this.items.size();
+        if (last != 0) {
+            this.introsort(0, last, 2 * (31 - Integer.numberOfLeadingZeros(last)));
+            this.insertion(0, last);
+        }
+    }
+
+    void heapSort() {
+        this.heapSort(0, this.items.size());
+    }
+
+    private void introsort(final int first, final int end, final int limit) {
+        int last = end;
+        int depth = limit;
+        while (last - first > 16) {
+            if (depth == 0) {
+                this.heapSort(first, last);
+                last = first;
+            } else {
+                depth = depth - 1;
+                final int cut = this.partition(first, last);
+                this.introsort(cut, last, depth);
+                last = cut;
+            }
+        }
+    }
+
+    private void heapSort(final int first, final int end) {
+        this.makeHeap(first, end);
+        for (int last = end - 1; last > first; --last) {
+            final T value = this.items.get(last);
+            this.items.set(last, this.items.get(first));
+            this.adjust(first, 0, last - first, value);
         }
     }
 

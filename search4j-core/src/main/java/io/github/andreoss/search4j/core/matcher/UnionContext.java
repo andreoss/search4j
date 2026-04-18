@@ -11,7 +11,6 @@ import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.types.DocId;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -107,15 +106,15 @@ final class UnionContext {
         this.shrink(from + keep);
     }
 
-    void frequent(final int keep) {
-        if (keep == 0) {
+    void frequent(final long keep) {
+        if (keep == 0L) {
             this.shrink(0);
         } else if (this.lists.size() > keep) {
             new Selection<PostList>(
                 this.lists,
                 (left, right) -> left.termFrequency().compareTo(right.termFrequency()) > 0
-            ).nth(0, keep - 1, this.lists.size());
-            this.shrink(keep);
+            ).nth(0, (int) keep - 1, this.lists.size());
+            this.shrink((int) keep);
         }
     }
 
@@ -150,9 +149,10 @@ final class UnionContext {
             result = new MatchTree(this.lists.get(0), this.estimates.get(0));
         } else {
             final List<PostList> sorted = new ArrayList<>(this.lists);
-            sorted.sort(
-                Comparator.comparing(PostList::termFrequency, Comparator.reverseOrder())
-            );
+            new Selection<PostList>(
+                sorted,
+                (left, right) -> left.termFrequency().compareTo(right.termFrequency()) > 0
+            ).sort();
             result = new MatchTree(
                 new MaxPostList(sorted, this.env.recalc(), this.env.dbsize()),
                 this.estimate(EstimateKind.OR)

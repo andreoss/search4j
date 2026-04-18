@@ -64,7 +64,7 @@ final class Expander {
             list = this.visit(list, ctx, budget, factor);
         }
         if (this.spec.limits().limit() == WildcardLimit.MOST_FREQUENT) {
-            ctx.frequent((int) this.spec.limits().max().value());
+            ctx.frequent(this.spec.limits().max().value());
         }
         if (sink != null) {
             this.register(ctx, sink);

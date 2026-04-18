@@ -121,15 +121,6 @@ public final class ExactPhrasePostList extends SelectPostList {
                 this.order.add(index);
             }
         }
-        for (int index = 1; index < this.order.size(); ++index) {
-            final int item = this.order.get(index);
-            int hole = index;
-            while (hole > 0 && terms.get(item).wdf()
-                .compareTo(terms.get(this.order.get(hole - 1)).wdf()) < 0) {
-                this.order.set(hole, this.order.get(hole - 1));
-                hole = hole - 1;
-            }
-            this.order.set(hole, item);
-        }
+        Positions.sortByWdf(this.order, terms);
     }
 }
