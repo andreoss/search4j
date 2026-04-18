@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.github.andreoss.search4j</groupId>
     <artifactId>search4j</artifactId>
-    <version>0.10.0-SNAPSHOT</version>
+    <version>0.10.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>search4j-core</artifactId>
