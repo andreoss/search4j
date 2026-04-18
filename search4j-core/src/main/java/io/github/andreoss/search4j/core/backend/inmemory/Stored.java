@@ -96,13 +96,10 @@ record Stored(
      * @return Highest frequency
      */
     TermCount highest() {
-        TermCount result = TermCount.ZERO;
-        for (final Occurrence occurrence : this.terms.values()) {
-            if (occurrence.wdf().compareTo(result) > 0) {
-                result = occurrence.wdf();
-            }
-        }
-        return result;
+        return this.terms.values().stream()
+            .map(Occurrence::wdf)
+            .max(TermCount::compareTo)
+            .orElse(TermCount.ZERO);
     }
 
     private static List<TermPos> positions(final TermIterator iter) {

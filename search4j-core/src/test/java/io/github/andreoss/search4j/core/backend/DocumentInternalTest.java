@@ -467,6 +467,48 @@ final class DocumentInternalTest {
         Assertions.assertFalse(iter.hasNext(), "Closed iterator ends");
     }
 
+    @Test
+    void termListHasNoWdfBeforeStart() {
+        final DocumentInternal doc = new DocumentInternal();
+        doc.addTerm("a", new TermCount(1));
+        try (TermIterator iter = doc.termList()) {
+            Assertions.assertEquals(
+                "Iteration has not started",
+                Assertions.assertThrows(
+                    InvalidOperationError.class, iter::wdf, "Not started"
+                ).getMessage(),
+                "Refused by the iterator"
+            );
+        }
+    }
+
+    @Test
+    void valueIteratorHasNoSlotBeforeStart() {
+        final DocumentInternal doc = new DocumentInternal();
+        doc.addValue(new ValueNo(1L), "v");
+        try (ValueIterator iter = doc.values()) {
+            Assertions.assertEquals(
+                "Iteration has not started",
+                Assertions.assertThrows(
+                    InvalidOperationError.class, iter::slot, "Not started"
+                ).getMessage(),
+                "Refused by the iterator"
+            );
+        }
+    }
+
+    @Test
+    void closedPositionIteratorEnds() {
+        final DocumentInternal doc = new DocumentInternal();
+        doc.addPosting("a", new TermPos(1), new TermCount(1));
+        try (TermIterator terms = doc.termList()) {
+            terms.next();
+            final PositionIterator iter = terms.positions();
+            iter.close();
+            Assertions.assertFalse(iter.hasNext(), "Closed iterator ends");
+        }
+    }
+
     private static List<String> terms(final DocumentInternal doc) {
         final List<String> result = new ArrayList<>(2);
         try (TermIterator iter = doc.termList()) {

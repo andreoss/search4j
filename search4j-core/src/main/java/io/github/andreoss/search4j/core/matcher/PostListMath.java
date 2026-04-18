@@ -10,6 +10,8 @@ package io.github.andreoss.search4j.core.matcher;
 import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
+import java.util.Comparator;
+import java.util.function.BinaryOperator;
 
 /**
  * Range arithmetic and count rounding shared by the boolean operators.
@@ -24,6 +26,12 @@ final class PostListMath {
     static final DocRange WHOLE = new DocRange(
         DocId.of(1), new DocId(Integer.MAX_VALUE)
     );
+
+    /**
+     * Lower of two identifiers, the first on a tie.
+     */
+    private static final BinaryOperator<DocId> LOWER =
+        BinaryOperator.minBy(Comparator.naturalOrder());
 
     /**
      * Utility class, no instances.
@@ -108,13 +116,7 @@ final class PostListMath {
      * @return Lower identifier
      */
     static DocId min(final DocId left, final DocId right) {
-        final DocId result;
-        if (left.compareTo(right) <= 0) {
-            result = left;
-        } else {
-            result = right;
-        }
-        return result;
+        return PostListMath.LOWER.apply(left, right);
     }
 
     /**
