@@ -56,7 +56,7 @@ final class PositionalVectorsTest {
         final PositionalVectors vectors = new PositionalVectors();
         vectors.check();
         Assertions.assertEquals(
-            List.of(15_348, 4),
+            List.of(17_856, 4),
             List.of(vectors.replayed().size(), vectors.skipped().size()),
             "Searches replayed and searches left to the corrected vectors"
         );

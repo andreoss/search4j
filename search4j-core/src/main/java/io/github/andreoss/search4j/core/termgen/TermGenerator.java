@@ -72,7 +72,7 @@ public final class TermGenerator {
     /**
      * Position of the next positional term.
      */
-    private int position = 1;
+    private long position = 1L;
 
     /**
      * Last document identifier reported.
@@ -93,7 +93,7 @@ public final class TermGenerator {
      */
     public void document(final Document target) {
         this.document = Objects.requireNonNull(target, "Document");
-        this.position = 1;
+        this.position = 1L;
         this.latest = -1;
         this.range = -1;
     }
@@ -270,7 +270,7 @@ public final class TermGenerator {
             TermGenerator.reduced(term, false, this.strategy, this.stemmer),
             new TermPos(this.position), frequency
         );
-        ++this.position;
+        this.position = TermPos.wrap(this.position + 1L).value();
     }
 
     /**
@@ -278,18 +278,21 @@ public final class TermGenerator {
      *
      * @return Position of the next positional term
      */
-    public int nextPosition() {
+    public long nextPosition() {
         return this.position;
     }
 
     /**
      * Sets the next position a term would take.
      *
-     * @param next Position of the next positional term
+     * @param next Position of the next positional term, from 1 to the
+     *  unsigned 32-bit maximum
      */
-    public void nextPosition(final int next) {
-        if (next < 1) {
-            throw new InvalidArgumentError("Next position must be positive");
+    public void nextPosition(final long next) {
+        if (next < 1L || next > TermPos.MAX.value()) {
+            throw new InvalidArgumentError(
+                "Next position must be positive and fit 32 bits"
+            );
         }
         this.position = next;
     }
@@ -380,7 +383,7 @@ public final class TermGenerator {
         if (stem) {
             this.indexStem(terms, flag, lowered, place);
         }
-        ++this.position;
+        this.position = TermPos.wrap(this.position + 1L).value();
     }
 
     private void indexStem(
@@ -410,7 +413,7 @@ public final class TermGenerator {
         terms.addTerm(
             String.join("", this.prefix, "xsentence"), TermCount.ONE
         );
-        ++this.position;
+        this.position = TermPos.wrap(this.position + 1L).value();
     }
 
     private void indexField(final DocumentTerms terms) {
@@ -420,7 +423,7 @@ public final class TermGenerator {
                 TermCount.ONE
             );
         } else if (this.prefix.endsWith(":")) {
-            final int upper = this.position;
+            final long upper = this.position;
             terms.addTerm(
                 String.format(
                     "%s%d..%d",

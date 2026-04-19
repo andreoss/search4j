@@ -12,6 +12,7 @@ import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.QueryOp;
 import io.github.andreoss.search4j.core.types.TermPos;
+import io.github.andreoss.search4j.core.types.TotalLength;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -205,7 +206,7 @@ final class AndContext {
     private void differ(final TermFreqs sink, final TermFreqs right) {
         long coll = sink.coll();
         if (this.env.total() != 0L) {
-            coll = AndContext.andNot(sink.coll(), right.coll(), this.env.total());
+            coll = AndContext.andNotTotal(sink.coll(), right.coll(), this.env.total());
         }
         long rel = sink.rel();
         if (this.env.rset() != 0L) {
@@ -229,7 +230,7 @@ final class AndContext {
             final long ratio = item.term() / size;
             freq *= ratio;
             if (total != 0L) {
-                final long part = item.coll() / total;
+                final long part = Long.divideUnsigned(item.coll(), total);
                 coll *= part;
             }
             if (rset != 0L) {
@@ -246,5 +247,11 @@ final class AndContext {
 
     private static long andNot(final long left, final long right, final long size) {
         return TermFreqs.round(left * (double) (size - right) / size);
+    }
+
+    private static long andNotTotal(final long left, final long right, final long total) {
+        return TermFreqs.round(
+            left * TotalLength.unsigned(total - right) / TotalLength.unsigned(total)
+        );
     }
 }

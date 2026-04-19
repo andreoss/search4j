@@ -134,7 +134,6 @@ final class QueryDeserialiseErrorsTest {
     private static Stream<Arguments> unsupported() {
         return Stream.of(
             Arguments.of("52c328", QueryDeserialiseErrorsTest.UNSUPPORTED),
-            Arguments.of("6161ffffffff0f", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0b00030d0161", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0b00400d0161", QueryDeserialiseErrorsTest.UNSUPPORTED),
             Arguments.of("0b00040d0161", QueryDeserialiseErrorsTest.UNSUPPORTED),

@@ -248,7 +248,7 @@ final class VidrioPositionListTest {
                     .skipTo(new TermPos(10))
             )
         );
-        for (final String hex : List.of("0000", "ffffffff0f", "80", "0c")) {
+        for (final String hex : List.of("0000", "80808080808001", "80", "0c")) {
             seen.add(
                 VidrioPositionListTest.failure(
                     () -> VidrioPositionList.of(HexFormat.of().parseHex(hex))
@@ -304,9 +304,9 @@ final class VidrioPositionListTest {
     private static List<TermPos> random(final Random random) {
         final SortedSet<TermPos> set = new TreeSet<>();
         final int size = 1 + random.nextInt(300);
-        final int gap = 1 << random.nextInt(31);
+        final long gap = 1L << random.nextInt(33);
         while (set.size() < size) {
-            set.add(new TermPos(random.nextInt(Math.max(size, gap))));
+            set.add(new TermPos(random.nextLong(Math.max(size, gap))));
         }
         return new ArrayList<>(set);
     }
@@ -318,11 +318,11 @@ final class VidrioPositionListTest {
         final List<String> faults = new ArrayList<>(0);
         final VidrioPositionList list = VidrioPositionList.of(data);
         final VectorPositionList model = new VectorPositionList(positions);
-        final int top = positions.get(positions.size() - 1).value();
+        final long top = positions.get(positions.size() - 1).value();
         boolean more = true;
         for (int idx = 0; more && idx < 40; ++idx) {
             final TermPos target =
-                new TermPos(random.nextInt(Math.max(1, top + 2)));
+                new TermPos(random.nextLong(Math.min(top + 2L, TermPos.MAX.value() + 1L)));
             more = model.skipTo(target);
             if (list.skipTo(target) == more) {
                 if (more && !list.position().equals(model.position())) {

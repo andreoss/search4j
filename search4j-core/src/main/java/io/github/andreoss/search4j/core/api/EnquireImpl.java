@@ -298,10 +298,10 @@ public final class EnquireImpl implements Enquire {
     }
 
     private MSet search(final int first, final int max, final int atleast) {
-        final int docs = Math.toIntExact(this.shard.docCount().value());
-        final int from = Math.min(first, docs);
-        final int count = Math.min(max, docs - from);
-        final int check = Math.max(Math.min(atleast, docs), from + count);
+        final long docs = this.shard.docCount().value();
+        final int from = (int) Math.min(first, docs);
+        final int count = (int) Math.min(max, docs - from);
+        final int check = (int) Math.max(Math.min(atleast, docs), from + count);
         Ordering sort = this.ordering();
         sort.refuse(this.cutoff);
         final MatchCursor cursor = Matcher.cursor(

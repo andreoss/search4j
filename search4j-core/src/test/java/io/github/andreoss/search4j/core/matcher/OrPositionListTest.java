@@ -79,6 +79,50 @@ final class OrPositionListTest {
     }
 
     @Test
+    void skipsToTargetsAboveTheSignedRange() {
+        final PositionList merged = new OrPositionList(
+            List.of(
+                new VectorPositionList(
+                    List.of(new TermPos(5L), new TermPos(2_147_483_650L))
+                ),
+                new VectorPositionList(
+                    List.of(new TermPos(3_000_000_000L), TermPos.MAX)
+                )
+            )
+        );
+        Assertions.assertTrue(
+            merged.skipTo(new TermPos(2_147_483_648L)), "Skip above 2^31 succeeds"
+        );
+        Assertions.assertEquals(
+            new TermPos(2_147_483_650L), merged.position(),
+            "Both sublists kept past the signed range"
+        );
+        Assertions.assertTrue(merged.next(), "Second sublist still live");
+        Assertions.assertEquals(
+            new TermPos(3_000_000_000L), merged.position(), "Next from the other list"
+        );
+        Assertions.assertTrue(merged.skipTo(TermPos.MAX), "Skip to the maximum");
+        Assertions.assertEquals(TermPos.MAX, merged.position(), "Maximum position");
+        Assertions.assertEquals(TermPos.MAX, merged.back(), "Last position");
+    }
+
+    @Test
+    void reportsTheMaximumPositionAfterTheEnd() {
+        final PositionList merged = new OrPositionList(
+            List.of(
+                new VectorPositionList(PositionalTestData.positions(1)),
+                new VectorPositionList(PositionalTestData.positions(2))
+            )
+        );
+        Assertions.assertTrue(merged.skipTo(new TermPos(2)), "Skip to the last");
+        Assertions.assertFalse(merged.next(), "No position after the last");
+        Assertions.assertEquals(
+            TermPos.MAX, merged.position(),
+            "Position after the end is the unsigned 32-bit maximum"
+        );
+    }
+
+    @Test
     void suppliesOrPositionsToPhraseOperators() {
         final List<Map<String, List<Integer>>> documents = List.of(
             Map.of(

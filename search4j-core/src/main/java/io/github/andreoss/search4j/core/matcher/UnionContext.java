@@ -192,8 +192,8 @@ final class UnionContext {
 
     private void estimateOr(final TermFreqs sink) {
         final double scale = 1.0 / this.env.size();
-        final double rscale = UnionContext.inverse(this.env.rset());
-        final double cscale = UnionContext.inverse(this.env.total());
+        final double rscale = UnionContext.inverse((double) this.env.rset());
+        final double cscale = UnionContext.inverse(this.env.length());
         final TermFreqs head = this.freqs.get(0);
         double prob = head.term() * scale;
         double rprob = head.rel() * rscale;
@@ -212,14 +212,14 @@ final class UnionContext {
         sink.assign(
             TermFreqs.round(prob * this.env.size()),
             TermFreqs.round(rprob * this.env.rset()),
-            TermFreqs.round(cprob * this.env.total())
+            TermFreqs.round(cprob * this.env.length())
         );
     }
 
     private void estimateXor(final TermFreqs sink) {
         final double scale = 1.0 / this.env.size();
-        final double rscale = UnionContext.inverse(this.env.rset());
-        final double cscale = UnionContext.inverse(this.env.total());
+        final double rscale = UnionContext.inverse((double) this.env.rset());
+        final double cscale = UnionContext.inverse(this.env.length());
         final TermFreqs head = this.freqs.get(0);
         double prob = head.term() * scale;
         double rprob = head.rel() * rscale;
@@ -238,7 +238,7 @@ final class UnionContext {
         sink.assign(
             TermFreqs.round(prob * this.env.size()),
             TermFreqs.round(rprob * this.env.rset()),
-            TermFreqs.round(cprob * this.env.total())
+            TermFreqs.round(cprob * this.env.length())
         );
     }
 
@@ -249,9 +249,9 @@ final class UnionContext {
         );
     }
 
-    private static double inverse(final long value) {
+    private static double inverse(final double value) {
         double result = 0.0;
-        if (value != 0L) {
+        if (value != 0.0) {
             result = 1.0 / value;
         }
         return result;

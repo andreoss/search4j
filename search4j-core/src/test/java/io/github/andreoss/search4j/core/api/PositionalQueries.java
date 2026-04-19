@@ -133,12 +133,12 @@ final class PositionalQueries {
         QueryOp type = QueryOp.ELITE_SET;
         int parameter = 0;
         if ("ELITE".equals(operator)) {
-            parameter = Integer.parseInt(PositionalQueries.take(tokens, cursor));
+            parameter = Integer.parseUnsignedInt(PositionalQueries.take(tokens, cursor));
         } else {
             type = QueryOp.valueOf(operator);
         }
         if (type == QueryOp.PHRASE || type == QueryOp.NEAR) {
-            parameter = Integer.parseInt(PositionalQueries.take(tokens, cursor));
+            parameter = Integer.parseUnsignedInt(PositionalQueries.take(tokens, cursor));
         }
         final List<Query> subs = new ArrayList<>(4);
         while (!")".equals(tokens.get(cursor[0]))) {
@@ -194,15 +194,15 @@ final class PositionalQueries {
 
     private static DocumentInternal document(final String... row) {
         final DocumentInternal doc = new DocumentInternal();
-        int position = 0;
+        long position = 0L;
         for (final String token : PositionalQueries.SPACE.split(row[2], -1)) {
             final int colon = token.indexOf(':');
             if ("_".equals(token)) {
-                position = position + 1;
+                position = TermPos.wrap(position + 1L).value();
             } else if (token.startsWith("@")) {
-                position = Integer.parseInt(token.substring(1)) - 1;
+                position = TermPos.wrap(Long.parseLong(token.substring(1)) - 1L).value();
             } else if (colon < 0) {
-                position = position + 1;
+                position = TermPos.wrap(position + 1L).value();
                 doc.addPosting(token, new TermPos(position), TermCount.ONE);
             } else {
                 doc.addTerm(

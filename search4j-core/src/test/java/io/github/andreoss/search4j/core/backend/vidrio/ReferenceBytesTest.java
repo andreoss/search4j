@@ -178,6 +178,7 @@ final class ReferenceBytesTest {
         map.put("deepadds", ReferenceBytesTest::deepAdds);
         map.put("deepfree", ReferenceBytesTest::deepFree);
         map.put("deepreads", ReferenceBytesTest::deepReads);
+        map.put("widepositions", WidePositionsTest::write);
         return map;
     }
 

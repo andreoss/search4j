@@ -316,6 +316,30 @@ final class TermGeneratorTest {
         Assertions.assertThrows(
             InvalidArgumentError.class, () -> gen.nextPosition(0)
         );
+        Assertions.assertThrows(
+            InvalidArgumentError.class, () -> gen.nextPosition(0x1_0000_0000L)
+        );
+    }
+
+    @Test
+    void indexesPositionsAboveTheSignedRangeAndWraps() {
+        final TermGenerator gen = new TermGenerator();
+        final Document doc = DatabaseFactory.document();
+        gen.document(doc);
+        gen.nextPosition(2_147_483_648L);
+        gen.indexTermAtNextPosition("high", TermCount.ONE);
+        gen.nextPosition(TermPos.MAX.value());
+        gen.indexTermAtNextPosition("top", TermCount.ONE);
+        Assertions.assertEquals(
+            List.of(
+                List.of(new TermPos(2_147_483_648L)), List.of(TermPos.MAX), 0L
+            ),
+            List.of(
+                TermGeneratorTest.positions(doc, "high"),
+                TermGeneratorTest.positions(doc, "top"), gen.nextPosition()
+            ),
+            "Positions past 2^31 kept, the next one wrapping to zero"
+        );
     }
 
     @Test

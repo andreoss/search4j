@@ -32,7 +32,7 @@ record DfrStats(double wdfup, double lenup, double lenlow, double mean, double s
             WeightMath.unsigned(stats.term().wdfMax().value()),
             WeightMath.unsigned(bounds.docMax().value()),
             WeightMath.unsigned(bounds.docMin().value()),
-            stats.collection().total().value()
+            stats.collection().total().asDouble()
                 / WeightMath.unsigned(stats.term().collFreq().value()),
             WeightMath.unsigned(stats.term().wqf().value()) * factor
         );

@@ -86,7 +86,7 @@ public final class LmAbsDiscountWeight implements Weight {
         double mult = 0.0;
         if (freq != 0) {
             scale = factor * stats.term().wqf().value();
-            mult = coll.total().value() / (this.delta * WeightMath.unsigned(freq));
+            mult = coll.total().asDouble() / (this.delta * WeightMath.unsigned(freq));
         }
         return new DiscountPart(
             scale, mult, this.delta, query,

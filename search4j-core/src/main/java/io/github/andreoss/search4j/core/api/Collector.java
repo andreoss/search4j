@@ -27,6 +27,11 @@ import java.util.List;
 final class Collector {
 
     /**
+     * Mask of an unsigned 32-bit count.
+     */
+    private static final long MASK = 0xFFFF_FFFFL;
+
+    /**
      * Fixed settings of the collection.
      */
     private final Limits limits;
@@ -314,11 +319,11 @@ final class Collector {
      */
     TermCount[] estimated(final boolean decided) {
         final MatchEstimates found = this.cursor.resolved();
-        int whole = Math.toIntExact(found.min().value());
+        long whole = found.min().value();
         if (decided) {
             whole = 0;
         }
-        int lower = whole;
+        long lower = whole;
         if (this.collapsing() && lower > this.limits.collapse()) {
             lower = this.limits.collapse();
         }
@@ -338,19 +343,19 @@ final class Collector {
      *  collapsing
      */
     TermCount[] bounds(final boolean decided) {
-        final int[] bounds = new int[6];
+        final long[] bounds = new long[6];
         if (!this.collapsing()
             && (!this.full() || this.tally.known() < this.tally.atleast())) {
-            int exact = this.tally.known();
+            long exact = this.tally.known();
             if (!this.full()) {
                 exact = this.results.size();
             }
             Arrays.fill(bounds, exact);
         } else {
             final MatchEstimates found = this.cursor.resolved();
-            bounds[0] = Math.toIntExact(found.min().value());
-            bounds[1] = Math.toIntExact(found.est().value());
-            bounds[2] = Math.toIntExact(found.max().value());
+            bounds[0] = found.min().value();
+            bounds[1] = found.est().value();
+            bounds[2] = found.max().value();
             if (decided) {
                 this.filtered(bounds);
             }
@@ -381,17 +386,17 @@ final class Collector {
         return result;
     }
 
-    private void filtered(final int... bounds) {
+    private void filtered(final long... bounds) {
         final int accepted = this.tally.accepted();
         final int rejected = this.tally.rejected();
         if (accepted == 0 && rejected == 0) {
             bounds[0] = 0;
         } else {
             bounds[0] = accepted;
-            bounds[2] = bounds[2] - rejected;
+            bounds[2] = (bounds[2] - rejected) & Collector.MASK;
             bounds[1] = Math.min(
                 Math.max(
-                    (int) (bounds[1] * ((double) accepted / (accepted + rejected))
+                    (long) (bounds[1] * ((double) accepted / (accepted + rejected))
                         + 0.5),
                     bounds[0]
                 ),
@@ -400,7 +405,7 @@ final class Collector {
         }
     }
 
-    private void adjust(final int[] bounds, final boolean decided) {
+    private void adjust(final long[] bounds, final boolean decided) {
         final int known = this.tally.known();
         final boolean percent = this.limits.percent() != 0;
         final boolean collapsing = this.collapsing();
@@ -415,7 +420,7 @@ final class Collector {
         }
         scale = scale * unique;
         if (scale != 1.0) {
-            bounds[1] = Math.max((int) (bounds[1] * scale + 0.5), bounds[0]);
+            bounds[1] = Math.max((long) (bounds[1] * scale + 0.5), bounds[0]);
         }
         if (collapsing || decided) {
             bounds[1] = Math.min(Math.max(bounds[1], bounds[0]), bounds[2]);
@@ -425,7 +430,7 @@ final class Collector {
         }
     }
 
-    private void settle(final int[] bounds, final boolean decided) {
+    private void settle(final long[] bounds, final boolean decided) {
         this.adjust(bounds, decided);
         if (this.collapsing()) {
             this.uncollapsed(bounds, decided);
@@ -434,11 +439,11 @@ final class Collector {
         }
     }
 
-    private void uncollapsed(final int[] bounds, final boolean decided) {
+    private void uncollapsed(final long[] bounds, final boolean decided) {
         final boolean percent = this.limits.percent() != 0;
         if (percent) {
             bounds[3] = bounds[0];
-            bounds[4] = (int) (bounds[4] * (1.0 - this.limits.factor()) + 0.5);
+            bounds[4] = (long) (bounds[4] * (1.0 - this.limits.factor()) + 0.5);
         } else if (!decided) {
             bounds[3] = Math.max(bounds[3], this.tally.known());
         }
@@ -450,7 +455,7 @@ final class Collector {
         }
     }
 
-    private double collapsed(final int... bounds) {
+    private double collapsed(final long... bounds) {
         double unique = 1.0;
         if (this.collapsing()) {
             bounds[0] = this.collapser.lower();
@@ -458,7 +463,7 @@ final class Collector {
             if (considered > 0) {
                 unique = (considered - this.collapser.ignored()) / (double) considered;
             }
-            bounds[2] = bounds[2] - this.collapser.ignored();
+            bounds[2] = (bounds[2] - this.collapser.ignored()) & Collector.MASK;
         }
         return unique;
     }

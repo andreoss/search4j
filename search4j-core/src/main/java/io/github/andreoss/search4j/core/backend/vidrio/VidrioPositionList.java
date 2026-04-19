@@ -165,6 +165,6 @@ public final class VidrioPositionList implements PositionList {
             error.initCause(ex);
             throw error;
         }
-        return new TermPos((int) value);
+        return new TermPos(value);
     }
 }

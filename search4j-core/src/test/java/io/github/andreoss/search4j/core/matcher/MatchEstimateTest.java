@@ -105,7 +105,7 @@ final class MatchEstimateTest {
     }
 
     @Test
-    void resolvesDisjointRangesToNoIntersection() {
+    void resolvesDisjointRangesWithTheWrappedRange() {
         final AndPostList intersection = new AndPostList(
             List.of(
                 MatchEstimateTest.known("left", 2, 1, 3),
@@ -115,13 +115,13 @@ final class MatchEstimateTest {
         );
         Assertions.assertEquals(
             new MatchEstimates(
-                TermCount.ZERO, TermCount.ZERO, TermCount.ZERO,
+                TermCount.ZERO, new TermCount(2), new TermCount(2),
                 DocId.of(8), DocId.of(3)
             ),
             intersection.matchEstimate().resolve(
                 MatchEstimateTest.DATABASE_SIZE, DocId.of(1), DocId.of(10)
             ),
-            "Disjoint document ranges have no intersection"
+            "Range 3 - 8 + 1 wraps mod 2^32: no lower bound, upper bound of the children"
         );
     }
 

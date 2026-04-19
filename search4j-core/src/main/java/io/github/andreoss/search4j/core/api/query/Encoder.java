@@ -104,9 +104,9 @@ final class Encoder {
     private void term(final TermNode node) {
         final byte[] text = node.term().getBytes(StandardCharsets.UTF_8);
         final long wqf = node.wqf().value();
-        final int pos = node.pos().value();
+        final long pos = node.pos().value();
         if (text.length == 0) {
-            if (wqf == 1L && pos == 0) {
+            if (wqf == 1L && pos == 0L) {
                 this.out.write(0x0F);
             } else {
                 this.out.write(0x0E);
@@ -216,13 +216,13 @@ final class Encoder {
         this.out.writeBytes(Varints.pack(value));
     }
 
-    private static int frequency(final long wqf, final int pos) {
+    private static int frequency(final long wqf, final long pos) {
         final int code;
-        if (wqf == 1L && pos == 0) {
+        if (wqf == 1L && pos == 0L) {
             code = 1;
         } else if (wqf == 1L) {
             code = 2;
-        } else if (wqf > 1L || pos > 0) {
+        } else if (wqf > 1L || pos > 0L) {
             code = 3;
         } else {
             code = 0;

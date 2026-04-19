@@ -98,7 +98,7 @@ public final class LmDirichletWeight implements Weight {
         if (scale != 0.0 && freq == 0) {
             scale = 0.0;
         } else if (scale != 0.0) {
-            mult = coll.total().value() / (WeightMath.unsigned(freq) * this.mass);
+            mult = coll.total().asDouble() / (WeightMath.unsigned(freq) * this.mass);
             if (this.delta != 0.0) {
                 scale = scale * Math.log(1.0 + this.delta * mult);
             }

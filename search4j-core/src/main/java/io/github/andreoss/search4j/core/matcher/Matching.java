@@ -47,9 +47,13 @@ record Matching(Shard shard, CollectionStats stats, Runnable recalc) {
         return this.stats.total().value();
     }
 
+    double length() {
+        return this.stats.total().asDouble();
+    }
+
     TermFreqs everything() {
         return new TermFreqs(
-            this.size(), this.rset(), Math.min(this.total(), 0xFFFF_FFFFL)
+            this.size(), this.rset(), this.stats.total().clamped().value()
         );
     }
 }

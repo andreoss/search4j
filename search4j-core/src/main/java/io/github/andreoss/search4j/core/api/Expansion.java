@@ -93,7 +93,7 @@ final class Expansion {
 
     private Map<String, double[]> collect(final ExpandWeight weight) {
         final Map<String, double[]> stats = new TreeMap<>();
-        final double average = this.shard.totalLength().value()
+        final double average = this.shard.totalLength().asDouble()
             / (double) this.shard.docCount().value();
         for (final DocId docid : this.relevant) {
             final TermCount length = this.shard.docLength(docid);

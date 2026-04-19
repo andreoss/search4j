@@ -76,7 +76,7 @@ public final class LmjmWeight implements Weight {
         if (coll != 0) {
             scale = factor * stats.term().wqf().value();
             final double smooth = this.smoothing(stats.collection().query().value());
-            mult = (1.0 - smooth) * stats.collection().total().value()
+            mult = (1.0 - smooth) * stats.collection().total().asDouble()
                 / (smooth * WeightMath.unsigned(coll));
         }
         return new Part(

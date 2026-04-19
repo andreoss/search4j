@@ -71,7 +71,7 @@ public final class ShardDatabase implements WritableDatabase {
         DocLength result = DocLength.ZERO;
         if (count > 0L) {
             result = new DocLength(
-                (double) this.shard.totalLength().value() / count
+                this.shard.totalLength().asDouble() / count
             );
         }
         return result;

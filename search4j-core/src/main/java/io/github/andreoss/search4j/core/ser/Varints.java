@@ -52,6 +52,24 @@ public final class Varints {
     }
 
     /**
+     * Encodes the bits of an unsigned 64-bit integer into its variable-length
+     * form; a negative {@code long} stands for two to the sixty-third or more.
+     *
+     * @param bits Bits of the unsigned value
+     * @return One to ten bytes
+     */
+    public static byte[] packUnsigned(final long bits) {
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        long remaining = bits;
+        while (Long.compareUnsigned(remaining, 0x80L) >= 0) {
+            out.write((int) (remaining & 0x7F) | 0x80);
+            remaining >>>= 7;
+        }
+        out.write((int) remaining);
+        return out.toByteArray();
+    }
+
+    /**
      * Decodes a variable-length integer from its encoded form.
      *
      * @param bytes Bytes from {@link #pack(long)}

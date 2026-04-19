@@ -98,7 +98,7 @@ public final class Lm2StageWeight implements Weight {
         double mult = 0.0;
         if (freq != 0) {
             scale = factor * stats.term().wqf().value();
-            mult = (1.0 - this.lambda) * coll.total().value()
+            mult = (1.0 - this.lambda) * coll.total().asDouble()
                 / WeightMath.unsigned(freq);
         }
         return new TwoStagePart(

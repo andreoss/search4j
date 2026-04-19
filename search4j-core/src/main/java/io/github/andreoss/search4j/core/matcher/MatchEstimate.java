@@ -133,12 +133,7 @@ public final class MatchEstimate {
             Objects.requireNonNull(dblast, "database last").value()
         );
         final long range = MatchEstimate.span(lower, upper);
-        final long[] result;
-        if (upper < lower) {
-            result = new long[3];
-        } else {
-            result = this.calculate(dbsize, dbfirst, dblast, range);
-        }
+        final long[] result = this.calculate(dbsize, dbfirst, dblast, range);
         if (range < result[2]) {
             result[2] = range;
             if (range < result[1]) {

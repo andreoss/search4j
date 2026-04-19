@@ -65,14 +65,10 @@ final class ShardDefaultsTest {
     }
 
     @Test
-    void refusesRevisionAndRange() {
-        final Shard shard = new InMemoryShard();
+    void refusesRevision() {
         Assertions.assertEquals(
-            2,
-            ShardDefaultsTest.unimplemented(
-                List.of(shard::revision, shard::usedDocIds)
-            ),
-            "Revision and range"
+            1, ShardDefaultsTest.unimplemented(List.of(new InMemoryShard()::revision)),
+            "Revision"
         );
     }
 

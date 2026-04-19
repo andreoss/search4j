@@ -33,7 +33,7 @@ final class Positions {
     }
 
     static long at(final PositionList list) {
-        return list.position().value() & Positions.MASK;
+        return list.position().value();
     }
 
     static long at(final PositionList list, final boolean live) {
@@ -53,12 +53,7 @@ final class Positions {
     }
 
     static boolean skip(final PositionList list, final long target) {
-        final long wrapped = target & Positions.MASK;
-        boolean result = false;
-        if (wrapped <= Integer.MAX_VALUE) {
-            result = list.skipTo(new TermPos((int) wrapped));
-        }
-        return result;
+        return list.skipTo(TermPos.wrap(target));
     }
 
     static void sortByWdf(final List<PostList> terms) {

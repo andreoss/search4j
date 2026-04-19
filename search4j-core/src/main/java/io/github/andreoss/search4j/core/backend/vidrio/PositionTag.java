@@ -119,7 +119,7 @@ final class PositionTag {
             }
             reader.decodeInterpolative((int) size - 1, first, last.value());
             return new VidrioPositionList(
-                reader, new TermPos((int) first), last,
+                reader, new TermPos(first), last,
                 new TermCount(size)
             );
         } catch (final SerialisationError ex) {
@@ -131,12 +131,6 @@ final class PositionTag {
     }
 
     private static TermPos position(final ByteReader reader, final String what) {
-        final long value = reader.narrow(what);
-        if (value > Integer.MAX_VALUE) {
-            throw new DatabaseCorruptError(
-                String.format("%s too large: %d", what, value)
-            );
-        }
-        return new TermPos((int) value);
+        return new TermPos(reader.narrow(what));
     }
 }

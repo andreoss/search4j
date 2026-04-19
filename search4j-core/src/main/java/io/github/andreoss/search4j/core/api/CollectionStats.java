@@ -31,6 +31,6 @@ public record CollectionStats(
      * @return Total length over the number of documents
      */
     public double average() {
-        return (double) this.total.value() / this.size.value();
+        return this.total.asDouble() / this.size.value();
     }
 }

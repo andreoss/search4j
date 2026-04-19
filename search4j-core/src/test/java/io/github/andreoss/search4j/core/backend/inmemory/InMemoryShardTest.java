@@ -9,6 +9,7 @@ package io.github.andreoss.search4j.core.backend.inmemory;
 
 import io.github.andreoss.search4j.core.backend.DocumentInternal;
 import io.github.andreoss.search4j.core.backend.TermFrequencies;
+import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.LeafPostList;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.ValueList;
@@ -158,6 +159,28 @@ final class InMemoryShardTest {
                 "%b %s=%s", list.check(new DocId(2)), list.docId(), list.value()
             ),
             "Moved to the holder"
+        );
+    }
+
+    @Test
+    void reportsTheUsedDocumentRangeAsTheReference() {
+        final InMemoryShard shard = new InMemoryShard();
+        final List<DocRange> seen = new ArrayList<>(3);
+        shard.replaceDocument(DocId.of(2), new DocumentInternal());
+        shard.replaceDocument(DocId.of(3), new DocumentInternal());
+        seen.add(shard.usedDocIds());
+        shard.replaceDocument(DocId.of(1), new DocumentInternal());
+        seen.add(shard.usedDocIds());
+        shard.deleteDocument(DocId.of(3));
+        seen.add(shard.usedDocIds());
+        Assertions.assertEquals(
+            List.of(
+                new DocRange(DocId.of(2), DocId.of(3)),
+                new DocRange(DocId.of(1), DocId.of(3)),
+                new DocRange(DocId.of(1), DocId.of(2))
+            ),
+            seen,
+            "Present identifiers unless the range is contiguous from 1"
         );
     }
 

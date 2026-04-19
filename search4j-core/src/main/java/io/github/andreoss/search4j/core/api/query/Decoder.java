@@ -130,7 +130,7 @@ final class Decoder {
             pos = this.cursor.uint(32);
         }
         return new TermNode(
-            text, new TermCount(wqf), new TermPos(Decoder.small(pos))
+            text, new TermCount(wqf), new TermPos(pos)
         );
     }
 
@@ -171,7 +171,7 @@ final class Decoder {
                 new TermNode(
                     "",
                     new TermCount(this.leaf(32)),
-                    new TermPos(Decoder.small(this.leaf(32)))
+                    new TermPos(this.leaf(32))
                 )
             );
             case 0x0F -> Query.MATCH_ALL;

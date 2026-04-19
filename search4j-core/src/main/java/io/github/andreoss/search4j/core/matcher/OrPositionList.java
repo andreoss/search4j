@@ -79,10 +79,10 @@ public final class OrPositionList implements PositionList {
 
     @Override
     public TermPos position() {
-        if (this.positions.length == 0 || this.current > Integer.MAX_VALUE) {
+        if (this.positions.length == 0) {
             throw new InvalidOperationError("Position list is not on a position");
         }
-        return new TermPos((int) this.current);
+        return new TermPos(this.current);
     }
 
     @Override

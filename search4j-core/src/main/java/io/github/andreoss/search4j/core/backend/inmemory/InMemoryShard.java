@@ -15,6 +15,7 @@ import io.github.andreoss.search4j.core.backend.TransactionState;
 import io.github.andreoss.search4j.core.backend.Transactions;
 import io.github.andreoss.search4j.core.backend.ValueStats;
 import io.github.andreoss.search4j.core.backend.list.AllTermsList;
+import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.LeafPostList;
 import io.github.andreoss.search4j.core.backend.list.PositionList;
 import io.github.andreoss.search4j.core.backend.list.PostList;
@@ -57,6 +58,12 @@ public final class InMemoryShard implements Shard {
     public InMemoryShard() {
         this.store = new Store();
         this.states = new Transactions(TransactionState.UNIMPLEMENTED);
+    }
+
+    @Override
+    public DocRange usedDocIds() {
+        this.store.live();
+        return this.store.used();
     }
 
     @Override
@@ -127,9 +134,7 @@ public final class InMemoryShard implements Shard {
 
     @Override
     public TermCount docLengthUpperBound() {
-        return new TermCount(
-            Math.min(this.store.total(), TermCount.MAX.value())
-        );
+        return new TotalLength(this.store.total()).clamped();
     }
 
     @Override

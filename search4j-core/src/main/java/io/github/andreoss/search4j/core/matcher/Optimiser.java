@@ -201,7 +201,8 @@ final class Optimiser {
             result = this.positional(ctx, node, factor, sink);
             if (result) {
                 ctx.filter(
-                    node.type(), node.subqueryCount(), new TermPos(Optimiser.parameter(node))
+                    node.type(), node.subqueryCount(),
+                    new TermPos(Integer.toUnsignedLong(Optimiser.parameter(node)))
                 );
             }
             this.leaves.positions(saved);

@@ -36,3 +36,15 @@ tie	1	t00 t01 t02 t03 t04 t05 t06 t07 t08 t09 t10 t11 t12 t13 t14 t15 t16 t17 t1
 tie	2	t19 t18 t17 t16 t15 t14 t13 t12 t11 t10 t09 t08 t07 t06 t05 t04 t03 t02 t01 t00 t05 t11 t17
 tie	3	t00 t00 t01 t02 t02 t02 t03 t04 t05 t06 t07 t08 t09 t10 t11 t12 t13 t14 t15 t16 t17 t18 t19 t19
 tie	4	t03 t07 t11 t00
+wide	1	@2147483647 a b c
+wide	2	@2147483648 b a
+wide	3	@4294967293 a b c
+wide	4	@2147483645 c a _ _ _ _ _ b
+wide	5	@4294967290 b a c a
+wide	6	b @2147483648 a
+wide	7	@3000000000 c b a @4294967290 c
+wide	8	x:3 y:2
+wrap	1	@4294967294 c a b
+wrap	2	a @3000000000 b @4294967295 c
+wrap	3	@2147483646 a @4294967295 b
+wrap	4	x:3 y:2

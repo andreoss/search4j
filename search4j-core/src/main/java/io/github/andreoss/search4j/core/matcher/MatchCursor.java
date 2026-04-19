@@ -8,6 +8,7 @@
 package io.github.andreoss.search4j.core.matcher;
 
 import io.github.andreoss.search4j.core.backend.Shard;
+import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.backend.list.DocStats;
 import io.github.andreoss.search4j.core.backend.list.PostList;
 import io.github.andreoss.search4j.core.types.DocId;
@@ -111,9 +112,16 @@ public final class MatchCursor {
      * @return Resolved estimates
      */
     public MatchEstimates resolved() {
-        return this.estimate.resolve(
-            this.shard.docCount(), DocId.of(1), this.shard.lastDocId()
+        MatchEstimates result = new MatchEstimates(
+            TermCount.ZERO, TermCount.ZERO, TermCount.ZERO, DocId.of(1), DocId.NONE
         );
+        if (this.shard.docCount().value() != 0L) {
+            final DocRange used = this.shard.usedDocIds();
+            result = this.estimate.resolve(
+                this.shard.docCount(), used.first(), used.last()
+            );
+        }
+        return result;
     }
 
     /**
@@ -176,7 +184,11 @@ public final class MatchCursor {
         this.list = tree.list();
         this.estimate = tree.estimate();
         this.subqueries = count;
-        this.max = Math.max(this.list.recalcMaxWeight(), 0.0);
+        final double initial = this.list.recalcMaxWeight();
+        this.max = 0.0;
+        if (0.0 < initial) {
+            this.max = initial;
+        }
         this.cached = true;
     }
 

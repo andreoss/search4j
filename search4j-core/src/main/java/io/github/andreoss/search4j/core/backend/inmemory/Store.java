@@ -8,6 +8,7 @@
 package io.github.andreoss.search4j.core.backend.inmemory;
 
 import io.github.andreoss.search4j.core.backend.TermOrder;
+import io.github.andreoss.search4j.core.backend.list.DocRange;
 import io.github.andreoss.search4j.core.error.DatabaseClosedError;
 import io.github.andreoss.search4j.core.error.DocNotFoundError;
 import io.github.andreoss.search4j.core.types.DocId;
@@ -149,6 +150,22 @@ final class Store implements Stats {
      */
     NavigableMap<String, String> meta() {
         return this.meta;
+    }
+
+    /**
+     * Range of the identifiers in use: from 1 to the highest identifier
+     * ever used when that is 0 or the number of documents, otherwise the
+     * lowest and highest present identifier.
+     *
+     * @return Range of identifiers in use
+     */
+    DocRange used() {
+        DocRange result = new DocRange(new DocId(1), this.last);
+        final long top = this.last.value();
+        if (top != 0L && top != this.docs.size() && !this.docs.isEmpty()) {
+            result = new DocRange(this.docs.firstKey(), this.docs.lastKey());
+        }
+        return result;
     }
 
     /**

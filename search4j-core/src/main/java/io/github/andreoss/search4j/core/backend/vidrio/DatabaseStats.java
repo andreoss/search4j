@@ -10,7 +10,6 @@
 package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
-import io.github.andreoss.search4j.core.error.InvariantError;
 import io.github.andreoss.search4j.core.error.RangeError;
 import io.github.andreoss.search4j.core.ser.Varints;
 import java.io.ByteArrayOutputStream;
@@ -50,11 +49,16 @@ public record DatabaseStats(
     private static final long NARROW = 0xFFFF_FFFFL;
 
     /**
+     * Start of the message of an error in the stored statistics.
+     */
+    private static final String WHAT = "Bad serialised DB stats";
+
+    /**
      * Creates the statistics.
      *
      * @param docs Number of documents, 32 bits
      * @param last Greatest document number, 32 bits
-     * @param total Total document length, non-negative
+     * @param total Total document length, the bits of an unsigned 64-bit value
      * @param lower Lower bound on the document length, 32 bits
      * @param upper Upper bound on the document length, 32 bits
      * @param wdf Upper bound on the within-document frequency, 32 bits
@@ -69,11 +73,6 @@ public record DatabaseStats(
         DatabaseStats.narrow(wdf, "Wdf upper bound");
         DatabaseStats.narrow(spelling, "Spelling frequency upper bound");
         DatabaseStats.narrow(changeset, "Oldest change set");
-        if (total < 0L) {
-            throw new IllegalArgumentException(
-                String.format("Total length out of range: %d", total)
-            );
-        }
     }
 
     /**
@@ -90,29 +89,15 @@ public record DatabaseStats(
         if (reader.done()) {
             stats = DatabaseStats.EMPTY;
         } else {
-            final String what = "Bad serialised DB stats";
-            final long docs = reader.narrow(what);
-            final long last = reader.narrow(what);
-            final long lower = reader.narrow(what);
-            final long wdf = reader.narrow(what);
-            final long upper = reader.narrow(what);
-            final long changeset = reader.narrow(what);
-            final long total = reader.wide(what);
-            final long spelling = reader.narrow(what);
+            final long[] values = DatabaseStats.values(reader);
             if (!embedded && !reader.done()) {
-                throw new DatabaseCorruptError(
-                    "Version record has junk at end"
-                );
-            }
-            if (last + docs > DatabaseStats.NARROW || total < 0L) {
-                throw new DatabaseCorruptError(
-                    "Bad serialised DB stats (overflowed)"
-                );
+                throw new DatabaseCorruptError("Rev file has junk at end");
             }
             stats = new DatabaseStats(
-                docs, last + docs, total, lower,
-                (upper + wdf) & DatabaseStats.NARROW, wdf, spelling,
-                changeset
+                values[0], (values[1] + values[0]) & DatabaseStats.NARROW,
+                values[6], values[2],
+                (values[4] + values[3]) & DatabaseStats.NARROW, values[3],
+                values[7], values[5]
             );
         }
         return stats;
@@ -124,27 +109,23 @@ public record DatabaseStats(
      * @return Eight variable-length integers
      */
     public byte[] bytes() {
-        if (this.last < this.docs) {
-            throw new InvariantError(
-                String.format("Statistics out of order: %s", this)
-            );
-        }
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.writeBytes(Varints.pack(this.docs));
-        out.writeBytes(Varints.pack(this.last - this.docs));
+        out.writeBytes(Varints.pack((this.last - this.docs) & DatabaseStats.NARROW));
         out.writeBytes(Varints.pack(this.lower));
         out.writeBytes(Varints.pack(this.wdf));
         out.writeBytes(
             Varints.pack((this.upper - this.wdf) & DatabaseStats.NARROW)
         );
         out.writeBytes(Varints.pack(this.changeset));
-        out.writeBytes(Varints.pack(this.total));
+        out.writeBytes(Varints.packUnsigned(this.total));
         out.writeBytes(Varints.pack(this.spelling));
         return out.toByteArray();
     }
 
     /**
-     * Counts a document added.
+     * Counts a document added, the count and total wrapping as the
+     * reference's unsigned arithmetic does.
      *
      * @param length Length of the document
      * @return Statistics with the document
@@ -157,36 +138,33 @@ public record DatabaseStats(
             least = this.lower;
         }
         return new DatabaseStats(
-            DatabaseStats.count(this.docs + 1L, "Document count"), this.last,
-            DatabaseStats.sum(this.total + length, "Total length"), least,
+            (this.docs + 1L) & DatabaseStats.NARROW, this.last,
+            this.total + length, least,
             Math.max(this.upper, length), this.wdf, this.spelling,
             this.changeset
         );
     }
 
     /**
-     * Counts a document deleted; the bounds reset once no length is left.
+     * Counts a document deleted, the count and total wrapping as the
+     * reference's unsigned arithmetic does; the bounds reset once no length
+     * is left.
      *
      * @param length Length of the document
      * @return Statistics without the document
      */
     public DatabaseStats deleted(final long length) {
-        if (this.docs == 0L || length > this.total) {
-            throw new InvariantError(
-                String.format("No document of length %d to delete", length)
-            );
-        }
         final long left = this.total - length;
         final DatabaseStats stats;
         if (left == 0L) {
             stats = new DatabaseStats(
-                this.docs - 1L, this.last, 0L, 0L, 0L, 0L, this.spelling,
-                this.changeset
+                (this.docs - 1L) & DatabaseStats.NARROW, this.last, 0L, 0L,
+                0L, 0L, this.spelling, this.changeset
             );
         } else {
             stats = new DatabaseStats(
-                this.docs - 1L, this.last, left, this.lower, this.upper,
-                this.wdf, this.spelling, this.changeset
+                (this.docs - 1L) & DatabaseStats.NARROW, this.last, left,
+                this.lower, this.upper, this.wdf, this.spelling, this.changeset
             );
         }
         return stats;
@@ -289,7 +267,7 @@ public record DatabaseStats(
         return new DatabaseStats(
             DatabaseStats.count(this.docs + other.docs, "Document count"),
             this.last,
-            DatabaseStats.sum(this.total + other.total, "Total length"),
+            DatabaseStats.sum(this.total, other.total),
             least, Math.max(this.upper, other.upper),
             Math.max(this.wdf, other.wdf),
             DatabaseStats.count(
@@ -300,11 +278,35 @@ public record DatabaseStats(
         );
     }
 
-    private static long sum(final long value, final String what) {
-        if (value < 0L) {
-            throw new RangeError(String.format("%s overflowed", what));
+    private static long sum(final long left, final long right) {
+        final long value = left + right;
+        if (Long.compareUnsigned(value, right) < 0) {
+            throw new RangeError("Total length overflowed");
         }
         return value;
+    }
+
+    private static long[] values(final ByteReader reader) {
+        final long[] values = new long[8];
+        try {
+            for (int idx = 0; idx < values.length; ++idx) {
+                if (idx == 6) {
+                    values[idx] = reader.wide(DatabaseStats.WHAT);
+                } else {
+                    values[idx] = reader.narrow(DatabaseStats.WHAT);
+                }
+            }
+        } catch (final DatabaseCorruptError ex) {
+            final DatabaseCorruptError error = new DatabaseCorruptError(
+                String.format(
+                    "%s (%s)", DatabaseStats.WHAT,
+                    ex.getMessage().substring(DatabaseStats.WHAT.length() + 1)
+                )
+            );
+            error.initCause(ex);
+            throw error;
+        }
+        return values;
     }
 
     private static long count(final long value, final String what) {

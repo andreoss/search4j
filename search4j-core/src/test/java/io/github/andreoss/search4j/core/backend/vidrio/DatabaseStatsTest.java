@@ -8,8 +8,8 @@
 package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
-import io.github.andreoss.search4j.core.error.InvariantError;
 import io.github.andreoss.search4j.core.error.RangeError;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -123,14 +123,45 @@ final class DatabaseStatsTest {
     }
 
     @Test
-    void rejectsDocidGapOverflow() {
-        final ByteReader reader = ByteReader.over(
-            HexFormat.of().parseHex("ffffffff0f0100000000000000")
+    void wrapsLastDocidAsTheReference() {
+        final DatabaseStats stats = DatabaseStats.parse(
+            ByteReader.over(HexFormat.of().parseHex("03feffffff0f020301000900")),
+            false
         );
-        Assertions.assertThrows(
-            DatabaseCorruptError.class,
-            () -> DatabaseStats.parse(reader, false),
-            "Last docid above 32 bits"
+        Assertions.assertEquals(
+            List.of(3L, 1L, "03feffffff0f020301000900"),
+            List.of(
+                stats.docs(), stats.last(), HexFormat.of().formatHex(stats.bytes())
+            ),
+            "Last docid modulo two to the 32, stored back unchanged"
+        );
+    }
+
+    @Test
+    void reportsErrorsAsTheReference() {
+        final List<String> messages = new ArrayList<>(3);
+        for (final String hex : List.of(
+            "03000203010009", "80808080808001000203010009000000",
+            "030002030100808080808080808080808001"
+        )) {
+            messages.add(
+                Assertions.assertThrows(
+                    DatabaseCorruptError.class,
+                    () -> DatabaseStats.parse(
+                        ByteReader.over(HexFormat.of().parseHex(hex)), false
+                    ),
+                    hex
+                ).getMessage()
+            );
+        }
+        Assertions.assertEquals(
+            List.of(
+                "Bad serialised DB stats (out of data)",
+                "Bad serialised DB stats (overflowed)",
+                "Bad serialised DB stats (overflowed)"
+            ),
+            messages,
+            "Truncated, count and total overflow"
         );
     }
 
@@ -150,23 +181,28 @@ final class DatabaseStatsTest {
     }
 
     @Test
-    void rejectsTotalAboveLongRange() {
-        final ByteReader reader = ByteReader.over(
-            HexFormat.of().parseHex("000000000000ffffffffffffffffff0100")
+    void acceptsTotalAboveLongRange() {
+        final DatabaseStats stats = DatabaseStats.parse(
+            ByteReader.over(
+                HexFormat.of().parseHex("000000000000ffffffffffffffffff0100")
+            ),
+            false
         );
-        Assertions.assertThrows(
-            DatabaseCorruptError.class,
-            () -> DatabaseStats.parse(reader, false),
-            "Total length with bit 63 set"
+        Assertions.assertEquals(
+            List.of(-1L, "000000000000ffffffffffffffffff0100"),
+            List.of(stats.total(), HexFormat.of().formatHex(stats.bytes())),
+            "Total length with bit 63 set, stored back unchanged"
         );
     }
 
     @Test
-    void rejectsEncodingOutOfOrder() {
-        Assertions.assertThrows(
-            InvariantError.class,
-            () -> new DatabaseStats(2L, 1L, 0L, 0L, 0L, 0L, 0L, 0L).bytes(),
-            "Last docid below the count"
+    void encodesLastDocidBelowTheCountAsTheReference() {
+        Assertions.assertEquals(
+            "02ffffffff0f000000000000",
+            HexFormat.of().formatHex(
+                new DatabaseStats(2L, 1L, 0L, 0L, 0L, 0L, 0L, 0L).bytes()
+            ),
+            "Docid gap modulo two to the 32"
         );
     }
 
@@ -198,11 +234,6 @@ final class DatabaseStatsTest {
             ),
             () -> Assertions.assertThrows(
                 IllegalArgumentException.class,
-                () -> new DatabaseStats(0L, 0L, -1L, 0L, 0L, 0L, 0L, 0L),
-                "Negative total"
-            ),
-            () -> Assertions.assertThrows(
-                IllegalArgumentException.class,
                 () -> new DatabaseStats(
                     0L, 0L, 0L, 0L, 0L, 0L, DatabaseStatsTest.NARROW + 1L, 0L
                 ),
@@ -213,12 +244,9 @@ final class DatabaseStatsTest {
 
     @Test
     void rejectsEveryFieldOutOfRange() {
-        for (int pos = 0; pos < 8; ++pos) {
+        for (final int pos : new int[] {0, 1, 3, 4, 5, 6, 7}) {
             final long[] values = new long[8];
             values[pos] = DatabaseStatsTest.NARROW + 1L;
-            if (pos == 2) {
-                values[pos] = -1L;
-            }
             Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> new DatabaseStats(
@@ -276,17 +304,16 @@ final class DatabaseStatsTest {
     }
 
     @Test
-    void rejectsDeletingMoreThanHeld() {
-        Assertions.assertAll(
-            () -> Assertions.assertThrows(
-                InvariantError.class, () -> DatabaseStats.EMPTY.deleted(0L),
-                "No documents"
+    void wrapsDeletionPastZeroAsTheReference() {
+        Assertions.assertEquals(
+            List.of(
+                new DatabaseStats(DatabaseStatsTest.NARROW, 0L, 0L, 0L, 0L, 0L, 0L, 0L),
+                new DatabaseStats(2L, 5L, -1L, 10L, 30L, 7L, 4L, 2L)
             ),
-            () -> Assertions.assertThrows(
-                InvariantError.class,
-                () -> DatabaseStatsTest.SMALL.deleted(61L),
-                "Length above the total"
-            )
+            List.of(
+                DatabaseStats.EMPTY.deleted(0L), DatabaseStatsTest.SMALL.deleted(61L)
+            ),
+            "Count and total modulo two to the 32 and the 64"
         );
     }
 
@@ -400,9 +427,16 @@ final class DatabaseStatsTest {
             () -> Assertions.assertThrows(
                 RangeError.class,
                 () -> new DatabaseStats(
-                    0L, 0L, Long.MAX_VALUE, 0L, 0L, 0L, 0L, 0L
+                    0L, 0L, -1L, 0L, 0L, 0L, 0L, 0L
                 ).merged(one),
                 "Total overflow"
+            ),
+            () -> Assertions.assertEquals(
+                Long.MIN_VALUE,
+                new DatabaseStats(
+                    0L, 0L, Long.MAX_VALUE, 0L, 0L, 0L, 0L, 0L
+                ).merged(one.withSpelling(0L)).total(),
+                "Total past the signed range"
             ),
             () -> Assertions.assertThrows(
                 RangeError.class,
@@ -415,23 +449,20 @@ final class DatabaseStatsTest {
     }
 
     @Test
-    void rejectsAddOverflow() {
-        Assertions.assertAll(
-            () -> Assertions.assertThrows(
-                RangeError.class,
-                () -> new DatabaseStats(
+    void wrapsAdditionAsTheReference() {
+        Assertions.assertEquals(
+            List.of(0L, Long.MIN_VALUE, 2L),
+            List.of(
+                new DatabaseStats(
                     DatabaseStatsTest.NARROW, DatabaseStatsTest.NARROW, 0L,
                     0L, 0L, 0L, 0L, 0L
-                ).added(1L),
-                "Count overflow"
-            ),
-            () -> Assertions.assertThrows(
-                RangeError.class,
-                () -> new DatabaseStats(
+                ).added(1L).docs(),
+                new DatabaseStats(
                     0L, 0L, Long.MAX_VALUE, 0L, 0L, 0L, 0L, 0L
-                ).added(1L),
-                "Total overflow"
-            )
+                ).added(1L).total(),
+                new DatabaseStats(0L, 0L, -1L, 0L, 0L, 0L, 0L, 0L).added(3L).total()
+            ),
+            "Count and total modulo two to the 32 and the 64"
         );
     }
 }

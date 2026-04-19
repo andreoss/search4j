@@ -12,28 +12,34 @@ import java.util.Objects;
 /**
  * Position of a term within a document or a query.
  *
- * <p>Positions start at 0 and fit a 32-bit signed integer.</p>
+ * <p>Positions are unsigned 32-bit numbers, from 0 to {@code 4294967295},
+ * carried in a {@code long}.</p>
  *
  * @param value The underlying number
  * @since 0.1.0
  */
 @SuppressWarnings("PMD.ProhibitPublicStaticMethods")
-public record TermPos(int value) implements Comparable<TermPos> {
+public record TermPos(long value) implements Comparable<TermPos> {
 
     /**
      * First term position.
      */
-    public static final TermPos FIRST = new TermPos(0);
+    public static final TermPos FIRST = new TermPos(0L);
+
+    /**
+     * Largest term position, the unsigned 32-bit maximum.
+     */
+    public static final TermPos MAX = new TermPos(0xFFFF_FFFFL);
 
     /**
      * Creates a term position.
      *
-     * @param value A non-negative position
+     * @param value A position from 0 to the unsigned 32-bit maximum
      */
     public TermPos {
-        if (value < 0) {
+        if (value < 0L || value > 0xFFFF_FFFFL) {
             throw new IllegalArgumentException(
-                String.format("TermPos must not be negative: %d", value)
+                String.format("TermPos out of the 32-bit range: %d", value)
             );
         }
     }
@@ -41,7 +47,7 @@ public record TermPos(int value) implements Comparable<TermPos> {
     /**
      * Creates a term position from its decimal text.
      *
-     * @param text Decimal digits without leading zeros, at most 2147483647
+     * @param text Decimal digits without leading zeros, at most 4294967295
      * @return Position carrying the parsed number
      */
     public static TermPos parse(final String text) {
@@ -51,34 +57,37 @@ public record TermPos(int value) implements Comparable<TermPos> {
                 String.format("TermPos is not decimal digits: %s", text)
             );
         }
-        final long number = Long.parseLong(text);
-        if (number > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException(
-                String.format("TermPos exceeds the 32-bit range: %s", text)
-            );
-        }
-        return new TermPos((int) number);
+        return new TermPos(Long.parseLong(text));
     }
 
     /**
-     * Position one above this one.
+     * Creates a term position from the low 32 bits of a number, as unsigned
+     * 32-bit arithmetic keeps a sum or difference of positions.
      *
-     * @return Successor, an illegal-state error past the maximum
+     * @param number Any number, such as a sum or difference of positions
+     * @return Position of the number modulo two to the thirty-second
+     */
+    public static TermPos wrap(final long number) {
+        return new TermPos(number & 0xFFFF_FFFFL);
+    }
+
+    /**
+     * Position one above this one, wrapping past the maximum as unsigned
+     * 32-bit arithmetic does.
+     *
+     * @return Successor, {@link #FIRST} after the maximum
      */
     public TermPos next() {
-        if (this.value == Integer.MAX_VALUE) {
-            throw new IllegalStateException("TermPos overflow");
-        }
-        return new TermPos(this.value + 1);
+        return TermPos.wrap(this.value + 1L);
     }
 
     @Override
     public int compareTo(final TermPos other) {
-        return Integer.compare(this.value, other.value);
+        return Long.compare(this.value, other.value);
     }
 
     @Override
     public String toString() {
-        return Integer.toString(this.value);
+        return Long.toString(this.value);
     }
 }

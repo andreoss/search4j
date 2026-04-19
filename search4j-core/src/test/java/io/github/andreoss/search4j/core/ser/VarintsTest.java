@@ -70,4 +70,19 @@ final class VarintsTest {
             "Negative rejected"
         );
     }
+
+    @Test
+    void packsUnsignedSixtyFourBitValues() {
+        Assertions.assertEquals(
+            List.of(
+                "80808080808080808001", "ffffffffffffffffff01", "05"
+            ),
+            List.of(
+                HexFormat.of().formatHex(Varints.packUnsigned(Long.MIN_VALUE)),
+                HexFormat.of().formatHex(Varints.packUnsigned(-1L)),
+                HexFormat.of().formatHex(Varints.packUnsigned(5L))
+            ),
+            "Bytes of totals of two to the sixty-third and above"
+        );
+    }
 }
