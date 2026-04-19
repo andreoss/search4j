@@ -225,6 +225,29 @@ final class EnquireOptionsTest {
     }
 
     @Test
+    void countsExactlyBeforeTimeRunsOut() {
+        final Enquire enquire = EnquireOptionsTest.enquire(EnquireOptionsTest.WIDE);
+        enquire.setTimeLimit(Duration.ofHours(1L));
+        Assertions.assertEquals(
+            List.of(1, 9, 9, 9),
+            EnquireOptionsTest.counts(enquire.getMSet(0, 1, 10)),
+            "Exact bounds while time remains"
+        );
+    }
+
+    @Test
+    void stopsInDocIdOrderOnceTimeRunsOut() {
+        final Enquire enquire = EnquireOptionsTest.enquire("(AND alpha beta)");
+        enquire.setWeightingScheme(new BoolWeight());
+        enquire.setTimeLimit(Duration.ofNanos(1L));
+        Assertions.assertEquals(
+            List.of(1, 1, 2, 4),
+            EnquireOptionsTest.counts(enquire.getMSet(0, 1, 10)),
+            "Counting stops at the first match"
+        );
+    }
+
+    @Test
     void keepsBestMatchesPerKey() {
         final Enquire enquire = EnquireOptionsTest.enquire(EnquireOptionsTest.WIDE);
         enquire.setKeyMaker(docid -> Integer.toString((docid.value() - 1) / 3));

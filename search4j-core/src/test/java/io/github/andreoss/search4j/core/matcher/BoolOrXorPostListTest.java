@@ -282,6 +282,32 @@ final class BoolOrXorPostListTest {
     }
 
     @Test
+    void recalculatesOrWhenLeftEnds() {
+        final AtomicInteger count = new AtomicInteger();
+        BooleanPostListFixture.drain(
+            new OrPostList(
+                BooleanPostListFixture.fake("A", 1, 3),
+                BooleanPostListFixture.fake("B", 2, 5, 7),
+                count::incrementAndGet
+            )
+        );
+        Assertions.assertEquals(1, count.get(), "Right kept");
+    }
+
+    @Test
+    void recalculatesOrWhenRightEnds() {
+        final AtomicInteger count = new AtomicInteger();
+        BooleanPostListFixture.drain(
+            new OrPostList(
+                BooleanPostListFixture.fake("A", 2, 5, 7),
+                BooleanPostListFixture.fake("B", 1, 3),
+                count::incrementAndGet
+            )
+        );
+        Assertions.assertEquals(1, count.get(), "Left kept");
+    }
+
+    @Test
     void unitesXorRange() {
         final DocRange range = new XorPostList(
             List.of(

@@ -483,7 +483,7 @@ final class Collector {
 
     private boolean expired() {
         return this.tally.known() >= this.limits.size() && this.limits.deadline() != 0L
-            && System.nanoTime() - this.limits.deadline() > 0L;
+            && Long.signum(System.nanoTime() - this.limits.deadline()) == 1;
     }
 
     private void collapse(final Candidate item) {
