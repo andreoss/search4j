@@ -300,7 +300,7 @@ public final class VidrioReader
     }
 
     @Override
-    public TermList terms(final DocId doc) {
+    public VidrioTermList terms(final DocId doc) {
         return this.parts.termlists().open(doc);
     }
 

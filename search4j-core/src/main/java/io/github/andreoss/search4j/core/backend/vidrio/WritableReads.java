@@ -250,6 +250,16 @@ public final class WritableReads
         return this.reader.terms(doc);
     }
 
+    /**
+     * Length of a document as its term list records it.
+     *
+     * @param doc Identifier of a document with a term list
+     * @return Length stored with the term list
+     */
+    public TermCount listedLength(final DocId doc) {
+        return this.reader.terms(doc).docLength();
+    }
+
     @Override
     public boolean positional() {
         return this.hasPositions();

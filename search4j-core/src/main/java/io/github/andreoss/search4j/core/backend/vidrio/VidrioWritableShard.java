@@ -252,7 +252,8 @@ public final class VidrioWritableShard implements Shard, AutoCloseable {
 
     @Override
     public void deleteDocument(final DocId docid) {
-        this.live().docLength(docid);
+        this.live();
+        this.indexer.unstore(docid);
         this.change(
             () -> {
                 this.indexer.delete(docid);

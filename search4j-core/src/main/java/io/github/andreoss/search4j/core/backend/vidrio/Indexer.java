@@ -94,15 +94,28 @@ public final class Indexer {
     }
 
     /**
-     * Deletes a document known to be present.
+     * Removes the data of a document about to be deleted, checking the
+     * document length when it had none.
      *
-     * @param doc Identifier of a present document
+     * @param doc Identifier of the document
+     */
+    public void unstore(final DocId doc) {
+        final boolean data = this.session.tables().opened(TableType.DOCDATA)
+            .map(table -> table.delete(DocDataKeys.of(doc).data()))
+            .orElse(false);
+        if (!data) {
+            this.reads.docLength(doc);
+        }
+    }
+
+    /**
+     * Deletes a document whose data is removed.
+     *
+     * @param doc Identifier of the document
      */
     public void delete(final DocId doc) {
-        this.session.tables().opened(TableType.DOCDATA)
-            .ifPresent(table -> table.delete(DocDataKeys.of(doc).data()));
         this.session.values().delete(doc);
-        final TermCount length = this.reads.docLength(doc);
+        final TermCount length = this.reads.listedLength(doc);
         TermList list = this.reads.terms(doc);
         this.stats(stats -> stats.deleted(length.value()));
         list = list.next();
@@ -138,7 +151,7 @@ public final class Indexer {
     private void merge(final DocId doc, final Document document) {
         final NavigableMap<String, TermOccurrence> fresh =
             TermOccurrence.of(document);
-        final TermCount before = this.reads.docLength(doc);
+        final TermCount before = this.reads.listedLength(doc);
         TermList old = this.reads.terms(doc);
         this.stats(stats -> stats.deleted(before.value()));
         long length = before.value();

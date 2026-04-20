@@ -398,19 +398,21 @@ final class PostingWriterTest {
     }
 
     @Test
-    void rejectsFrequencyBelowZero() {
-        final PostingWriter writer =
-            new PostingWriter(Corpus.of(13L, BlockSize.MIN, 1).writer());
+    void wrapsFrequencyBelowZeroAsTheReference() {
+        final TableWriter writer = Corpus.of(13L, BlockSize.MIN, 1).writer();
         final PostingChanges changes = new PostingChanges();
         changes.remove(DocId.of(1), new TermCount(2));
+        final long before = writer.entries().value();
+        new PostingWriter(writer).merge(PostingWriterTest.TERM, changes);
         Assertions.assertEquals(
-            "Term frequency out of range: -1",
-            Assertions.assertThrows(
-                InvariantError.class,
-                () -> writer.merge(PostingWriterTest.TERM, changes),
-                "Removal from an absent list"
-            ).getMessage(),
-            "Message"
+            List.of(before, false),
+            List.of(
+                writer.entries().value(),
+                writer.contains(
+                    PostListKeys.first(PostListKeys.bytes(PostingWriterTest.TERM))
+                )
+            ),
+            "Removal from an absent list leaves no list"
         );
     }
 

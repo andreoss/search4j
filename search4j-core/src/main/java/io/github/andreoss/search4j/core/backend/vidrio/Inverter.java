@@ -11,7 +11,6 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 
 import io.github.andreoss.search4j.core.backend.TermFrequencies;
 import io.github.andreoss.search4j.core.backend.TermOrder;
-import io.github.andreoss.search4j.core.error.InvariantError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.util.Iterator;
@@ -121,9 +120,8 @@ public final class Inverter {
         final PostingChanges pending = this.postings.get(term);
         if (pending != null) {
             result = new TermFrequencies(
-                Inverter.count(
-                    stored.termFrequency().value() + pending.termDelta(),
-                    "Term frequency"
+                TermCount.wrap(
+                    stored.termFrequency().value() + pending.termDelta()
                 ),
                 TermCount.wrap(
                     stored.collection().value() + pending.collectionDelta()
@@ -188,14 +186,5 @@ public final class Inverter {
 
     private PostingChanges changes(final String term) {
         return this.postings.computeIfAbsent(term, key -> new PostingChanges());
-    }
-
-    private static TermCount count(final long value, final String what) {
-        if (value < 0L || value > TermCount.MAX.value()) {
-            throw new InvariantError(
-                String.format("%s out of range: %d", what, value)
-            );
-        }
-        return new TermCount(value);
     }
 }

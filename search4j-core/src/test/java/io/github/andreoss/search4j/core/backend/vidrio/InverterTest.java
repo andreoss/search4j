@@ -48,13 +48,13 @@ final class InverterTest {
     }
 
     @Test
-    void rejectsFrequenciesOutOfRange() {
+    void wrapsFrequenciesBelowZeroAsTheReference() {
         final Inverter inverter = new Inverter();
         inverter.removePosting(DocId.of(1), "apple", new TermCount(5));
-        Assertions.assertThrows(
-            InvariantError.class,
-            () -> inverter.frequencies("apple", TermFrequencies.NONE),
-            "Below zero"
+        Assertions.assertEquals(
+            new TermFrequencies(TermCount.MAX, TermCount.parse("4294967291")),
+            inverter.frequencies("apple", TermFrequencies.NONE),
+            "Below zero wraps"
         );
     }
 

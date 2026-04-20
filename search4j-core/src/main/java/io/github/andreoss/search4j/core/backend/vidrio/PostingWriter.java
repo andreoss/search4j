@@ -12,7 +12,6 @@ package io.github.andreoss.search4j.core.backend.vidrio;
 import io.github.andreoss.search4j.core.backend.TermFrequencies;
 import io.github.andreoss.search4j.core.error.DatabaseCorruptError;
 import io.github.andreoss.search4j.core.error.InvalidArgumentError;
-import io.github.andreoss.search4j.core.error.InvariantError;
 import io.github.andreoss.search4j.core.types.DocId;
 import io.github.andreoss.search4j.core.types.TermCount;
 import java.io.ByteArrayOutputStream;
@@ -70,16 +69,17 @@ final class PostingWriter {
             head = FirstHeader.read(reader);
             chunk = ChunkHeader.read(reader, head.first());
         }
-        final long docs =
-            head.freqs().termFrequency().value() + changes.termDelta();
-        if (docs == 0L) {
+        final TermCount docs = TermCount.wrap(
+            head.freqs().termFrequency().value() + changes.termDelta()
+        );
+        if (docs.equals(TermCount.ZERO)) {
             this.drop(key, term, chunk.last());
         } else {
             final ByteArrayOutputStream out = new ByteArrayOutputStream();
             out.writeBytes(
                 new FirstHeader(
                     new TermFrequencies(
-                        PostingWriter.count(docs, "Term frequency"),
+                        docs,
                         TermCount.wrap(
                             head.freqs().collection().value()
                                 + changes.collectionDelta()
@@ -125,8 +125,10 @@ final class PostingWriter {
                 edit = this.locate(term, doc, false);
                 edit.reach(doc);
             }
-            if (entry.getValue().isPresent()) {
-                edit.append(doc, entry.getValue().get());
+            final Optional<TermCount> wdf = entry.getValue()
+                .filter(value -> !TermCount.MAX.equals(value));
+            if (wdf.isPresent()) {
+                edit.append(doc, wdf.get());
             }
         }
         edit.finish();
@@ -215,14 +217,5 @@ final class PostingWriter {
                 this.table.delete(item);
             }
         }
-    }
-
-    private static TermCount count(final long value, final String what) {
-        if (value < 0L || value > TermCount.MAX.value()) {
-            throw new InvariantError(
-                String.format("%s out of range: %d", what, value)
-            );
-        }
-        return new TermCount(value);
     }
 }

@@ -72,14 +72,16 @@ public final class PendingLengths {
     /**
      * Length of a document as changed so far.
      *
-     * <p>A document pending removal raises a document-not-found error.</p>
+     * <p>A document pending removal, or pending the length that marks one,
+     * raises a document-not-found error.</p>
      *
      * @param doc Document identifier
      * @return Length, empty when no change is pending
      */
     public Optional<TermCount> get(final DocId doc) {
         final Optional<TermCount> pending = this.changes.get(doc);
-        if (pending != null && pending.isEmpty()) {
+        if (pending != null
+            && pending.filter(len -> !TermCount.MAX.equals(len)).isEmpty()) {
             throw new DocNotFoundError(
                 String.format("Document not found: %s", doc)
             );

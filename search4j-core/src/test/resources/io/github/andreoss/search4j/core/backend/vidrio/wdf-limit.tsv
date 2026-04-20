@@ -1,0 +1,537 @@
+wdfadd	ops	add a alpha+4294967295 beta+1; add b alpha+2 beta+3; commit
+wdfadd	disk	S	2	2	5	5	5
+wdfadd	disk	D	1	0	alpha:4294967295 beta:1
+wdfadd	disk	D	2	5	alpha:2 beta:3
+wdfadd	disk	T	alpha	2	1	2:2
+wdfadd	disk	T	beta	2	4	1:1 2:3
+wdfadd	memory	S	2	2	4294967301	1	4294967295
+wdfadd	memory	D	1	0	alpha:4294967295 beta:1
+wdfadd	memory	D	2	5	alpha:2 beta:3
+wdfadd	memory	T	alpha	2	1	1:4294967295 2:2
+wdfadd	memory	T	beta	2	4	1:1 2:3
+wdfadd	disk	F	docdata	86812b20db2ebaead3e9d4cd37cbd2cae64a9ea6daa77e2e577ffcbd4fc0c0f5
+wdfadd	disk	F	version	10adf3b1b74191fe2fd9c30b0cbf6aabf94e2179fa9d44d7b00a4093dac708be
+wdfadd	disk	F	postlist	fc5a5e78d125e94eff5e767d80a02f1046e5d93fa254ebf3e21c17ab0c76c9ed
+wdfadd	disk	F	termlist	0e1d1f539aa5e1e8ec10e57b1baa32f85dfe941fe0c1ae0ad9034ef174fbcb92
+wdfadd	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+wdfadd	disk	C	native	errors 2
+wdfadd	disk	C	port	errors 2
+wdfonly	ops	add a alpha+4294967295 beta+1; commit
+wdfonly	disk	S	1	1	0	0	0
+wdfonly	disk	D	1	0	alpha:4294967295 beta:1
+wdfonly	disk	T	beta	1	1	1:1
+wdfonly	memory	S	1	1	4294967296	1	4294967295
+wdfonly	memory	D	1	0	alpha:4294967295 beta:1
+wdfonly	memory	T	alpha	1	4294967295	1:4294967295
+wdfonly	memory	T	beta	1	1	1:1
+wdfonly	disk	F	docdata	b85267e6e18497833016255f1b905b24eabe65abf517a56ca790fb4771acdf2e
+wdfonly	disk	F	version	ce88553b6376c6549cd620a11b675a4419f8f2c2f9b635730830adac2a7f72e0
+wdfonly	disk	F	postlist	722a2e00040f178c6af697d012d8a44fa51a0e3da9e0b8bcbd33c2681f030406
+wdfonly	disk	F	termlist	2dff298af7e930dd9b169948c2b718650951460a357223d2c3e5bfe5b3d0d7d1
+wdfonly	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+wdfonly	disk	C	native	clean
+wdfonly	disk	C	port	clean
+wdfinc	ops	add a alpha+4294967294 alpha+1 gamma+2; add b alpha+1; commit
+wdfinc	disk	S	2	2	2	1	1
+wdfinc	disk	D	1	1	alpha:4294967295 gamma:2
+wdfinc	disk	D	2	1	alpha:1
+wdfinc	disk	T	alpha	2	0	2:1
+wdfinc	disk	T	gamma	1	2	1:2
+wdfinc	memory	S	2	2	4294967298	1	4294967295
+wdfinc	memory	D	1	1	alpha:4294967295 gamma:2
+wdfinc	memory	D	2	1	alpha:1
+wdfinc	memory	T	alpha	2	0	1:4294967295 2:1
+wdfinc	memory	T	gamma	1	2	1:2
+wdfinc	disk	F	docdata	86812b20db2ebaead3e9d4cd37cbd2cae64a9ea6daa77e2e577ffcbd4fc0c0f5
+wdfinc	disk	F	version	d6d7a59880b3f3cbaa28b4c9d1135592f427b0b3a1df8645bb24a0db8b5a5603
+wdfinc	disk	F	postlist	971e50cb1471c63d8293a6ddbe6b10390281005f245dcd6ae392d4324653d87e
+wdfinc	disk	F	termlist	677baab29f9d84489ceda1d7bbdc0ea5ecfdbb93d9df17250c750e2c94949217
+wdfinc	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+wdfinc	disk	C	native	errors 2
+wdfinc	disk	C	port	errors 2
+wdfpos	ops	add a alpha@1+4294967294 alpha@2+1 beta@3+1; add b alpha@1+1; commit
+wdfpos	disk	S	2	2	1	1	1
+wdfpos	disk	D	1	0	alpha:4294967295 beta:1
+wdfpos	disk	D	2	1	alpha:1
+wdfpos	disk	T	alpha	2	0	2:1
+wdfpos	disk	T	beta	1	1	1:1
+wdfpos	memory	S	2	2	4294967297	1	4294967295
+wdfpos	memory	D	1	0	alpha:4294967295 beta:1
+wdfpos	memory	D	2	1	alpha:1
+wdfpos	memory	T	alpha	2	0	1:4294967295 2:1
+wdfpos	memory	T	beta	1	1	1:1
+wdfpos	disk	F	docdata	86812b20db2ebaead3e9d4cd37cbd2cae64a9ea6daa77e2e577ffcbd4fc0c0f5
+wdfpos	disk	F	version	c996167336559ec5ff78cc0646f1ad1645bea5236a6c390b9fa71ef0996b061f
+wdfpos	disk	F	position	12a6fe683c2a74f6d2fb80ba3d28d7b3e8a4d4d6e46abc345052261df49e49b1
+wdfpos	disk	F	postlist	2fbdcf2059dfd2e2a86c3947e067e186b8645493d983a93071d73e0cbfd53922
+wdfpos	disk	F	termlist	a6101130b127ad8c94b439c4617ffc469fd916bf684b455a0c130117f33ca817
+wdfpos	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+wdfpos	disk	C	native	errors 4
+wdfpos	disk	C	port	errors 4
+lenmax	ops	add a alpha+4294967294 beta+1; add b alpha+1; commit
+lenmax	disk	S	2	2	4294967296	1	4294967295
+lenmax	disk	D	1	missing	alpha:4294967294 beta:1
+lenmax	disk	D	2	1	alpha:1
+lenmax	disk	T	alpha	2	4294967295	1:4294967294 2:1
+lenmax	disk	T	beta	1	1	1:1
+lenmax	memory	S	2	2	4294967296	1	4294967295
+lenmax	memory	D	1	4294967295	alpha:4294967294 beta:1
+lenmax	memory	D	2	1	alpha:1
+lenmax	memory	T	alpha	2	4294967295	1:4294967294 2:1
+lenmax	memory	T	beta	1	1	1:1
+lenmax	disk	F	docdata	86812b20db2ebaead3e9d4cd37cbd2cae64a9ea6daa77e2e577ffcbd4fc0c0f5
+lenmax	disk	F	version	aec5e96367514a1fd0f28d6bd0f30c4d87c0c76643c20723b8547bf895a598f0
+lenmax	disk	F	postlist	aca0c781c251beb5e7afc3dc06cc3097699a474ea72ba283ccc99b9d8e1027a3
+lenmax	disk	F	termlist	fbfd06b465408043e050c91f35ec147911efb128c94b5807963f990f89524374
+lenmax	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+lenmax	disk	C	native	errors 1
+lenmax	disk	C	port	errors 1
+lensum	ops	add a alpha+2147483648 beta+2147483647; commit
+lensum	disk	S	1	1	4294967295	4294967295	4294967295
+lensum	disk	D	1	missing	alpha:2147483648 beta:2147483647
+lensum	disk	T	alpha	1	2147483648	1:2147483648
+lensum	disk	T	beta	1	2147483647	1:2147483647
+lensum	memory	S	1	1	4294967295	1	4294967295
+lensum	memory	D	1	4294967295	alpha:2147483648 beta:2147483647
+lensum	memory	T	alpha	1	2147483648	1:2147483648
+lensum	memory	T	beta	1	2147483647	1:2147483647
+lensum	disk	F	docdata	b85267e6e18497833016255f1b905b24eabe65abf517a56ca790fb4771acdf2e
+lensum	disk	F	version	153a40d4a3a8d87fcdddfdf000529cbc46c4cae0ca6e28e603d3f37ee7e51a1d
+lensum	disk	F	postlist	5d85d9358c0c72a5de470da3de6722be43048bafdbcb7bedac3f73f34254ca37
+lensum	disk	F	termlist	ff3ea2a443c5b20ba068b97432ad5860e71e64d74600f31ca0cceb9b56c25e11
+lensum	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+lensum	disk	C	native	errors 1
+lensum	disk	C	port	errors 1
+bothmax	ops	add a alpha+4294967295; add b beta+1; commit
+bothmax	disk	S	2	2	4294967296	1	4294967295
+bothmax	disk	D	1	missing	alpha:4294967295
+bothmax	disk	D	2	1	beta:1
+bothmax	disk	T	beta	1	1	2:1
+bothmax	memory	S	2	2	4294967296	1	4294967295
+bothmax	memory	D	1	4294967295	alpha:4294967295
+bothmax	memory	D	2	1	beta:1
+bothmax	memory	T	alpha	1	4294967295	1:4294967295
+bothmax	memory	T	beta	1	1	2:1
+bothmax	disk	F	docdata	86812b20db2ebaead3e9d4cd37cbd2cae64a9ea6daa77e2e577ffcbd4fc0c0f5
+bothmax	disk	F	version	7507fc035c6e5705ab1e325d44610ae3311a0d52bc866ca0cf44f037b50bd7c8
+bothmax	disk	F	postlist	db2ce951113703699d363a1d19ac13069090168623918caf5bb803f0eb2d33c7
+bothmax	disk	F	termlist	7a30ec8fe97152b225286cd9f38a84fc4db165ab3f502437fab9d7138ea5d61e
+bothmax	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+bothmax	disk	C	native	errors 1
+bothmax	disk	C	port	errors 1
+replacewdf	ops	add a alpha+1 beta+2; add b alpha+3; commit; replace 1 a alpha+4294967295 beta+2; commit
+replacewdf	disk	S	2	2	4	1	3
+replacewdf	disk	D	1	1	alpha:4294967295 beta:2
+replacewdf	disk	D	2	3	alpha:3
+replacewdf	disk	T	alpha	2	2	2:3
+replacewdf	disk	T	beta	1	2	1:2
+replacewdf	memory	S	2	2	4294967300	1	4294967295
+replacewdf	memory	D	1	1	alpha:4294967295 beta:2
+replacewdf	memory	D	2	3	alpha:3
+replacewdf	memory	T	alpha	2	2	1:4294967295 2:3
+replacewdf	memory	T	beta	1	2	1:2
+replacewdf	disk	F	docdata	76bbe810b798a0627706a4c3e39152991e9edb5a29413db93b5f7f9d3feac36d
+replacewdf	disk	F	version	e90fefc3110efe540af84125418bdc836cb8543d24e703f4db03ab2d3ec493ce
+replacewdf	disk	F	postlist	f9b4d4e0662ae8bd68ff981aba55fd4d79f96cb53eb7939ab3156c26035766bb
+replacewdf	disk	F	termlist	4e5ad205164c8f2d3e6070206679356f1263a32c25eaf08f1ae47028d7bac67c
+replacewdf	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+replacewdf	disk	C	native	errors 2
+replacewdf	disk	C	port	errors 2
+replaceinc	ops	add a alpha+1 beta+2; commit; replace 1 a alpha+4294967293 alpha+2 beta+2; commit
+replaceinc	disk	S	1	1	1	1	1
+replaceinc	disk	D	1	1	alpha:4294967295 beta:2
+replaceinc	disk	T	beta	1	2	1:2
+replaceinc	memory	S	1	1	4294967297	1	4294967295
+replaceinc	memory	D	1	1	alpha:4294967295 beta:2
+replaceinc	memory	T	alpha	1	4294967295	1:4294967295
+replaceinc	memory	T	beta	1	2	1:2
+replaceinc	disk	F	docdata	046d92aee32706c7677d91e1ce1955e1b29a700bd8ad7cdfc3577ec9b5da6c79
+replaceinc	disk	F	version	62cdb1965435402327b06f83db867bae7331516586d8d7a4db026949292260dc
+replaceinc	disk	F	postlist	795882eada02b6fb732634f7bdb43cc7dc42bb69eb34e457b07474228fea2f02
+replaceinc	disk	F	termlist	5accd94c206772ed551f6655988c4d05769aa6f301c246ff4de419725c9c355b
+replaceinc	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+replaceinc	disk	C	native	clean
+replaceinc	disk	C	port	clean
+replacelen	ops	add a alpha+1 beta+1; add b beta+1; commit; replace 1 a alpha+4294967293 beta+2; commit
+replacelen	disk	S	2	2	4294967296	1	4294967295
+replacelen	disk	D	1	missing	alpha:4294967293 beta:2
+replacelen	disk	D	2	1	beta:1
+replacelen	disk	T	alpha	1	4294967293	1:4294967293
+replacelen	disk	T	beta	2	3	1:2 2:1
+replacelen	memory	S	2	2	4294967296	1	4294967295
+replacelen	memory	D	1	4294967295	alpha:4294967293 beta:2
+replacelen	memory	D	2	1	beta:1
+replacelen	memory	T	alpha	1	4294967293	1:4294967293
+replacelen	memory	T	beta	2	3	1:2 2:1
+replacelen	disk	F	docdata	76bbe810b798a0627706a4c3e39152991e9edb5a29413db93b5f7f9d3feac36d
+replacelen	disk	F	version	b2b019fd0bf500415d9846ec1ed05303f3e239ef90a33a4b5c0d229a592bce83
+replacelen	disk	F	postlist	689b2da37e2b10fdc44a8bf2fbec46d3ed40609e0c7999b3f7fb0fe2f7e2811c
+replacelen	disk	F	termlist	54d48fcbb765e7ff89b507ba520577f36b018bc002ebdc0d17244fe5110a04b6
+replacelen	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+replacelen	disk	C	native	errors 1
+replacelen	disk	C	port	errors 1
+replacenew	ops	replace 5 r alpha+4294967295 beta+1; commit
+replacenew	disk	S	5	1	0	0	0
+replacenew	disk	D	1	missing	missing
+replacenew	disk	D	2	missing	missing
+replacenew	disk	D	3	missing	missing
+replacenew	disk	D	4	missing	missing
+replacenew	disk	D	5	0	alpha:4294967295 beta:1
+replacenew	disk	T	beta	1	1	5:1
+replacenew	memory	S	5	1	4294967296	1	4294967295
+replacenew	memory	D	1	missing	missing
+replacenew	memory	D	2	missing	missing
+replacenew	memory	D	3	missing	missing
+replacenew	memory	D	4	missing	missing
+replacenew	memory	D	5	0	alpha:4294967295 beta:1
+replacenew	memory	T	alpha	1	4294967295	5:4294967295
+replacenew	memory	T	beta	1	1	5:1
+replacenew	disk	F	docdata	349c919851d35e52d9d8d2076058e42ce0fd4f7a0e6d39ed87445d5abf6de373
+replacenew	disk	F	version	1f10d325a32eba834586a59574bb2e7b124ae6155c8ddd4bd578d17b211c7afa
+replacenew	disk	F	postlist	f8a035f3e90dfa40a24e8ae85634da35d2d1c318a50c7d07c2160ee04ab2c274
+replacenew	disk	F	termlist	0e15d87e6f6f1c7b7c1d85ee49efc2258afb9168f7dbc19ae40fada0c54f1b9e
+replacenew	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+replacenew	disk	C	native	clean
+replacenew	disk	C	port	clean
+replaceback	ops	add a alpha+4294967295 beta+1; commit; replace 1 a alpha+3 beta+1; commit
+replaceback	disk	S	1	1	4	4	4
+replaceback	disk	D	1	4	alpha:3 beta:1
+replaceback	disk	T	beta	1	1	1:1
+replaceback	memory	S	1	1	4294967300	1	4294967295
+replaceback	memory	D	1	4	alpha:3 beta:1
+replaceback	memory	T	alpha	1	3	1:3
+replaceback	memory	T	beta	1	1	1:1
+replaceback	disk	F	docdata	046d92aee32706c7677d91e1ce1955e1b29a700bd8ad7cdfc3577ec9b5da6c79
+replaceback	disk	F	version	5642d3260a76cbe50bde884db8815b0dad35c049ea2666d9f3c3027a4afa8e7c
+replaceback	disk	F	postlist	1290f87fe6c05f85d7b704509d075ca90595db3f051b445470415ffdaf9343dc
+replaceback	disk	F	termlist	25a9f9019401787840db80a4fb8b31310cf7924d235dec556890d47b2382b5f7
+replaceback	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+replaceback	disk	C	native	clean
+replaceback	disk	C	port	clean
+replacelenback	ops	add a alpha+4294967294 beta+1; commit; replace 1 a alpha+2 beta+1; commit
+replacelenback	disk	S	1	1	3	3	3
+replacelenback	disk	D	1	3	alpha:2 beta:1
+replacelenback	disk	T	alpha	1	2	1:2
+replacelenback	disk	T	beta	1	1	1:1
+replacelenback	memory	S	1	1	3	1	3
+replacelenback	memory	D	1	3	alpha:2 beta:1
+replacelenback	memory	T	alpha	1	2	1:2
+replacelenback	memory	T	beta	1	1	1:1
+replacelenback	disk	F	docdata	046d92aee32706c7677d91e1ce1955e1b29a700bd8ad7cdfc3577ec9b5da6c79
+replacelenback	disk	F	version	92b7bca5fa8525cfbaf6a3d21a413c95637675eaefb4fb416e954f619af1b7d4
+replacelenback	disk	F	postlist	4665733a506e30c100024c55e6b0e33e50a7cf3dbb3bb0bfc4d230611598db25
+replacelenback	disk	F	termlist	69c3c55a29247e7a6ac2be7081fe2aacb327bbdce107aea8eaf9fec095f95102
+replacelenback	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+replacelenback	disk	C	native	clean
+replacelenback	disk	C	port	clean
+commits	ops	add a alpha+4294967295 beta+1; commit; add b alpha+1; commit; delete 1; commit; add c alpha+4294967294 gamma+1; commit; replace 3 d alpha+1 gamma+1; commit
+commits	disk	S	3	2	3	1	4294967295
+commits	disk	D	1	missing	missing
+commits	disk	D	2	1	alpha:1
+commits	disk	D	3	2	alpha:1 gamma:1
+commits	disk	T	alpha	1	1	3:1
+commits	disk	T	gamma	1	1	3:1
+commits	memory	S	3	2	4294967299	1	4294967295
+commits	memory	D	1	missing	missing
+commits	memory	D	2	1	alpha:1
+commits	memory	D	3	2	alpha:1 gamma:1
+commits	memory	T	alpha	2	2	2:1 3:1
+commits	memory	T	gamma	1	1	3:1
+commits	disk	F	docdata	4d92e60be9aace81b74bcf4abfc50488a7644a55d5b39c9de2cac0fbc7dd1846
+commits	disk	F	version	09e7ddcd8c0c46bbc224e157fa1a61ca1ad478877ea9195711ef43f556f55695
+commits	disk	F	postlist	42685ca0a57d69cc7e6f8dbaa848a1bb7b79aeeedbec3adc708960ee53ebd46e
+commits	disk	F	termlist	e7ae22b9f872a13e71b843d72b4c45f6a306bb56c70b39efdf8ea4b34bcb0f32
+commits	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+commits	disk	C	native	clean
+commits	disk	C	port	clean
+deletewdf	ops	add a alpha+4294967295 beta+1; add b alpha+1; commit; delete 1; commit
+deletewdf	disk	S	2	1	1	1	1
+deletewdf	disk	D	1	missing	missing
+deletewdf	disk	D	2	1	alpha:1
+deletewdf	disk	T	alpha	1	1	2:1
+deletewdf	memory	S	2	1	4294967297	1	4294967295
+deletewdf	memory	D	1	missing	missing
+deletewdf	memory	D	2	1	alpha:1
+deletewdf	memory	T	alpha	1	1	2:1
+deletewdf	disk	F	docdata	4b357c3c69099bf1a72a63758d90522ddbd480e3952a261dc50dbcc47573cf2a
+deletewdf	disk	F	version	4adf132d4fd073c69f3abe5a5fee78f1b2dc04c290f40b6cd14b58c36271d743
+deletewdf	disk	F	postlist	43b0b1278019392b46c42343a8df39da59cb4a6b2dd4613a08bf85a959dce5d8
+deletewdf	disk	F	termlist	c92f6a86096454872a5522fcd398e1ec53f08bad82b1eab728a32a209dabc080
+deletewdf	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+deletewdf	disk	C	native	clean
+deletewdf	disk	C	port	clean
+deletelen	ops	add a alpha+4294967294 beta+1; add b alpha+1; commit; delete 1; commit
+deletelen	disk	S	2	1	1	1	4294967295
+deletelen	disk	D	1	missing	missing
+deletelen	disk	D	2	1	alpha:1
+deletelen	disk	T	alpha	1	1	2:1
+deletelen	memory	S	2	1	1	1	1
+deletelen	memory	D	1	missing	missing
+deletelen	memory	D	2	1	alpha:1
+deletelen	memory	T	alpha	1	1	2:1
+deletelen	disk	F	docdata	4b357c3c69099bf1a72a63758d90522ddbd480e3952a261dc50dbcc47573cf2a
+deletelen	disk	F	version	f67514eac6330cd4060378b4e28aba7900f3b7004241d944f0682d7d195fe708
+deletelen	disk	F	postlist	c5e95c6be7ba1bac0c7f6a947a933c5be19510771cd235f034c9468349a721b8
+deletelen	disk	F	termlist	8e32452111a1619a855985571109067285e4317475f49a4071670eabb1947638
+deletelen	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+deletelen	disk	C	native	clean
+deletelen	disk	C	port	clean
+deletenodata	ops	add - alpha+4294967294 beta+1; add b alpha+1; commit; delete 1; commit
+deletenodata	disk	E	delete	missing
+deletenodata	disk	S	2	2	4294967296	1	4294967295
+deletenodata	disk	D	1	missing	alpha:4294967294 beta:1
+deletenodata	disk	D	2	1	alpha:1
+deletenodata	disk	T	alpha	2	4294967295	1:4294967294 2:1
+deletenodata	disk	T	beta	1	1	1:1
+deletenodata	memory	S	2	1	1	1	1
+deletenodata	memory	D	1	missing	missing
+deletenodata	memory	D	2	1	alpha:1
+deletenodata	memory	T	alpha	1	1	2:1
+deletenodata	disk	F	docdata	1f83ff96b31a26623c87e877312cbadb65ba768f7f2128f44cedd451efe4e69e
+deletenodata	disk	F	version	5c7a7c250331c861a6c93158676dbc4cb16a4cea1d91cd0151b8d6349e2894bc
+deletenodata	disk	F	postlist	aca0c781c251beb5e7afc3dc06cc3097699a474ea72ba283ccc99b9d8e1027a3
+deletenodata	disk	F	termlist	fbfd06b465408043e050c91f35ec147911efb128c94b5807963f990f89524374
+deletenodata	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+deletenodata	disk	C	native	errors 1
+deletenodata	disk	C	port	errors 1
+pending	ops	add a alpha+4294967294 beta+1; add b alpha+4294967295 gamma+1; len 1; len 2; post alpha; post gamma; commit; len 1; len 2
+pending	disk	E	len	1	missing
+pending	disk	E	len	2	0
+pending	disk	E	post	alpha	2	4294967293	1:4294967294
+pending	disk	E	post	gamma	1	1	2:1
+pending	disk	E	len	1	missing
+pending	disk	E	len	2	0
+pending	disk	S	2	2	4294967295	4294967295	4294967295
+pending	disk	D	1	missing	alpha:4294967294 beta:1
+pending	disk	D	2	0	alpha:4294967295 gamma:1
+pending	disk	T	alpha	2	4294967293	1:4294967294
+pending	disk	T	beta	1	1	1:1
+pending	disk	T	gamma	1	1	2:1
+pending	memory	E	len	1	4294967295
+pending	memory	E	len	2	0
+pending	memory	E	post	alpha	2	4294967293	1:4294967294 2:4294967295
+pending	memory	E	post	gamma	1	1	2:1
+pending	memory	E	len	1	4294967295
+pending	memory	E	len	2	0
+pending	memory	S	2	2	8589934591	1	4294967295
+pending	memory	D	1	4294967295	alpha:4294967294 beta:1
+pending	memory	D	2	0	alpha:4294967295 gamma:1
+pending	memory	T	alpha	2	4294967293	1:4294967294 2:4294967295
+pending	memory	T	beta	1	1	1:1
+pending	memory	T	gamma	1	1	2:1
+pending	disk	F	docdata	86812b20db2ebaead3e9d4cd37cbd2cae64a9ea6daa77e2e577ffcbd4fc0c0f5
+pending	disk	F	version	a5161004bbeeea629727e338cac8889cdc29b1abf6ec1d8122b0c86fbf41da22
+pending	disk	F	postlist	a355f25560357fa54e507f06e3b628a5876f3bf2c9184e1d48bc4212647e0cb2
+pending	disk	F	termlist	ca0fa1331ce585b880efa8bcff1dd71d6dcd6167b6ccef15a9f2e01b65948119
+pending	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+pending	disk	C	native	errors 3
+pending	disk	C	port	errors 3
+pendingdelete	ops	add a alpha+4294967294 beta+1; delete 1; commit
+pendingdelete	disk	S	1	0	0	0	0
+pendingdelete	disk	D	1	missing	missing
+pendingdelete	memory	S	1	0	0	1	0
+pendingdelete	memory	D	1	missing	missing
+pendingdelete	disk	F	docdata	b638f979c2ee678bc2becf94936d047d260a6cb18d2a84fcdb2d947e8c870586
+pendingdelete	disk	F	version	a89d97a880deb01861b03304483485a9cb0b5123708aec7f4534c3cdd983d9db
+pendingdelete	disk	F	postlist	b949194a963735b89a061e84694b1d87d49f7d8a46f5096f1f88e1688973a70f
+pendingdelete	disk	F	termlist	b757f7f70185d665c0753dc8beda55938e7e56a98e9f552cab6f13e2bddc0b3e
+pendingdelete	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+pendingdelete	disk	C	native	clean
+pendingdelete	disk	C	port	clean
+pendingdeletenodata	ops	add - alpha+4294967294 beta+1; delete 1; commit
+pendingdeletenodata	disk	E	delete	missing
+pendingdeletenodata	disk	S	1	1	4294967295	4294967295	4294967295
+pendingdeletenodata	disk	D	1	missing	alpha:4294967294 beta:1
+pendingdeletenodata	disk	T	alpha	1	4294967294	1:4294967294
+pendingdeletenodata	disk	T	beta	1	1	1:1
+pendingdeletenodata	memory	S	1	0	0	1	0
+pendingdeletenodata	memory	D	1	missing	missing
+pendingdeletenodata	disk	F	version	26293afb3ea9047ef585baecf3fa3287dccdf8cef2e0d4a71b3030342a8fd20a
+pendingdeletenodata	disk	F	postlist	ddef4b9eda03639eda79e978eedc5254e67397d317a363eb551cb8d92b265d42
+pendingdeletenodata	disk	F	termlist	6abcba8de9013873f18e9fb5089f7207a070119eca767cde7102813c9fc42c26
+pendingdeletenodata	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+pendingdeletenodata	disk	C	native	errors 1
+pendingdeletenodata	disk	C	port	errors 1
+many	ops	add a alpha+4294967295 k1+1; add b alpha+4294967295 k2+1; add c alpha+5 k3+4294967295; add d alpha+1 k4+4294967294; commit; add e alpha+4294967295 k5+1; commit
+many	disk	S	5	5	4294967299	4	4294967295
+many	disk	D	1	0	alpha:4294967295 k1:1
+many	disk	D	2	0	alpha:4294967295 k2:1
+many	disk	D	3	4	alpha:5 k3:4294967295
+many	disk	D	4	missing	alpha:1 k4:4294967294
+many	disk	D	5	0	alpha:4294967295 k5:1
+many	disk	T	alpha	5	3	3:5 4:1
+many	disk	T	k1	1	1	1:1
+many	disk	T	k2	1	1	2:1
+many	disk	T	k4	1	4294967294	4:4294967294
+many	disk	T	k5	1	1	5:1
+many	memory	S	5	5	21474836483	1	4294967295
+many	memory	D	1	0	alpha:4294967295 k1:1
+many	memory	D	2	0	alpha:4294967295 k2:1
+many	memory	D	3	4	alpha:5 k3:4294967295
+many	memory	D	4	4294967295	alpha:1 k4:4294967294
+many	memory	D	5	0	alpha:4294967295 k5:1
+many	memory	T	alpha	5	3	1:4294967295 2:4294967295 3:5 4:1 5:4294967295
+many	memory	T	k1	1	1	1:1
+many	memory	T	k2	1	1	2:1
+many	memory	T	k3	1	4294967295	3:4294967295
+many	memory	T	k4	1	4294967294	4:4294967294
+many	memory	T	k5	1	1	5:1
+many	disk	F	docdata	4126e68af4c5c838dadf983a2278aab202c9e219dc16f326523f69ef91449652
+many	disk	F	version	12e0dc68464a1cd15aa4674230755b12cbfba668e56756912bdab0c6c3a05357
+many	disk	F	postlist	3c511cb7bd416e2b315a2cee6feb8a167e668deff71ea2083dbf7875da7bf328
+many	disk	F	termlist	058e05bfa888cfbd5a1a71ee1bbfefac3bb724b5a8303617c08ea2a6ecb20d64
+many	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+many	disk	C	native	errors 3
+many	disk	C	port	errors 3
+n1	ops	add a alpha+4294967295; commit; delete 1; commit
+n1	disk	S	1	0	0	0	0
+n1	disk	D	1	missing	missing
+n1	memory	S	1	0	0	1	0
+n1	memory	D	1	missing	missing
+n1	disk	F	docdata	ff66352db4b42917bfd18c3400be6f70805c31c2360cfd5f3e9f1a4c223388c1
+n1	disk	F	version	327b1205642e068239c93fb2fea5b7cd31f908469ce4e9e915dacd872ac3a66e
+n1	disk	F	postlist	4e4783822857e1477bb9c14f2ed420630376dbdc60f1f920ca40c9d12e06b17d
+n1	disk	F	termlist	24ba290ece3a4b20d20a349c488cbf98e144036e31f6e5518dc3471b06e049bd
+n1	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+n1	disk	C	native	clean
+n1	disk	C	port	clean
+n2	ops	add a alpha+4294967295; commit; add b alpha+4294967295; commit; delete 2; commit
+n2	disk	S	2	1	4294967295	4294967295	4294967295
+n2	disk	D	1	missing	alpha:4294967295
+n2	disk	D	2	missing	missing
+n2	memory	S	2	1	4294967295	1	4294967295
+n2	memory	D	1	4294967295	alpha:4294967295
+n2	memory	D	2	missing	missing
+n2	memory	T	alpha	1	4294967295	1:4294967295
+n2	disk	F	docdata	46ef376fe2830d722135b54bc08302d5625d984c35bafe7e7cebe45ae23c0754
+n2	disk	F	version	0dbd26a32fa980d3bf68085ea058c18329381c3cb60a1c05d43adce92e039f2c
+n2	disk	F	postlist	917ac2f2800c8cfd5413a171363ddd827bf5ded2b4ed5c2f2502033dbb7c7c2b
+n2	disk	F	termlist	b370eb20f6b65bd409279b2eac8b1d9c34e6f79f24db5c3d636879797bd39856
+n2	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+n2	disk	C	native	errors 1
+n2	disk	C	port	errors 1
+n3	ops	add a alpha+4294967295; add b alpha+4294967295; commit; delete 2; commit
+n3	disk	S	2	1	4294967295	4294967295	4294967295
+n3	disk	D	1	missing	alpha:4294967295
+n3	disk	D	2	missing	missing
+n3	memory	S	2	1	4294967295	1	4294967295
+n3	memory	D	1	4294967295	alpha:4294967295
+n3	memory	D	2	missing	missing
+n3	memory	T	alpha	1	4294967295	1:4294967295
+n3	disk	F	docdata	babd62ab1b7d6f60560027090caf508711bce9132e4aab4df51eea53d112a807
+n3	disk	F	version	707236bea9a02abb0a5aef1caf46f4fdc04ccf81ac6e6b594c857ca8555c1808
+n3	disk	F	postlist	99841a93c8ba27b649a1383014ef5ff23c919d0bda123920b2be38a4778ba53a
+n3	disk	F	termlist	77e3ea1472c18347548dfa8c4afa98a071c8ca4682f8448206945ec6195be0a9
+n3	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+n3	disk	C	native	errors 1
+n3	disk	C	port	errors 1
+n4	ops	add a alpha+4294967295; commit; delete 1
+n4	disk	S	1	0	0	0	0
+n4	disk	D	1	missing	missing
+n4	memory	S	1	0	0	1	0
+n4	memory	D	1	missing	missing
+n4	disk	F	docdata	ff66352db4b42917bfd18c3400be6f70805c31c2360cfd5f3e9f1a4c223388c1
+n4	disk	F	version	327b1205642e068239c93fb2fea5b7cd31f908469ce4e9e915dacd872ac3a66e
+n4	disk	F	postlist	4e4783822857e1477bb9c14f2ed420630376dbdc60f1f920ca40c9d12e06b17d
+n4	disk	F	termlist	24ba290ece3a4b20d20a349c488cbf98e144036e31f6e5518dc3471b06e049bd
+n4	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+n4	disk	C	native	clean
+n4	disk	C	port	clean
+n6	ops	add a alpha+4294967295 beta+1; commit; delete 1; commit
+n6	disk	S	1	0	0	0	0
+n6	disk	D	1	missing	missing
+n6	memory	S	1	0	4294967296	1	4294967295
+n6	memory	D	1	missing	missing
+n6	disk	F	docdata	ff66352db4b42917bfd18c3400be6f70805c31c2360cfd5f3e9f1a4c223388c1
+n6	disk	F	version	327b1205642e068239c93fb2fea5b7cd31f908469ce4e9e915dacd872ac3a66e
+n6	disk	F	postlist	3200c6cb9cb0562afda1c1d208ca9830e5ade8be5bbb8fd26d1e7cd1b4f0ab2c
+n6	disk	F	termlist	763b08ea7d4140d2c674881258cff444b859816c51401b87524ab56f70b05207
+n6	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+n6	disk	C	native	clean
+n6	disk	C	port	clean
+qmixed	ops	add a alpha+4294967295 beta+3; commit; replace 1 a alpha+4294967295 beta+4; commit; add b alpha+4294967295; commit; delete 2; commit; add c beta+4294967294 gamma+1; add d beta+2; commit
+qmixed	disk	S	4	3	4294967300	2	4294967295
+qmixed	disk	D	1	3	alpha:4294967295 beta:4
+qmixed	disk	D	2	missing	missing
+qmixed	disk	D	3	missing	beta:4294967294 gamma:1
+qmixed	disk	D	4	2	beta:2
+qmixed	disk	T	beta	3	4	1:4 3:4294967294 4:2
+qmixed	disk	T	gamma	1	1	3:1
+qmixed	memory	S	4	3	12884901892	1	4294967295
+qmixed	memory	D	1	3	alpha:4294967295 beta:4
+qmixed	memory	D	2	missing	missing
+qmixed	memory	D	3	4294967295	beta:4294967294 gamma:1
+qmixed	memory	D	4	2	beta:2
+qmixed	memory	T	alpha	1	4294967295	1:4294967295
+qmixed	memory	T	beta	3	4	1:4 3:4294967294 4:2
+qmixed	memory	T	gamma	1	1	3:1
+qmixed	disk	F	docdata	3e1fc2d632b56649b9743f46120a132cc8eecf8c274297ff47aa529249eb833f
+qmixed	disk	F	version	d668b79bcc30f57104cd26a356993b434877cef301b6f6b799e6a05bd7a31747
+qmixed	disk	F	postlist	74bbcea31dd691b70530c1f009f7d438a8475e05850666190f03fff1fc98bd75
+qmixed	disk	F	termlist	1f547f2276174db8e2cc58c8259a23c81e7dea1065c4d6ad576694083b403808
+qmixed	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+qmixed	disk	C	native	errors 1
+qmixed	disk	C	port	errors 1
+qpostpend	ops	add a alpha+4294967295; add b alpha+3; post alpha; len 1; len 2; replace 2 b alpha+4294967295; post alpha; len 2; commit; post alpha
+qpostpend	disk	E	post	alpha	2	2	2:3
+qpostpend	disk	E	len	1	missing
+qpostpend	disk	E	len	2	3
+qpostpend	disk	E	post	alpha	2	4294967294	
+qpostpend	disk	E	len	2	missing
+qpostpend	disk	E	post	alpha	0	0	
+qpostpend	disk	S	2	2	8589934590	3	4294967295
+qpostpend	disk	D	1	missing	alpha:4294967295
+qpostpend	disk	D	2	missing	alpha:4294967295
+qpostpend	memory	E	post	alpha	2	2	1:4294967295 2:3
+qpostpend	memory	E	len	1	4294967295
+qpostpend	memory	E	len	2	3
+qpostpend	memory	E	post	alpha	2	4294967294	1:4294967295 2:4294967295
+qpostpend	memory	E	len	2	4294967295
+qpostpend	memory	E	post	alpha	2	4294967294	1:4294967295 2:4294967295
+qpostpend	memory	S	2	2	8589934590	1	4294967295
+qpostpend	memory	D	1	4294967295	alpha:4294967295
+qpostpend	memory	D	2	4294967295	alpha:4294967295
+qpostpend	memory	T	alpha	2	4294967294	1:4294967295 2:4294967295
+qpostpend	disk	F	docdata	86812b20db2ebaead3e9d4cd37cbd2cae64a9ea6daa77e2e577ffcbd4fc0c0f5
+qpostpend	disk	F	version	97530b2e1aa5c8f992b93796e53bcf159ee47733ace5e63dbe029acc9a20bc9c
+qpostpend	disk	F	postlist	180124dd4d5fc2a99c2643ab0a83d7ac45ba776c1cb3203a285f81bacfaba599
+qpostpend	disk	F	termlist	dbcbf5858665e7ea316d9b9c7d48a923aaca1b8fe3eb56762795767f22cbc376
+qpostpend	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+qpostpend	disk	C	native	errors 1
+qpostpend	disk	C	port	errors 1
+w8	ops	add a alpha+4294967295; commit; delete 1; post alpha; len 1; commit; post alpha
+w8	disk	E	post	alpha	4294967295	1	
+w8	disk	E	len	1	missing
+w8	disk	E	post	alpha	0	0	
+w8	disk	S	1	0	0	0	0
+w8	disk	D	1	missing	missing
+w8	memory	E	post	alpha	0	0	
+w8	memory	E	len	1	missing
+w8	memory	E	post	alpha	0	0	
+w8	memory	S	1	0	0	1	0
+w8	memory	D	1	missing	missing
+w8	disk	F	docdata	ff66352db4b42917bfd18c3400be6f70805c31c2360cfd5f3e9f1a4c223388c1
+w8	disk	F	version	327b1205642e068239c93fb2fea5b7cd31f908469ce4e9e915dacd872ac3a66e
+w8	disk	F	postlist	387e306c161fa06e605c0fb2aff71cfc93fdffb66409cd43ce6b3c4f91d3673b
+w8	disk	F	termlist	24ba290ece3a4b20d20a349c488cbf98e144036e31f6e5518dc3471b06e049bd
+w8	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+w8	disk	C	native	clean
+w8	disk	C	port	clean
+w9	ops	add a alpha+4294967295; commit; add b alpha+4294967295; delete 1; delete 2; post alpha; pfirst alpha; commit
+w9	disk	E	post	alpha	4294967295	1	
+w9	disk	E	pfirst	alpha	0	0	
+w9	disk	S	2	0	0	0	0
+w9	disk	D	1	missing	missing
+w9	disk	D	2	missing	missing
+w9	memory	E	post	alpha	0	0	
+w9	memory	E	pfirst	alpha	0	0	
+w9	memory	S	2	0	0	1	0
+w9	memory	D	1	missing	missing
+w9	memory	D	2	missing	missing
+w9	disk	F	docdata	8e45535a4e520eac638b1abda535a85eece839da6b16ec409845a92b990550c2
+w9	disk	F	version	febcf50911e5e4bb3f9471cca42c464b1e60d2598e3eb247070f4ef6041003fe
+w9	disk	F	postlist	387e306c161fa06e605c0fb2aff71cfc93fdffb66409cd43ce6b3c4f91d3673b
+w9	disk	F	termlist	c1300fd99ff3259f756fbc737d395b7f92f3d0c02a3875d462021565b6e14b5d
+w9	disk	F	lock	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+w9	disk	C	native	clean
+w9	disk	C	port	clean
